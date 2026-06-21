@@ -1,37 +1,19 @@
 import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
 import type { Order } from '@/lib/types';
 import { ART, formatTimer, formatEuro } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
 import { offeneNotes, useStore } from '@/state/store';
 import { hasOffeneZeiten } from '@/state/selectors';
 
-export function OrderCard({ order }: { order: Order }) {
-  const openCard = useStore((s) => s.openCard);
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: order.id });
-
+/** Reine Darstellung einer Karte – wird sowohl im Board als auch im Drag-Overlay genutzt. */
+function CardInner({ order }: { order: Order }) {
   const art = ART[order.artKey];
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    borderLeftColor: STATUS[order.status].color,
-  };
-
   const timerLaufend = order.timerRunning;
   const offeneZeit = !timerLaufend && hasOffeneZeiten(order);
   const reviewCount = offeneNotes(order);
 
   return (
-    <div
-      ref={setNodeRef}
-      className={`card${isDragging ? ' is-dragging' : ''}`}
-      style={style}
-      onClick={() => openCard(order.id)}
-      {...attributes}
-      {...listeners}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter') openCard(order.id); }}
-    >
+    <>
       <div className="card__top">
         <div>
           <div className="card__mandant">{order.mandant}</div>
@@ -77,6 +59,44 @@ export function OrderCard({ order }: { order: Order }) {
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+/** Ziehbare Karte im Board. Klick öffnet das Detail, Ziehen verschiebt den Status. */
+export function OrderCard({ order }: { order: Order }) {
+  const openCard = useStore((s) => s.openCard);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: order.id });
+
+  const style = {
+    borderLeftColor: STATUS[order.status].color,
+    // Beim Ziehen bleibt das Original an Ort und Stelle (nur abgeblendet);
+    // sichtbar bewegt wird ausschließlich das Overlay (siehe Board.tsx).
+    opacity: isDragging ? 0.4 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="card"
+      style={style}
+      onClick={() => openCard(order.id)}
+      {...attributes}
+      {...listeners}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter') openCard(order.id); }}
+    >
+      <CardInner order={order} />
+    </div>
+  );
+}
+
+/** Visuelle Kopie, die beim Ziehen dem Cursor folgt (kein Klick, kein Drag-Hook). */
+export function OrderCardOverlay({ order }: { order: Order }) {
+  return (
+    <div className="card card--overlay" style={{ borderLeftColor: STATUS[order.status].color }}>
+      <CardInner order={order} />
     </div>
   );
 }

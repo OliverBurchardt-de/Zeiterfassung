@@ -8,7 +8,7 @@ import { useStore } from '@/state/store';
 import { useFilteredOrders } from '@/state/selectors';
 import { hasUnterlagenProzess } from '@/lib/art';
 import type { Order } from '@/lib/types';
-import { OrderCard } from './OrderCard';
+import { OrderCard, OrderCardOverlay } from './OrderCard';
 
 export function Board() {
   const orders = useFilteredOrders();
@@ -47,7 +47,7 @@ export function Board() {
             <Column key={s} status={s} orders={byStatus(s)} />
           ))}
         </div>
-        <DragOverlay>{activeOrder && <OrderCard order={activeOrder} />}</DragOverlay>
+        <DragOverlay>{activeOrder && <OrderCardOverlay order={activeOrder} />}</DragOverlay>
       </DndContext>
     </div>
   );

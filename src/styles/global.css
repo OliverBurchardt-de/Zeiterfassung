@@ -144,11 +144,16 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 /* ---------- Auftrags-Karte ---------- */
 .card {
   background: #fff; border: 1px solid var(--bk-stone); border-left: 3px solid var(--bk-fg-2);
-  border-radius: 10px; box-shadow: var(--bk-shadow-1); padding: 11px 12px; cursor: pointer;
+  border-radius: 10px; box-shadow: var(--bk-shadow-1); padding: 11px 12px; cursor: grab;
   transition: box-shadow .18s ease-out, transform .18s ease-out;
+  /* Damit Ziehen zuverlässig funktioniert: keine Textauswahl, kein Touch-Scroll-Konflikt */
+  user-select: none; -webkit-user-select: none; touch-action: none;
 }
 .card:hover { box-shadow: var(--bk-shadow-2); transform: translateY(-1px); }
-.card.is-dragging { opacity: .5; }
+.card:active { cursor: grabbing; }
+.card.is-dragging { opacity: .4; }
+/* Kopie, die beim Ziehen dem Cursor folgt */
+.card--overlay { cursor: grabbing; box-shadow: var(--bk-shadow-3); transform: rotate(1.5deg); }
 .card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .card__mandant { font-family: var(--bk-font-display); font-weight: 600; font-size: 15.5px; line-height: 1.2; }
 .card__art { font-size: 13px; color: var(--bk-fg-2); margin-top: 2px; }
