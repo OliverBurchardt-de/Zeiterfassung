@@ -98,7 +98,7 @@ export function OrderModal({ orderId }: { orderId: string }) {
               </div>
               <div className="field">
                 <label>Ist-Stunden</label>
-                <input className="input" defaultValue={formatHours(erfasst)} readOnly />
+                <input className="input" value={formatHours(erfasst)} readOnly />
                 <div className="hint">Summe der erfassten Zeiten</div>
               </div>
 
