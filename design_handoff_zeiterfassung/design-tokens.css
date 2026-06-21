@@ -1,0 +1,98 @@
+/* ============================================================
+   Burchardt & Kollegen — Design Tokens (Zeiterfassungs-App)
+   Direkt einbindbar. Erweiterung ggü. der Marken-CSS:
+   --bk-success (#2E7D5B) nur für „Erledigt"/freigegeben.
+   ============================================================ */
+
+/* Petrona (Display) — lokale variable Fonts in ./fonts/ */
+@font-face {
+  font-family: 'Petrona';
+  font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url('fonts/Petrona_wght_.ttf') format('truetype-variations'),
+       url('fonts/Petrona_wght_.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Petrona';
+  font-style: italic; font-weight: 100 900; font-display: swap;
+  src: url('fonts/Petrona-Italic_wght_.ttf') format('truetype-variations'),
+       url('fonts/Petrona-Italic_wght_.ttf') format('truetype');
+}
+/* Aleo (Body) via Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Aleo:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+:root {
+  /* Marken-Kernfarben */
+  --bk-anthracite: #333333;   /* Haupt-Text, kein reines Schwarz */
+  --bk-blue:       #0080C9;
+  --bk-deep-blue:  #3A5791;
+  --bk-amber:      #F7B234;
+  --bk-amber-hover:#E5A11C;
+  --bk-blood-orange:#E94E1B;
+  --bk-success:    #2E7D5B;   /* Erweiterung: Erledigt / freigegeben */
+
+  /* Text / Neutrale */
+  --bk-fg-1: #333333;
+  --bk-fg-2: #6E6E6E;
+  --bk-fg-3: #9AA0AB;
+  --bk-paper:  #FAFAF8;   /* Seiten-Hintergrund */
+  --bk-cloud:  #F2F4F8;   /* Sektionen / sekundäre Flächen */
+  --bk-stone:  #E5E7EC;   /* Hairlines / Borders */
+  --bk-box:    #D4D9E2;   /* Checkbox-Border / Eingaben */
+  --bk-white:  #FFFFFF;
+
+  /* Soft-Tints (Status- & Typ-Badges) */
+  --bk-blue-soft:   #DCEFF9;
+  --bk-deep-soft:   #E1E6F0;
+  --bk-amber-soft:  #FDEFD2;
+  --bk-orange-soft: #FBE4DB;
+  --bk-success-soft:#DCEDE4;
+  --bk-amber-text:  #7A5400;  /* Text auf amber-soft (z. B. „Freigabe ausstehend") */
+  --bk-amber-ink:   #B5791A;  /* „Offen"-Badge-Text */
+
+  /* Status-Akzente (Kanban) */
+  --bk-status-av: #6E6E6E;
+  --bk-status-ua: #E94E1B;
+  --bk-status-uv: #0080C9;
+  --bk-status-bb: #0080C9;
+  --bk-status-rf: #F7B234;
+  --bk-status-rn: #E94E1B;
+  --bk-status-fg: #3A5791;
+  --bk-status-am: #3A5791;
+  --bk-status-fa: #3A5791;
+  --bk-status-er: #2E7D5B;
+
+  /* Auftragsart-Farben (Kürzel-Badge) */
+  --bk-art-ja:   #0080C9; /* Jahresabschluss */
+  --bk-art-ust:  #3A5791; /* Umsatzsteuer */
+  --bk-art-lohn: #E94E1B; /* Lohn */
+  --bk-art-est:  #7A5400; /* Einkommensteuer */
+  --bk-art-fibu: #2E7D5B; /* Finanzbuchhaltung */
+
+  /* Typografie */
+  --bk-font-display: 'Petrona', 'Cambria', Georgia, serif;
+  --bk-font-body:    'Aleo', 'Helvetica Neue', Arial, sans-serif;
+  --bk-fs-h1: 34px;  /* Seiten-H1 in dieser App */
+  --bk-fs-h2: 28px;  /* Modal-Titel */
+  --bk-fs-h3: 18px;
+  --bk-fs-body: 14px;
+  --bk-fs-small: 12px;
+  --bk-eyebrow-tracking: 0.18em;
+
+  /* Radius */
+  --bk-radius-sm: 6px;
+  --bk-radius-md: 8px;
+  --bk-radius-card: 14px;
+  --bk-radius-modal: 18px;
+  --bk-radius-pill: 999px;
+
+  /* Spacing (8pt) */
+  --bk-space-1: 4px;  --bk-space-2: 8px;  --bk-space-3: 12px;
+  --bk-space-4: 16px; --bk-space-5: 24px; --bk-space-6: 32px;
+  --bk-space-7: 48px; --bk-space-8: 64px; --bk-space-9: 96px;
+
+  /* Shadows */
+  --bk-shadow-1: 0 1px 2px rgba(20,28,48,0.06);
+  --bk-shadow-2: 0 4px 14px rgba(20,28,48,0.10);
+  --bk-shadow-3: 0 12px 32px rgba(20,28,48,0.12);
+  --bk-shadow-modal: 0 24px 60px rgba(20,28,48,0.28);
+}
