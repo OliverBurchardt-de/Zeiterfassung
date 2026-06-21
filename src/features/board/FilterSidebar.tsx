@@ -4,9 +4,10 @@ import { EMPLOYEES } from '@/mock/orders';
 import { ART } from '@/lib/art';
 import type { ArtKey } from '@/lib/types';
 
-const ART_FILTER: ArtKey[] = ['ja', 'ust', 'lohn', 'est', 'fibu'];
+const ART_FILTER: ArtKey[] = ['ja', 'ust', 'lohn', 'est', 'fibu', 'beratung', 'mehraufwand'];
 const ART_LABEL: Record<ArtKey, string> = {
   ja: 'Jahresabschluss', ust: 'Umsatzsteuer', lohn: 'Lohn', est: 'Einkommensteuer', fibu: 'Finanzbuchhaltung',
+  beratung: 'Steuerberatung', mehraufwand: 'Mehraufwand',
 };
 
 export function FilterSidebar() {

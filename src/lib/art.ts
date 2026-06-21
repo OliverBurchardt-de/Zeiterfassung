@@ -7,6 +7,8 @@ export const ART: Record<ArtKey, { label: string; color: string }> = {
   lohn: { label: 'LOHN', color: '#E94E1B' },
   est: { label: 'ESt', color: '#7A5400' },
   fibu: { label: 'FIBU', color: '#2E7D5B' },
+  beratung: { label: 'STB', color: '#F7B234' },
+  mehraufwand: { label: 'MEHR', color: '#333333' },
 };
 
 /** Auftragsarten mit Unterlagen-Prozess → Spalten ua/uv sichtbar */
@@ -14,6 +16,13 @@ export const ARTEN_MIT_UNTERLAGEN: ArtKey[] = ['ja', 'fibu'];
 
 export function hasUnterlagenProzess(artKey: ArtKey): boolean {
   return ARTEN_MIT_UNTERLAGEN.includes(artKey);
+}
+
+/** Auftragsarten, bei denen jede Zeitbuchung eine Pflicht-Notiz braucht */
+export const ARTEN_MIT_PFLICHT_NOTIZ: ArtKey[] = ['beratung', 'mehraufwand'];
+
+export function artNeedsNotiz(artKey: ArtKey): boolean {
+  return ARTEN_MIT_PFLICHT_NOTIZ.includes(artKey);
 }
 
 /** Stunden dezimal → "X,X h" (de-DE) */

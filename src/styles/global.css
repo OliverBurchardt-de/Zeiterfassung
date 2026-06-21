@@ -264,8 +264,10 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 .timer-actions .btn { flex: 1; }
 
 .times-list { margin-top: 16px; }
-.time-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--bk-stone); font-size: 13px; }
-.time-row:first-child { border-top: none; }
+.time-entry { border-top: 1px solid var(--bk-stone); }
+.time-entry:first-child { border-top: none; }
+.time-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; font-size: 13px; }
+.time-row__notiz { padding: 0 0 8px; font-size: 12px; color: var(--bk-fg-2); white-space: pre-wrap; }
 .badge--ok { color: var(--bk-success); background: var(--bk-success-soft); }
 .badge--notok { color: var(--bk-amber-text); background: var(--bk-amber-soft); }
 

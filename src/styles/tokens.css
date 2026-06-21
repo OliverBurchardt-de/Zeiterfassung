@@ -69,6 +69,8 @@
   --bk-art-lohn: #E94E1B; /* Lohn */
   --bk-art-est:  #7A5400; /* Einkommensteuer */
   --bk-art-fibu: #2E7D5B; /* Finanzbuchhaltung */
+  --bk-art-beratung:    #F7B234; /* Laufende Steuerberatung */
+  --bk-art-mehraufwand: #333333; /* Mehraufwand / Dumm gelaufen */
 
   /* Typografie */
   --bk-font-display: 'Petrona', 'Cambria', Georgia, serif;

@@ -44,8 +44,8 @@ interface AppState {
   pauseTimer: (orderId: string) => void;
   resetTimer: (orderId: string) => void;
   tick: (orderId: string) => void;
-  transferTimer: (orderId: string) => void;
-  addManualTime: (orderId: string, datum: string, dauer: number) => void;
+  transferTimer: (orderId: string, notiz?: string) => void;
+  addManualTime: (orderId: string, datum: string, dauer: number, notiz?: string) => void;
   approveTime: (orderId: string, timeId: string) => void;
 
   // Checkliste
@@ -106,17 +106,17 @@ export const useStore = create<AppState>((set) => ({
   pauseTimer: (orderId) => set((s) => ({ orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerRunning: false })) })),
   resetTimer: (orderId) => set((s) => ({ orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerRunning: false, timerSec: 0 })) })),
   tick: (orderId) => set((s) => ({ orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerSec: (o.timerSec ?? 0) + 1 })) })),
-  transferTimer: (orderId) => set((s) => ({
+  transferTimer: (orderId, notiz) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => {
       const dauer = Math.round(((o.timerSec ?? 0) / 3600) * 100) / 100;
       if (dauer <= 0) return { ...o, timerRunning: false };
-      const entry = { id: uid(), datum: new Date().toISOString().slice(0, 10), dauer, freigegeben: false };
+      const entry = { id: uid(), datum: new Date().toISOString().slice(0, 10), dauer, freigegeben: false, notiz: notiz?.trim() || undefined };
       return { ...o, times: [...o.times, entry], timerRunning: false, timerSec: 0 };
     }),
   })),
-  addManualTime: (orderId, datum, dauer) => set((s) => ({
+  addManualTime: (orderId, datum, dauer, notiz) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({
-      ...o, times: [...o.times, { id: uid(), datum, dauer, freigegeben: false }],
+      ...o, times: [...o.times, { id: uid(), datum, dauer, freigegeben: false, notiz: notiz?.trim() || undefined }],
     })),
   })),
   approveTime: (orderId, timeId) => set((s) => ({

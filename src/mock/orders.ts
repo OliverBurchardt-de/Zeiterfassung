@@ -180,6 +180,24 @@ export const MOCK_ORDERS: Order[] = [
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
     checklist: defaultChecklist(), notes: [], times: [],
   },
+  {
+    id: 'o17', mandant: 'Praxis Dr. Wagner', mandantNr: 'D10217', auftragsNr: nextNr(),
+    art: 'Laufende Steuerberatung', artKey: 'beratung', vj: 2025,
+    fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
+    soll: 0, seiten: 0, kosten: 0, status: 'bb',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: [], notes: [],
+    times: [{ id: 't17', datum: '2025-03-12', dauer: 0.75, freigegeben: false, notiz: 'Telefonische Beratung zur geplanten Anschaffung (Investitionsabzugsbetrag).' }],
+  },
+  {
+    id: 'o18', mandant: 'Hotel Seeblick KG', mandantNr: 'D10224', auftragsNr: nextNr(),
+    art: 'Mehraufwand / Dumm gelaufen', artKey: 'mehraufwand', vj: 2025,
+    fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
+    soll: 0, seiten: 0, kosten: 0, status: 'bb',
+    bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
+    checklist: [], notes: [],
+    times: [{ id: 't18', datum: '2025-03-13', dauer: 1.25, freigegeben: false, notiz: 'Nacherfassung fehlender Belege – durch Mandant verursacht.' }],
+  },
 ];
 
 function defaultChecklist() {

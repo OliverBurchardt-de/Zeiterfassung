@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Trash2, Check } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
-import { formatTimer, formatHours } from '@/lib/art';
+import { formatTimer, formatHours, artNeedsNotiz } from '@/lib/art';
 
 export function TimePanel({ order }: { order: Order }) {
   const role = useStore((s) => s.role);
@@ -18,7 +18,11 @@ export function TimePanel({ order }: { order: Order }) {
   const removeCheck = useStore((s) => s.removeCheck);
 
   const [manualDauer, setManualDauer] = useState('');
+  const [notiz, setNotiz] = useState('');
   const [checkDraft, setCheckDraft] = useState('');
+
+  const notizPflicht = artNeedsNotiz(order.artKey);
+  const notizOk = !notizPflicht || notiz.trim().length > 0;
 
   // Timer-Tick (1 s) nur wenn laufend
   useEffect(() => {
@@ -32,9 +36,17 @@ export function TimePanel({ order }: { order: Order }) {
 
   function submitManual() {
     const v = parseFloat(manualDauer.replace(',', '.'));
-    if (!isNaN(v) && v > 0) {
-      addManual(order.id, new Date().toISOString().slice(0, 10), v);
+    if (!isNaN(v) && v > 0 && notizOk) {
+      addManual(order.id, new Date().toISOString().slice(0, 10), v, notiz);
       setManualDauer('');
+      setNotiz('');
+    }
+  }
+
+  function submitTransfer() {
+    if (laufStunden > 0 && notizOk) {
+      transfer(order.id, notiz);
+      setNotiz('');
     }
   }
 
@@ -54,11 +66,27 @@ export function TimePanel({ order }: { order: Order }) {
         <button
           className="btn btn--amber"
           style={{ width: '100%', marginTop: 10 }}
-          disabled={laufStunden <= 0}
-          onClick={() => transfer(order.id)}
+          disabled={laufStunden <= 0 || !notizOk}
+          onClick={submitTransfer}
         >
           {formatHours(laufStunden)} in Karte übertragen
         </button>
+      </div>
+
+      <div className="field" style={{ marginTop: 12 }}>
+        <label>Notiz{notizPflicht ? ' (Pflicht)' : ' (optional)'}</label>
+        <textarea
+          className="input"
+          rows={2}
+          placeholder={notizPflicht ? 'Worauf bezieht sich die Leistung? …' : 'Notiz zur Buchung …'}
+          value={notiz}
+          onChange={(e) => setNotiz(e.target.value)}
+        />
+        {notizPflicht && !notizOk && (
+          <div className="hint" style={{ color: 'var(--bk-blood-orange)' }}>
+            Bei dieser Auftragsart ist eine Notiz erforderlich.
+          </div>
+        )}
       </div>
 
       <div className="add-row">
@@ -69,22 +97,25 @@ export function TimePanel({ order }: { order: Order }) {
           onChange={(e) => setManualDauer(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submitManual(); }}
         />
-        <button className="btn btn--deep btn--sm" onClick={submitManual}>Hinzufügen</button>
+        <button className="btn btn--deep btn--sm" disabled={!notizOk} onClick={submitManual}>Hinzufügen</button>
       </div>
 
       <div className="times-list">
         <div className="section-label" style={{ marginBottom: 6 }}>Erfasste Zeiten</div>
         {order.times.length === 0 && <div className="muted">Noch keine Zeiten erfasst.</div>}
         {order.times.map((t) => (
-          <div key={t.id} className="time-row">
-            <span>{new Date(t.datum).toLocaleDateString('de-DE')}</span>
-            <span className="tabular">{formatHours(t.dauer)}</span>
-            <span className={`badge ${t.freigegeben ? 'badge--ok' : 'badge--notok'}`}>
-              {t.freigegeben ? 'Freigegeben' : 'Nicht freigegeben'}
-            </span>
-            {!t.freigegeben && role === 'partner' && (
-              <button className="btn btn--success btn--sm" onClick={() => approveTime(order.id, t.id)}>Freigeben</button>
-            )}
+          <div key={t.id} className="time-entry">
+            <div className="time-row">
+              <span>{new Date(t.datum).toLocaleDateString('de-DE')}</span>
+              <span className="tabular">{formatHours(t.dauer)}</span>
+              <span className={`badge ${t.freigegeben ? 'badge--ok' : 'badge--notok'}`}>
+                {t.freigegeben ? 'Freigegeben' : 'Nicht freigegeben'}
+              </span>
+              {!t.freigegeben && role === 'partner' && (
+                <button className="btn btn--success btn--sm" onClick={() => approveTime(order.id, t.id)}>Freigeben</button>
+              )}
+            </div>
+            {t.notiz && <div className="time-row__notiz">{t.notiz}</div>}
           </div>
         ))}
       </div>

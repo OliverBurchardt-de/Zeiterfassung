@@ -4,7 +4,7 @@ import type { StatusId, NoteKind, NoteState, Role } from './tokens';
 export type { StatusId, NoteKind, NoteState, Role };
 
 /** Auftragsart-Kürzel für Badge + Farbe */
-export type ArtKey = 'ja' | 'ust' | 'lohn' | 'est' | 'fibu';
+export type ArtKey = 'ja' | 'ust' | 'lohn' | 'est' | 'fibu' | 'beratung' | 'mehraufwand';
 
 export interface Comment {
   id: string;
@@ -36,6 +36,7 @@ export interface TimeEntry {
   datum: string; // ISO-Datum
   dauer: number; // Stunden (dezimal)
   freigegeben: boolean;
+  notiz?: string; // optionale Notiz zur Buchung (Pflicht bei Beratung/Mehraufwand)
 }
 
 export interface ChecklistItem {
