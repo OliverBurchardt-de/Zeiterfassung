@@ -1,4 +1,4 @@
-import type { Order, Employee } from '@/lib/types';
+import type { Order, Employee, Besonderheit } from '@/lib/types';
 import { checklistFor } from '@/lib/checklists';
 
 export const EMPLOYEES: Employee[] = [
@@ -206,3 +206,19 @@ export const MOCK_ORDERS: Order[] = BASE_ORDERS.map((o) => ({
   ...o,
   checklist: o.checklist.length ? o.checklist : checklistFor(o.artKey),
 }));
+
+/**
+ * Mandantenbesonderheiten — Schlüssel = `${mandantNr}::${artKey}` (period-unabhängig).
+ * Bäckerei Lindner (D10216) hat zwei JA-Aufträge (o5, o8) → beide greifen auf denselben Eintrag zu;
+ * genauso würde der JA-Folgeauftrag eines neuen Jahres automatisch dieselben Besonderheiten zeigen.
+ */
+export const MOCK_BESONDERHEITEN: Record<string, Besonderheit[]> = {
+  'D10216::ja': [
+    { id: 'b1', text: 'Vorräte werden nach FIFO bewertet (Abstimmung mit Mandant 2022).', author: 'O. Burchardt', datum: '2024-02-10' },
+    { id: 'b2', text: 'Pensionsrückstellung: jährliches versicherungsmathematisches Gutachten anfordern.', author: 'S. Wolf', datum: '2024-02-12' },
+  ],
+  'D10221::fibu': [
+    { id: 'b3', text: 'EU-Eingangsleistungen: Reverse-Charge beachten (§ 13b UStG).', author: 'S. Wolf', datum: '2025-01-15' },
+    { id: 'b4', text: 'Buchung auf Kostenstellen je Projekt erforderlich.', author: 'S. Wolf', datum: '2025-01-15' },
+  ],
+};

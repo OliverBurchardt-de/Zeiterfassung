@@ -45,6 +45,17 @@ export interface ChecklistItem {
   done: boolean;
 }
 
+/**
+ * Mandantenbesonderheit — gilt je Mandant + Auftragsart (period-unabhängig) und wird dadurch
+ * automatisch auf die Aufträge der Folgeperioden (Jahr/Monat) übernommen.
+ */
+export interface Besonderheit {
+  id: string;
+  text: string;
+  author: string;
+  datum: string; // ISO
+}
+
 export interface Umplanung {
   zielMonat: string; // z. B. "Apr 2025"
   freigabeAusstehend: boolean;

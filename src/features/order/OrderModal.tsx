@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Info } from 'lucide-react';
 import { useStore } from '@/state/store';
 import { STATUS, STATUS_ORDER, type StatusId } from '@/lib/tokens';
 import { ART, formatHours, erfassteStunden } from '@/lib/art';
-import { hasUnterlagenProzess } from '@/lib/art';
+import { hasUnterlagenProzess, hasBesonderheiten } from '@/lib/art';
 import { TimePanel } from '@/features/time/TimePanel';
 import { NotesSection } from '@/features/notes/NotesSection';
 import { canComplete, offeneChecklist } from '@/state/selectors';
@@ -15,6 +15,7 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const closeCard = useStore((s) => s.closeCard);
   const setStatus = useStore((s) => s.setStatus);
   const requestUmplanung = useStore((s) => s.requestUmplanung);
+  const openBes = useStore((s) => s.openBesonderheiten);
 
   const [zielMonat, setZielMonat] = useState('Apr 2025');
 
@@ -47,7 +48,18 @@ export function OrderModal({ orderId }: { orderId: string }) {
               {statusMeta.label}
             </span>
           </div>
-          <div className="modal__sub">{order.art} · VJ {order.vj}</div>
+          <div className="modal__sub">
+            {order.art} · VJ {order.vj}
+            {hasBesonderheiten(order.artKey) && (
+              <button
+                className="btn btn--ghost btn--sm"
+                style={{ marginLeft: 12, display: 'inline-flex', alignItems: 'center', gap: 6, verticalAlign: 'middle' }}
+                onClick={() => openBes(order)}
+              >
+                <Info size={13} /> Besonderheiten
+              </button>
+            )}
+          </div>
           <div className="meta">
             <Meta label="Auftrags-Nr." value={order.auftragsNr} />
             <Meta label="Mandanten-Nr." value={order.mandantNr} />

@@ -1,6 +1,17 @@
 import { create } from 'zustand';
-import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment } from '@/lib/types';
-import { MOCK_ORDERS } from '@/mock/orders';
+import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit } from '@/lib/types';
+import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
+
+/** Schlüssel der Besonderheiten: Mandantennummer + Auftragsart (period-unabhängig). */
+export const besKey = (mandantNr: string, artKey: ArtKey) => `${mandantNr}::${artKey}`;
+
+/** Kontext des geöffneten Besonderheiten-Dialogs */
+export interface BesContext {
+  mandantNr: string;
+  mandant: string;
+  artKey: ArtKey;
+  art: string;
+}
 
 /**
  * Single Source of Truth: orders[].
@@ -23,6 +34,8 @@ interface AppState {
   role: Role;
   filters: Filters;
   openCardId: string | null;
+  besonderheiten: Record<string, Besonderheit[]>;
+  besOpen: BesContext | null;
 
   // UI
   setRole: (role: Role) => void;
@@ -33,6 +46,13 @@ interface AppState {
   toggleQuick: (key: 'nurOffeneZeiten' | 'freigabeAusstehend') => void;
   openCard: (id: string) => void;
   closeCard: () => void;
+
+  // Mandantenbesonderheiten (je Mandant + Auftragsart)
+  openBesonderheiten: (o: Order) => void;
+  closeBesonderheiten: () => void;
+  addBesonderheit: (key: string, text: string, author: string) => void;
+  editBesonderheit: (key: string, id: string, text: string) => void;
+  removeBesonderheit: (key: string, id: string) => void;
 
   // Auftrag
   setStatus: (orderId: string, status: StatusId) => void;
@@ -79,6 +99,8 @@ export const useStore = create<AppState>((set) => ({
   role: 'mitarbeiter',
   filters: { employeeId: 'sw', monat: 'alle', vj: 'alle', arten: [], nurOffeneZeiten: false, freigabeAusstehend: false },
   openCardId: null,
+  besonderheiten: MOCK_BESONDERHEITEN,
+  besOpen: null,
 
   setRole: (role) => set({ role }),
   setEmployee: (employeeId) => set((s) => ({ filters: { ...s.filters, employeeId } })),
@@ -91,6 +113,27 @@ export const useStore = create<AppState>((set) => ({
   toggleQuick: (key) => set((s) => ({ filters: { ...s.filters, [key]: !s.filters[key] } })),
   openCard: (id) => set({ openCardId: id }),
   closeCard: () => set({ openCardId: null }),
+
+  openBesonderheiten: (o) => set({ besOpen: { mandantNr: o.mandantNr, mandant: o.mandant, artKey: o.artKey, art: o.art } }),
+  closeBesonderheiten: () => set({ besOpen: null }),
+  addBesonderheit: (key, text, author) => set((s) => ({
+    besonderheiten: {
+      ...s.besonderheiten,
+      [key]: [...(s.besonderheiten[key] ?? []), { id: uid(), text, author, datum: new Date().toISOString().slice(0, 10) }],
+    },
+  })),
+  editBesonderheit: (key, id, text) => set((s) => ({
+    besonderheiten: {
+      ...s.besonderheiten,
+      [key]: (s.besonderheiten[key] ?? []).map((b) => (b.id === id ? { ...b, text } : b)),
+    },
+  })),
+  removeBesonderheit: (key, id) => set((s) => ({
+    besonderheiten: {
+      ...s.besonderheiten,
+      [key]: (s.besonderheiten[key] ?? []).filter((b) => b.id !== id),
+    },
+  })),
 
   setStatus: (orderId, status) => set((s) => ({ orders: mapOrder(s.orders, orderId, (o) => ({ ...o, status })) })),
 

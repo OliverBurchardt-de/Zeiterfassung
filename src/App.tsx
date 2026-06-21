@@ -6,6 +6,7 @@ import { Board } from '@/features/board/Board';
 import { RightColumn } from '@/features/board/RightColumn';
 import { OrderModal } from '@/features/order/OrderModal';
 import { LaufendeView } from '@/features/laufende/LaufendeView';
+import { BesonderheitenModal } from '@/features/besonderheiten/BesonderheitenModal';
 import { useStore } from '@/state/store';
 
 export type ModuleKey = 'board' | 'laufende' | 'zeiten' | 'freigaben';
@@ -39,6 +40,7 @@ export function App() {
       )}
 
       {openCardId && <OrderModal orderId={openCardId} />}
+      <BesonderheitenModal />
     </div>
   );
 }

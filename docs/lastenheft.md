@@ -27,6 +27,11 @@ Rückschreibung nach EO Comfort.
    Intervallen per E-Mail an den Bearbeiter gemeldet (Backend-Job, M2).
 6. **Review:** Aufträge im Status „Reviewfähig" werden vom Partner geprüft; Review Notes anlegen,
    Mitarbeiter bearbeitet und meldet erledigt, Partner gibt frei.
+6b. **Mandantenbesonderheiten:** je Mandant + Auftragsart (Button auf der Karte für FiBu, Lohn,
+   Jahresabschluss, Einkommensteuer; nicht direkt auf der Karte angezeigt). Gespeichert unter dem
+   Schlüssel `Mandantennummer + Auftragsart` (period-unabhängig) → werden automatisch von den
+   Aufträgen der Folgeperioden (Jahr/Monat) wiederverwendet, auch wenn DATEV den Auftrag mit neuer
+   Auftragsnummer und neuem VJ/WJ neu anlegt. Persistenz in der eigenen App-DB (M2).
 7. **Checkliste je Auftragsart:** Jede Auftragsart hat eine eigene Aufgaben-Checkliste
    (Vorlage in `src/lib/checklists.ts`). Ein Auftrag kann erst auf **„Erledigt"** gesetzt werden
    (Status-Leiste **und** Drag & Drop), wenn alle Checklistenpunkte abgehakt sind. Konkrete

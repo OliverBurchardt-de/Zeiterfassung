@@ -1,8 +1,9 @@
 import { useDraggable } from '@dnd-kit/core';
+import { Info } from 'lucide-react';
 import type { Order } from '@/lib/types';
-import { ART, formatTimer, formatHours, erfassteStunden } from '@/lib/art';
+import { ART, formatTimer, formatHours, erfassteStunden, hasBesonderheiten } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
-import { offeneNotes, useStore } from '@/state/store';
+import { offeneNotes, useStore, besKey } from '@/state/store';
 import { hasOffeneZeiten } from '@/state/selectors';
 
 /** Reine Darstellung einer Karte – wird sowohl im Board als auch im Drag-Overlay genutzt. */
@@ -11,6 +12,8 @@ function CardInner({ order }: { order: Order }) {
   const timerLaufend = order.timerRunning;
   const offeneZeit = !timerLaufend && hasOffeneZeiten(order);
   const reviewCount = offeneNotes(order);
+  const openBes = useStore((s) => s.openBesonderheiten);
+  const besCount = useStore((s) => (s.besonderheiten[besKey(order.mandantNr, order.artKey)] ?? []).length);
 
   return (
     <>
@@ -58,6 +61,17 @@ function CardInner({ order }: { order: Order }) {
           </div>
         )}
       </div>
+
+      {hasBesonderheiten(order.artKey) && (
+        <div className="card__foot">
+          <button
+            className="btn btn--ghost btn--sm card__bes"
+            onClick={(e) => { e.stopPropagation(); openBes(order); }}
+          >
+            <Info size={13} /> Besonderheiten{besCount > 0 ? ` (${besCount})` : ''}
+          </button>
+        </div>
+      )}
     </>
   );
 }

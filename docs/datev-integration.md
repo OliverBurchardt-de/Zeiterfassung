@@ -39,6 +39,16 @@ ersetzt das im M1-Mock fest verdrahtete 5er-Schema (`ART` in `src/lib/art.ts`).
   Filter „Veranlagungsjahr".
 - Welche Arten den Unterlagen-Prozess (`ua`/`uv`) brauchen, ist Teil derselben Konfiguration.
 
+## Mandantenbesonderheiten & Übernahme in Folgeaufträge
+DATEV legt wiederkehrende Aufträge je Periode **neu** an (z. B. nach Abschluss JA 2025 entsteht
+JA 2026). Konstant bleiben **`client_id`/Mandantennummer** und **Auftragsart** (`ordertype`),
+es ändern sich Auftragsnummer sowie `assessment_year`/`fiscal_year`. Mandantenbesonderheiten
+werden daher in der **eigenen App-DB** unter dem Schlüssel **`client_id + ordertype`**
+(period-unabhängig) gespeichert. Jeder neu eingelesene Folgeauftrag mit gleichem Schlüssel löst
+automatisch dieselben Besonderheiten auf — ein „Kopieren" beim Abschluss ist nicht nötig. Für
+monatliche Teilaufträge (FiBu/Lohn) kann der Schlüssel bei Bedarf um die Monats-Dimension
+erweitert werden (sonst gelten die Besonderheiten für alle Perioden des Auftrags gleichermaßen).
+
 ## Rückschreiben nach EO Comfort (PUT)
 - **`PUT /orders/{orderid}`** (Body `order`): u. a.
   - `completion_status` — Auftragsstatus

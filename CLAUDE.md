@@ -31,6 +31,8 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
   `src/state/selectors.ts`), durchgesetzt in `OrderModal.tsx` **und** `Board.tsx`.
 - **Laufende Arten** (Beratung/Mehraufwand, `LAUFENDE_ARTEN`) nicht im Board, sondern im Modul
   „Laufende Buchungen" — Zeitbuchung mit Pflicht-Notiz (`artNeedsNotiz`).
+- **Mandantenbesonderheiten** am Schlüssel `besKey(mandantNr, artKey)` (period-unabhängig, nicht am
+  Order-Objekt) → automatische Übernahme in Folgeaufträge. Button nur für `BESONDERHEITEN_ARTEN`.
 
 ## Fachliche Kernregeln (Details in `design_handoff_zeiterfassung/README.md`)
 - **Geplanter Monat** aus EO-Datumsfeldern (`fristStart`/`fristEnde`).

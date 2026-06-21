@@ -25,6 +25,13 @@ export function artNeedsNotiz(artKey: ArtKey): boolean {
   return ARTEN_MIT_PFLICHT_NOTIZ.includes(artKey);
 }
 
+/** Auftragsarten mit „Besonderheiten"-Button (Mandantenbesonderheiten je Art) */
+export const BESONDERHEITEN_ARTEN: ArtKey[] = ['fibu', 'lohn', 'ja', 'est'];
+
+export function hasBesonderheiten(artKey: ArtKey): boolean {
+  return BESONDERHEITEN_ARTEN.includes(artKey);
+}
+
 /**
  * „Laufende" Auftragsarten: kein Status-Flow / keine Planung, sondern dauerhafte
  * Buchungs-Container pro Mandant (Modul „Laufende Buchungen", nicht im Kanban-Board).

@@ -167,6 +167,8 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
   border-radius: 6px; padding: 2px 8px;
 }
 .card__state { display: flex; flex-direction: column; gap: 4px; margin-top: 9px; }
+.card__foot { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--bk-stone); }
+.card__bes { padding: 4px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
 .state-line { display: flex; align-items: center; gap: 7px; font-size: 12.5px; }
 .dot--pulse { animation: bk-pulse 1.1s ease-in-out infinite; }
 @keyframes bk-pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
@@ -328,6 +330,12 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 /* Placeholder-Views */
 .placeholder { max-width: 1640px; margin: 0 auto; padding: 24px 28px; }
 .placeholder .panel { display: flex; flex-direction: column; gap: 8px; }
+
+/* Mandantenbesonderheiten */
+.bes-item { margin-bottom: 12px; }
+.bes-item__text { width: 100%; resize: vertical; }
+.bes-item__row { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
+.bes-item__meta { font-size: 12px; }
 
 /* Modul „Laufende Buchungen" */
 .laufende { max-width: 860px; display: flex; flex-direction: column; gap: 16px; }
