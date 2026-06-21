@@ -346,3 +346,27 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 .laufende-order__head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 .laufende-order__art { font-weight: 600; }
 .laufende-order__sum { margin-left: auto; font-size: 13px; }
+
+/* Admin-Umschalter (Demo) in der Top-Bar */
+.admin-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--bk-fg-2); cursor: pointer; user-select: none; }
+.admin-toggle input { accent-color: var(--bk-deep-blue); }
+
+/* Modul „Verwaltung" — Nutzerverwaltung */
+.verw-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.utable { width: 100%; border-collapse: collapse; font-size: 14px; }
+.utable th {
+  text-align: left; font-size: 12px; font-weight: 600; color: var(--bk-fg-2);
+  padding: 0 12px 10px; border-bottom: 1px solid var(--bk-stone);
+}
+.utable td { padding: 12px; border-bottom: 1px solid var(--bk-stone); vertical-align: middle; }
+.utable tr:last-child td { border-bottom: none; }
+.utable__num { text-align: right; }
+.utable__act { white-space: nowrap; }
+.utable__act .btn { margin-left: 6px; }
+.utable__user { display: flex; align-items: center; gap: 10px; }
+.utable__name { font-weight: 600; }
+.utable__kuerzel { font-size: 12px; }
+.utable__row--off { opacity: 0.55; }
+.badge--admin { color: var(--bk-deep-blue); background: var(--bk-blue-soft); }
+.check-line { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; padding-top: 6px; }
+.check-line input { accent-color: var(--bk-deep-blue); }

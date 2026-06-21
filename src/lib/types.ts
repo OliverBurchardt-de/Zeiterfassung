@@ -93,3 +93,20 @@ export interface Employee {
   name: string;
   initials: string;
 }
+
+/**
+ * Nutzer der App (Modul „Verwaltung"). Login/Rollen/Rechte liegen in der eigenen App-DB;
+ * `datevId` mappt auf die DATEV-Mitarbeiter-ID (`order_responsible*`/`order_partner_id`).
+ * Admin ist ein Zusatz-Recht (keine eigene Rolle) und mit jeder Rolle kombinierbar.
+ */
+export interface User {
+  id: string;
+  name: string;
+  initials: string; // Kürzel
+  email: string; // Login + Reminder
+  role: Role; // mitarbeiter | partner
+  admin: boolean; // Zusatz-Recht: Nutzerverwaltung + Konfiguration
+  aktiv: boolean; // deaktiviert statt gelöscht
+  datevId: string; // DATEV-Mitarbeiter-ID
+  tagessoll: number; // Stunden/Tag
+}

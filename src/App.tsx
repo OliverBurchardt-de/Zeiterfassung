@@ -6,11 +6,13 @@ import { Board } from '@/features/board/Board';
 import { RightColumn } from '@/features/board/RightColumn';
 import { OrderModal } from '@/features/order/OrderModal';
 import { LaufendeView } from '@/features/laufende/LaufendeView';
+import { VerwaltungView } from '@/features/verwaltung/VerwaltungView';
+import { UserModal } from '@/features/verwaltung/UserModal';
 import { BesonderheitenModal } from '@/features/besonderheiten/BesonderheitenModal';
 import { ChecklistModal } from '@/features/checklist/ChecklistModal';
 import { useStore } from '@/state/store';
 
-export type ModuleKey = 'board' | 'laufende' | 'zeiten' | 'freigaben';
+export type ModuleKey = 'board' | 'laufende' | 'zeiten' | 'freigaben' | 'verwaltung';
 
 export function App() {
   const [module, setModule] = useState<ModuleKey>('board');
@@ -33,6 +35,8 @@ export function App() {
 
       {module === 'laufende' && <LaufendeView />}
 
+      {module === 'verwaltung' && <VerwaltungView />}
+
       {module === 'zeiten' && (
         <Placeholder title="Meine Zeiten" hint="Persönliche Zeitübersicht und Freigabestatus (in Vorbereitung)." />
       )}
@@ -43,6 +47,7 @@ export function App() {
       {openCardId && <OrderModal orderId={openCardId} />}
       <BesonderheitenModal />
       <ChecklistModal />
+      <UserModal />
     </div>
   );
 }

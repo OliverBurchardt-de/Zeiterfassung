@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit } from '@/lib/types';
+import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User } from '@/lib/types';
 import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
+import { MOCK_USERS } from '@/mock/users';
 
 /** Schlüssel der Besonderheiten: Mandantennummer + Auftragsart (period-unabhängig). */
 export const besKey = (mandantNr: string, artKey: ArtKey) => `${mandantNr}::${artKey}`;
@@ -29,14 +30,28 @@ export interface Filters {
   freigabeAusstehend: boolean;
 }
 
+/** Daten eines Nutzers im Bearbeiten-/Anlegen-Dialog (ohne id/Status). */
+export type UserDraft = Omit<User, 'id' | 'aktiv'>;
+
 interface AppState {
   orders: Order[];
   role: Role;
+  isAdmin: boolean; // Demo: Admin-Zusatzrecht aktiv → Modul „Verwaltung" sichtbar
   filters: Filters;
   openCardId: string | null;
   checklistOpenId: string | null;
   besonderheiten: Record<string, Besonderheit[]>;
   besOpen: BesContext | null;
+
+  // Nutzerverwaltung (Modul „Verwaltung")
+  users: User[];
+  userEditId: string | 'new' | null; // offener Nutzer-Dialog
+  setAdmin: (v: boolean) => void;
+  openUserEdit: (id: string | 'new') => void;
+  closeUserEdit: () => void;
+  addUser: (draft: UserDraft) => void;
+  editUser: (id: string, draft: UserDraft) => void;
+  setUserActive: (id: string, aktiv: boolean) => void;
 
   // UI
   setRole: (role: Role) => void;
@@ -100,11 +115,29 @@ function mapNote(o: Order, noteId: string, fn: (n: Note) => Note): Order {
 export const useStore = create<AppState>((set) => ({
   orders: MOCK_ORDERS,
   role: 'mitarbeiter',
+  isAdmin: true,
   filters: { employeeId: 'sw', monat: 'alle', vj: 'alle', arten: [], nurOffeneZeiten: false, freigabeAusstehend: false },
   openCardId: null,
   checklistOpenId: null,
   besonderheiten: MOCK_BESONDERHEITEN,
   besOpen: null,
+
+  users: MOCK_USERS,
+  userEditId: null,
+  setAdmin: (isAdmin) => set({ isAdmin }),
+  openUserEdit: (id) => set({ userEditId: id }),
+  closeUserEdit: () => set({ userEditId: null }),
+  addUser: (draft) => set((s) => ({
+    users: [...s.users, { ...draft, id: uid(), aktiv: true }],
+    userEditId: null,
+  })),
+  editUser: (id, draft) => set((s) => ({
+    users: s.users.map((u) => (u.id === id ? { ...u, ...draft } : u)),
+    userEditId: null,
+  })),
+  setUserActive: (id, aktiv) => set((s) => ({
+    users: s.users.map((u) => (u.id === id ? { ...u, aktiv } : u)),
+  })),
 
   setRole: (role) => set({ role }),
   setEmployee: (employeeId) => set((s) => ({ filters: { ...s.filters, employeeId } })),
