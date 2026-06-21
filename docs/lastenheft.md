@@ -8,6 +8,23 @@ Rückschreibung nach EO Comfort.
 ## Rollen
 - **Mitarbeiter** (Sachbearbeiter) — Standard-Sicht.
 - **Partner** (mandatsverantwortlich) — Review/Freigaben.
+- **Admin-Recht** (Zusatz-Recht, keine eigene Rolle) — Nutzerverwaltung + App-Konfiguration;
+  kombinierbar mit Mitarbeiter oder Partner (z. B. „Partner + Admin").
+
+## Nutzerverwaltung (Modul „Verwaltung", abgestimmt — Umsetzung M2)
+Eigener Reiter, **nur für Admins sichtbar**. Mitarbeiterliste mit Detail-/Bearbeiten-Dialog.
+- **Nutzer-Felder:** Name · Kürzel/Initialen · E-Mail (Login + Reminder) · Rolle
+  (Mitarbeiter/Partner) · Admin-Recht (ja/nein) · Status (aktiv/deaktiviert) ·
+  DATEV-Mitarbeiter-ID (Mapping zu `order_responsible*`/`order_partner_id`) · Tagessoll (Std.) ·
+  *(M2)* Passwort/Einladung, letzter Login.
+- **Aktionen:** Anlegen · Bearbeiten · Deaktivieren/Reaktivieren (**kein Löschen** — Nutzer sind in
+  Aufträgen/Zeiten/Notizen referenziert; Deaktivieren erhält die Historie, blendet aus Auswahllisten
+  aus). *(M2)* Passwort zurücksetzen / Einladung senden.
+- **Rechte:** rollenbasiert (feste Rollen genügen). Mitarbeiter: Aufträge/Zeiten/Fragen/Checkliste/
+  Besonderheiten. Partner: zusätzlich Freigaben (Review/Zeiten/Umplanung). Admin-Recht:
+  Nutzerverwaltung + Konfiguration (Auftragsart-Mapping, Checklisten-Vorlagen, Reminder).
+- **Nutzerquelle:** in der App gepflegt; je Nutzer wird die DATEV-Mitarbeiter-ID hinterlegt
+  (optional Vorbefüllung aus DATEV beim Setup). Login/Rollen/Rechte liegen in der eigenen App-DB.
 
 ## Flow
 1. **Arbeitsvorrat:** Mitarbeiter sehen alle Aufträge und filtern (Zuständigkeit, geplanter
