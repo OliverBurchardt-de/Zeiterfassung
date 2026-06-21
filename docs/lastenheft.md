@@ -11,7 +11,7 @@ Rückschreibung nach EO Comfort.
 
 ## Flow
 1. **Arbeitsvorrat:** Mitarbeiter sehen alle Aufträge und filtern (Zuständigkeit, geplanter
-   Monat, Auftragsart, Schnellfilter) → persönlicher Arbeitsvorrat.
+   Monat, **Veranlagungsjahr**, Auftragsart, Schnellfilter) → persönlicher Arbeitsvorrat.
 2. **Umplanung:** Auftrag in anderen Monat verschieben → Freigabe-Anfrage an den Partner
    (Badge „Freigabe ausstehend"), bis der Partner freigibt.
 3. **Abwicklung:** Aufträge wandern durch 10 Status-Buckets (Kanban, Planner-Stil) — per
@@ -45,6 +45,9 @@ begonnen · `rf` Reviewfähig · `rn` Review Notes · `fg` Freigegeben · `am` A
 - Reminder-Intervalle, Empfänger, Eskalation an den Partner.
 - Auftragsart-Konfiguration: welche Arten benötigen `ua`/`uv` (aktuell Mock: Jahresabschluss,
   Finanzbuchhaltung — `ARTEN_MIT_UNTERLAGEN` in `src/lib/art.ts`).
+- Auftragsart-Zuordnung (M2-Import): DATEV liefert die Art als **Nummer** → hochzuladende Liste
+  Nummer→Typ→Kürzel→**Farbe** (ersetzt das feste 5er-Schema `ART`). Siehe `docs/datev-integration.md`.
+  Veranlagungsjahr kommt aus `assessment_year`.
 - Soll Umplanung zusätzlich per Drag & Drop möglich sein? (aktuell bewusst freigabebasiert)
 - Offizielles Logo-Asset (SVG/transparentes PNG) statt `assets/logo.jpg`.
 - Suchfeld in der Top-Bar mit Funktion hinterlegen.

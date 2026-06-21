@@ -15,13 +15,29 @@ Quelle der Auftragsdaten ist die **On-Premise-API** *Order Management 1.4.9*
 | App-Feld | EO-Feld |
 |---|---|
 | `auftragsNr` | `order_number` (+ `creation_year`) |
-| `art` / `artKey` | `ordertype` / `ordertype_group` |
+| `art` / `artKey` | `ordertype` / `ordertype_group` (kommt als **Nummer**, s. u.) |
+| `vj` (Veranlagungsjahr) | `assessment_year` (Integer, 4-stellig) |
+| — (optional, Wirtschaftsjahr) | `fiscal_year` (Integer, 4-stellig; **nur befüllt, wenn in der EO-Konfiguration aktiviert**) |
+| (Teilauftrags-Zeitraum) | `suborders.period_from` / `period_to` (echtes Von–Bis, z. B. USt-VA) |
 | `fristStart` / `fristEnde` → `monat` | `planned_start` / `planned_end` (Monat aus Enddatum) |
 | `soll` | `planned_hours` / `planned_hours_time_units` |
 | `mandant` / `mandantNr` | `client_id` → Client Master Data API |
 | `partner` | `order_partner_id` |
 | `bearbeiter` | `order_responsible1_id` |
 | `status` | `completion_status` (nur Teilmenge, s. u.) |
+
+## Auftragsart-Zuordnung (Nummer → Typ → Farbe) — M2-Import
+
+Die API liefert die Auftragsart als **Nummer/Schlüssel** (`ordertype` / `ordertype_group`),
+nicht als sprechenden Typ. Für die App brauchen wir eine **Zuordnungsliste**, die jede
+DATEV-Auftragsart-Nummer auf einen App-Typ (JA, USt, Lohn, ESt, FIBU …), ein Kürzel und eine
+**Farbe** abbildet. Diese Liste wird beim Import **hochgeladen/gepflegt** (kanzlei-spezifisch) und
+ersetzt das im M1-Mock fest verdrahtete 5er-Schema (`ART` in `src/lib/art.ts`).
+
+- Pro Auftragsart: Nummer → `artKey` (Typ) + Label/Kürzel + Marken-Farbe.
+- `assessment_year` wird direkt als Veranlagungsjahr (`vj`) übernommen — Grundlage für den
+  Filter „Veranlagungsjahr".
+- Welche Arten den Unterlagen-Prozess (`ua`/`uv`) brauchen, ist Teil derselben Konfiguration.
 
 ## Rückschreiben nach EO Comfort (PUT)
 - **`PUT /orders/{orderid}`** (Body `order`): u. a.

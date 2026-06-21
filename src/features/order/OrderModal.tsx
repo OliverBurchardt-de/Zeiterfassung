@@ -42,10 +42,11 @@ export function OrderModal({ orderId }: { orderId: string }) {
               {statusMeta.label}
             </span>
           </div>
-          <div className="modal__sub">{order.art}</div>
+          <div className="modal__sub">{order.art} · VJ {order.vj}</div>
           <div className="meta">
             <Meta label="Auftrags-Nr." value={order.auftragsNr} />
             <Meta label="Mandanten-Nr." value={order.mandantNr} />
+            <Meta label="Veranlagungsjahr" value={String(order.vj)} />
             <Meta label="Geplanter Monat" value={order.monat} />
             <Meta label="Verantw. Partner" value={order.partner} />
             <Meta label="Bearbeiter" value={order.bearbeiter} />

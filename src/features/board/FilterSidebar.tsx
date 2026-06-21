@@ -14,10 +14,12 @@ export function FilterSidebar() {
   const filters = useStore((s) => s.filters);
   const setEmployee = useStore((s) => s.setEmployee);
   const setMonat = useStore((s) => s.setMonat);
+  const setVj = useStore((s) => s.setVj);
   const toggleArt = useStore((s) => s.toggleArt);
   const toggleQuick = useStore((s) => s.toggleQuick);
 
   const monate = ['alle', ...Array.from(new Set(orders.map((o) => o.monat)))];
+  const jahre = Array.from(new Set(orders.map((o) => o.vj))).sort((a, b) => b - a);
   const countFor = (id: string) => orders.filter((o) => o.bearbeiterId === id).length;
 
   return (
@@ -53,6 +55,20 @@ export function FilterSidebar() {
           <select className="select-pill" value={filters.monat} onChange={(e) => setMonat(e.target.value)}>
             {monate.map((m) => (
               <option key={m} value={m}>{m === 'alle' ? 'Alle Monate' : m}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <div className="section-label">Veranlagungsjahr</div>
+          <select
+            className="select-pill"
+            value={filters.vj}
+            onChange={(e) => setVj(e.target.value === 'alle' ? 'alle' : Number(e.target.value))}
+          >
+            <option value="alle">Alle Jahre</option>
+            {jahre.map((j) => (
+              <option key={j} value={j}>{j}</option>
             ))}
           </select>
         </div>

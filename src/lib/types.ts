@@ -54,8 +54,9 @@ export interface Order {
   mandant: string;
   mandantNr: string;
   auftragsNr: string;
-  art: string; // ausgeschriebene Auftragsart (z. B. "Jahresabschluss 2024")
+  art: string; // ausgeschriebene Auftragsart (z. B. "Jahresabschluss")
   artKey: ArtKey; // Kürzel/Farbe
+  vj: number; // Veranlagungsjahr (DATEV EO: assessment_year)
   fristStart: string; // ISO
   fristEnde: string; // ISO
   monat: string; // abgeleitet, Anzeige z. B. "Mär 2025"

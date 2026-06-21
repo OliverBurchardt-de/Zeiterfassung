@@ -17,7 +17,7 @@ function CardInner({ order }: { order: Order }) {
       <div className="card__top">
         <div>
           <div className="card__mandant">{order.mandant}</div>
-          <div className="card__art">{order.art}</div>
+          <div className="card__art">{order.art} · VJ {order.vj}</div>
         </div>
         <span className="art-badge" style={{ background: art.color }}>{art.label}</span>
       </div>

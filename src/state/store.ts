@@ -12,6 +12,7 @@ import { MOCK_ORDERS } from '@/mock/orders';
 export interface Filters {
   employeeId: string | 'team';
   monat: string | 'alle';
+  vj: number | 'alle'; // Veranlagungsjahr
   arten: ArtKey[]; // leere Liste = alle
   nurOffeneZeiten: boolean;
   freigabeAusstehend: boolean;
@@ -27,6 +28,7 @@ interface AppState {
   setRole: (role: Role) => void;
   setEmployee: (id: string | 'team') => void;
   setMonat: (m: string | 'alle') => void;
+  setVj: (vj: number | 'alle') => void;
   toggleArt: (a: ArtKey) => void;
   toggleQuick: (key: 'nurOffeneZeiten' | 'freigabeAusstehend') => void;
   openCard: (id: string) => void;
@@ -75,12 +77,13 @@ function mapNote(o: Order, noteId: string, fn: (n: Note) => Note): Order {
 export const useStore = create<AppState>((set) => ({
   orders: MOCK_ORDERS,
   role: 'mitarbeiter',
-  filters: { employeeId: 'sw', monat: 'alle', arten: [], nurOffeneZeiten: false, freigabeAusstehend: false },
+  filters: { employeeId: 'sw', monat: 'alle', vj: 'alle', arten: [], nurOffeneZeiten: false, freigabeAusstehend: false },
   openCardId: null,
 
   setRole: (role) => set({ role }),
   setEmployee: (employeeId) => set((s) => ({ filters: { ...s.filters, employeeId } })),
   setMonat: (monat) => set((s) => ({ filters: { ...s.filters, monat } })),
+  setVj: (vj) => set((s) => ({ filters: { ...s.filters, vj } })),
   toggleArt: (a) => set((s) => {
     const has = s.filters.arten.includes(a);
     return { filters: { ...s.filters, arten: has ? s.filters.arten.filter((x) => x !== a) : [...s.filters.arten, a] } };

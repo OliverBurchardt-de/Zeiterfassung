@@ -21,6 +21,7 @@ export function useFilteredOrders(): Order[] {
   return orders.filter((o) => {
     if (f.employeeId !== 'team' && o.bearbeiterId !== f.employeeId) return false;
     if (f.monat !== 'alle' && o.monat !== f.monat) return false;
+    if (f.vj !== 'alle' && o.vj !== f.vj) return false;
     if (f.arten.length > 0 && !f.arten.includes(o.artKey)) return false;
     if (f.nurOffeneZeiten && !(hasOffeneZeiten(o) || ohneZeit(o))) return false;
     if (f.freigabeAusstehend && !o.umplanung?.freigabeAusstehend) return false;
