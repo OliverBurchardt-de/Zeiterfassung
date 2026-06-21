@@ -6,6 +6,7 @@ import { ART, formatHours, erfassteStunden } from '@/lib/art';
 import { hasUnterlagenProzess } from '@/lib/art';
 import { TimePanel } from '@/features/time/TimePanel';
 import { NotesSection } from '@/features/notes/NotesSection';
+import { canComplete, offeneChecklist } from '@/state/selectors';
 
 const MONATE = ['Jan 2025', 'Feb 2025', 'Mär 2025', 'Apr 2025', 'Mai 2025', 'Jun 2025'];
 
@@ -28,6 +29,10 @@ export function OrderModal({ orderId }: { orderId: string }) {
     if ((s === 'ua' || s === 'uv') && !hasUnterlagenProzess(order.artKey)) return false;
     return true;
   });
+
+  // „Erledigt" ist erst möglich, wenn die Checkliste vollständig ist
+  const offenCheck = offeneChecklist(order);
+  const erledigtGesperrt = !canComplete(order);
 
   return (
     <div className="overlay" onClick={closeCard}>
@@ -60,11 +65,14 @@ export function OrderModal({ orderId }: { orderId: string }) {
               {statusListe.map((s) => {
                 const active = s === order.status;
                 const m = STATUS[s];
+                const gesperrt = s === 'er' && erledigtGesperrt;
                 return (
                   <button
                     key={s}
                     className={`status-opt${active ? ' is-active' : ''}`}
                     style={active ? { background: m.color } : undefined}
+                    disabled={gesperrt}
+                    title={gesperrt ? 'Erst möglich, wenn die Checkliste vollständig ist' : undefined}
                     onClick={() => setStatus(order.id, s as StatusId)}
                   >
                     {m.label}
@@ -72,6 +80,11 @@ export function OrderModal({ orderId }: { orderId: string }) {
                 );
               })}
             </div>
+            {erledigtGesperrt && (
+              <div className="hint">
+                „Erledigt" erst möglich, wenn die Checkliste vollständig ist (noch {offenCheck} offen).
+              </div>
+            )}
           </div>
 
           <div className="hours">

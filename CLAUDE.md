@@ -26,6 +26,11 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
 - **Rollen-Gating zentral** über `notePolicy` (in `src/lib/tokens.ts`) — nicht in der UI verstreuen.
 - **Spalten `ua`/`uv`** nur für Auftragsarten mit Unterlagen-Prozess (`hasUnterlagenProzess`
   in `src/lib/art.ts`).
+- **Checkliste je Auftragsart** über Vorlagen (`CHECKLIST_TEMPLATES`/`checklistFor` in
+  `src/lib/checklists.ts`); „Erledigt" ist gesperrt bis vollständig (`canComplete` in
+  `src/state/selectors.ts`), durchgesetzt in `OrderModal.tsx` **und** `Board.tsx`.
+- **Laufende Arten** (Beratung/Mehraufwand, `LAUFENDE_ARTEN`) nicht im Board, sondern im Modul
+  „Laufende Buchungen" — Zeitbuchung mit Pflicht-Notiz (`artNeedsNotiz`).
 
 ## Fachliche Kernregeln (Details in `design_handoff_zeiterfassung/README.md`)
 - **Geplanter Monat** aus EO-Datumsfeldern (`fristStart`/`fristEnde`).

@@ -121,7 +121,12 @@ export function TimePanel({ order }: { order: Order }) {
       </div>
 
       <div className="checklist">
-        <div className="section-label" style={{ marginBottom: 6 }}>Unterlagen-Checkliste</div>
+        <div className="section-label" style={{ marginBottom: 6 }}>Checkliste (vor Erledigung)</div>
+        {order.checklist.length > 0 && (
+          <div className="hint" style={{ marginBottom: 6 }}>
+            Alle Punkte müssen erledigt sein, bevor der Auftrag auf „Erledigt" gestellt werden kann.
+          </div>
+        )}
         {order.checklist.map((c) => (
           <div key={c.id} className="check-item">
             <button

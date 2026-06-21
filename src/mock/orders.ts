@@ -1,4 +1,5 @@
 import type { Order, Employee } from '@/lib/types';
+import { checklistFor } from '@/lib/checklists';
 
 export const EMPLOYEES: Employee[] = [
   { id: 'sw', name: 'S. Wolf', initials: 'SW' },
@@ -11,14 +12,14 @@ export const CURRENT_USER: Employee = EMPLOYEES[0];
 let seq = 1100;
 const nextNr = () => `A-2025-${++seq}`;
 
-export const MOCK_ORDERS: Order[] = [
+const BASE_ORDERS: Order[] = [
   {
     id: 'o1', mandant: 'Praxis Dr. Wagner', mandantNr: 'D10217', auftragsNr: nextNr(),
     art: 'Jahresabschluss', artKey: 'ja', vj: 2024,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 18, seiten: 42, kosten: 1840, status: 'av',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
-    checklist: defaultChecklist(), notes: [], times: [],
+    checklist: [], notes: [], times: [],
   },
   {
     id: 'o2', mandant: 'Müller Immobilien GmbH', mandantNr: 'D10219', auftragsNr: nextNr(),
@@ -26,7 +27,7 @@ export const MOCK_ORDERS: Order[] = [
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 24, seiten: 0, kosten: 0, status: 'av',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
-    checklist: defaultChecklist(), notes: [], times: [],
+    checklist: [], notes: [], times: [],
     umplanung: { zielMonat: 'Apr 2025', freigabeAusstehend: true },
   },
   {
@@ -35,7 +36,7 @@ export const MOCK_ORDERS: Order[] = [
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 10, seiten: 12, kosten: 620, status: 'ua',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
-    checklist: defaultChecklist(), notes: [], times: [],
+    checklist: [], notes: [], times: [],
   },
   {
     id: 'o4', mandant: 'Hotel Seeblick KG', mandantNr: 'D10224', auftragsNr: nextNr(),
@@ -43,7 +44,7 @@ export const MOCK_ORDERS: Order[] = [
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 8, seiten: 6, kosten: 410, status: 'uv',
     bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
-    checklist: defaultChecklist(), notes: [], times: [],
+    checklist: [], notes: [], times: [],
   },
   {
     id: 'o5', mandant: 'Bäckerei Lindner', mandantNr: 'D10216', auftragsNr: nextNr(),
@@ -51,7 +52,7 @@ export const MOCK_ORDERS: Order[] = [
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Jan 2025',
     soll: 16, seiten: 22, kosten: 1320, status: 'bb',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
-    checklist: defaultChecklist(),
+    checklist: [],
     notes: [],
     times: [{ id: 't1', datum: '2025-03-18', dauer: 3.5, freigegeben: false }],
     timerRunning: true, timerSec: 0,
@@ -80,7 +81,7 @@ export const MOCK_ORDERS: Order[] = [
     fristStart: '2025-01-01', fristEnde: '2025-01-31', monat: 'Jan 2025',
     soll: 16, seiten: 30, kosten: 980, status: 'rn',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
-    checklist: defaultChecklist(),
+    checklist: [],
     notes: [
       {
         id: 'n1', kind: 'review', noteState: 'offen', author: 'O. Burchardt',
@@ -145,7 +146,7 @@ export const MOCK_ORDERS: Order[] = [
     fristStart: '2025-01-01', fristEnde: '2025-01-31', monat: 'Jan 2025',
     soll: 20, seiten: 38, kosten: 1620, status: 'er',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
-    checklist: defaultChecklist(), notes: [],
+    checklist: [], notes: [],
     times: [{ id: 't8', datum: '2025-01-28', dauer: 19.5, freigegeben: true }],
   },
   {
@@ -162,7 +163,7 @@ export const MOCK_ORDERS: Order[] = [
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 9, seiten: 0, kosten: 0, status: 'av',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
-    checklist: defaultChecklist(), notes: [], times: [],
+    checklist: [], notes: [], times: [],
   },
   {
     id: 'o15', mandant: 'IT-Systeme Faber', mandantNr: 'D10262', auftragsNr: nextNr(),
@@ -178,7 +179,7 @@ export const MOCK_ORDERS: Order[] = [
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 22, seiten: 4, kosten: 240, status: 'uv',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
-    checklist: defaultChecklist(), notes: [], times: [],
+    checklist: [], notes: [], times: [],
   },
   {
     id: 'o17', mandant: 'Praxis Dr. Wagner', mandantNr: 'D10217', auftragsNr: nextNr(),
@@ -200,11 +201,8 @@ export const MOCK_ORDERS: Order[] = [
   },
 ];
 
-function defaultChecklist() {
-  return [
-    { id: crypto.randomUUID(), label: 'Summen- & Saldenliste', done: true },
-    { id: crypto.randomUUID(), label: 'Kontonachweise', done: false },
-    { id: crypto.randomUUID(), label: 'Inventar / Bestände', done: false },
-    { id: crypto.randomUUID(), label: 'Anlagenverzeichnis', done: false },
-  ];
-}
+/** Checkliste je Auftrag aus der Auftragsart-Vorlage seeden (sofern nicht explizit gesetzt). */
+export const MOCK_ORDERS: Order[] = BASE_ORDERS.map((o) => ({
+  ...o,
+  checklist: o.checklist.length ? o.checklist : checklistFor(o.artKey),
+}));

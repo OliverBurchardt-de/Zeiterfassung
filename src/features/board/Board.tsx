@@ -5,7 +5,7 @@ import {
 } from '@dnd-kit/core';
 import { STATUS, STATUS_ORDER, type StatusId } from '@/lib/tokens';
 import { useStore } from '@/state/store';
-import { useFilteredOrders } from '@/state/selectors';
+import { useFilteredOrders, canComplete } from '@/state/selectors';
 import { hasUnterlagenProzess } from '@/lib/art';
 import type { Order } from '@/lib/types';
 import { OrderCard, OrderCardOverlay } from './OrderCard';
@@ -13,6 +13,7 @@ import { OrderCard, OrderCardOverlay } from './OrderCard';
 export function Board() {
   const orders = useFilteredOrders();
   const setStatus = useStore((s) => s.setStatus);
+  const openCard = useStore((s) => s.openCard);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -36,7 +37,13 @@ export function Board() {
     if (!overId) return;
     const target = String(overId) as StatusId;
     const order = orders.find((o) => o.id === String(e.active.id));
-    if (order && order.status !== target) setStatus(order.id, target);
+    if (!order || order.status === target) return;
+    // „Erledigt" nur bei vollständiger Checkliste — sonst Karte öffnen, damit der Grund sichtbar ist
+    if (target === 'er' && !canComplete(order)) {
+      openCard(order.id);
+      return;
+    }
+    setStatus(order.id, target);
   }
 
   return (

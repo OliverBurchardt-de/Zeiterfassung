@@ -7,6 +7,16 @@ export function hasOffeneZeiten(o: Order): boolean {
   return o.times.some((t) => !t.freigegeben);
 }
 
+/** Anzahl noch offener Checklisten-Punkte */
+export function offeneChecklist(o: Order): number {
+  return o.checklist.filter((c) => !c.done).length;
+}
+
+/** Darf der Auftrag auf „Erledigt" gesetzt werden? (Checkliste vollständig) */
+export function canComplete(o: Order): boolean {
+  return offeneChecklist(o) === 0;
+}
+
 /** Aktiv bearbeitet, aber noch keine Zeit erfasst? (für Reminder/Filter) */
 export function ohneZeit(o: Order): boolean {
   const aktiv = ['bb', 'rf', 'rn'].includes(o.status);

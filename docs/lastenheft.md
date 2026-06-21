@@ -27,6 +27,11 @@ Rückschreibung nach EO Comfort.
    Intervallen per E-Mail an den Bearbeiter gemeldet (Backend-Job, M2).
 6. **Review:** Aufträge im Status „Reviewfähig" werden vom Partner geprüft; Review Notes anlegen,
    Mitarbeiter bearbeitet und meldet erledigt, Partner gibt frei.
+7. **Checkliste je Auftragsart:** Jede Auftragsart hat eine eigene Aufgaben-Checkliste
+   (Vorlage in `src/lib/checklists.ts`). Ein Auftrag kann erst auf **„Erledigt"** gesetzt werden
+   (Status-Leiste **und** Drag & Drop), wenn alle Checklistenpunkte abgehakt sind. Konkrete
+   Inhalte je Art folgen in M2; im Mock ist FiBu beispielhaft befüllt (Personalaufwand abgestimmt,
+   USt gebucht, AfA gebucht, BWA übermittelt), JA generisch, übrige leer.
 
 ## Status-Buckets (Reihenfolge)
 `av` Arbeitsvorrat · `ua` Unterlagen anfordern* · `uv` Unterlagen vollständig* · `bb` Bearbeitung
