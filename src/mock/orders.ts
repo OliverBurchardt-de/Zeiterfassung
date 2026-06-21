@@ -86,6 +86,12 @@ export const MOCK_ORDERS: Order[] = [
         id: 'n1', kind: 'review', noteState: 'offen', author: 'O. Burchardt',
         text: 'Abschreibung Anlage Nr. 1240 prüfen — Nutzungsdauer korrekt?',
         comments: [],
+        attachments: [
+          {
+            id: 'a1', name: 'Anlagenverzeichnis_1240.txt', size: 48213,
+            url: 'data:text/plain;charset=utf-8,Beispielhafter%20Anhang%20zur%20Review-Note%20(Mock-Daten).',
+          },
+        ],
       },
       {
         id: 'n2', kind: 'review', noteState: 'erledigt', author: 'O. Burchardt',
@@ -93,13 +99,15 @@ export const MOCK_ORDERS: Order[] = [
         comments: [
           { id: 'c1', author: 'S. Wolf', role: 'mitarbeiter', text: 'Rückstellung auf 2.400 € angepasst, Beleg im DMS hinterlegt.' },
         ],
+        attachments: [],
       },
       {
-        id: 'n3', kind: 'frage', noteState: 'freigegeben', author: 'S. Wolf',
+        id: 'n3', kind: 'frage', noteState: 'erledigt', author: 'S. Wolf',
         text: 'Privatanteil Kfz mit 1%-Regelung korrekt?',
         comments: [
-          { id: 'c2', author: 'O. Burchardt', role: 'partner', text: 'Ja, 1%-Regelung passt. Freigegeben.' },
+          { id: 'c2', author: 'O. Burchardt', role: 'partner', text: 'Ja, 1%-Regelung passt.' },
         ],
+        attachments: [],
       },
     ],
     times: [{ id: 't4', datum: '2025-03-14', dauer: 3.5, freigegeben: true }],

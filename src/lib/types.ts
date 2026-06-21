@@ -13,13 +13,22 @@ export interface Comment {
   role: Role;
 }
 
+/** Datei-Anhang an einer Note (Mock: url = Object-URL; im Backend später echte Datei-URL). */
+export interface Attachment {
+  id: string;
+  name: string;
+  size: number; // Bytes
+  url: string;
+}
+
 export interface Note {
   id: string;
   text: string;
   author: string;
   kind: NoteKind; // 'frage' = Mitarbeiter, 'review' = Partner
-  noteState: NoteState; // offen -> erledigt -> freigegeben
+  noteState: NoteState; // Frage: offen <-> erledigt · Review: offen -> erledigt -> freigegeben
   comments: Comment[];
+  attachments: Attachment[];
 }
 
 export interface TimeEntry {

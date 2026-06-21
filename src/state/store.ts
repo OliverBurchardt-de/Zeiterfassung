@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Order, Role, StatusId, ArtKey, Note, NoteState } from '@/lib/types';
+import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment } from '@/lib/types';
 import { MOCK_ORDERS } from '@/mock/orders';
 
 /**
@@ -51,12 +51,14 @@ interface AppState {
   addCheck: (orderId: string, label: string) => void;
   removeCheck: (orderId: string, itemId: string) => void;
 
-  // Review Notes
-  addNote: (orderId: string, text: string, role: Role, author: string) => void;
+  // Review Notes / Fragen
+  addNote: (orderId: string, text: string, role: Role, author: string, attachments?: Attachment[]) => void;
   editNoteText: (orderId: string, noteId: string, text: string) => void;
   addComment: (orderId: string, noteId: string, text: string, role: Role, author: string) => void;
   setNoteState: (orderId: string, noteId: string, state: NoteState) => void;
   deleteNote: (orderId: string, noteId: string) => void;
+  addAttachments: (orderId: string, noteId: string, attachments: Attachment[]) => void;
+  removeAttachment: (orderId: string, noteId: string, attachmentId: string) => void;
 }
 
 const uid = () => crypto.randomUUID();
@@ -132,11 +134,11 @@ export const useStore = create<AppState>((set) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({ ...o, checklist: o.checklist.filter((c) => c.id !== itemId) })),
   })),
 
-  addNote: (orderId, text, role, author) => set((s) => ({
+  addNote: (orderId, text, role, author, attachments = []) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({
       ...o,
       notes: [...o.notes, {
-        id: uid(), text, author, comments: [],
+        id: uid(), text, author, comments: [], attachments,
         kind: role === 'partner' ? 'review' : 'frage',
         noteState: 'offen',
       }],
@@ -156,9 +158,28 @@ export const useStore = create<AppState>((set) => ({
   deleteNote: (orderId, noteId) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({ ...o, notes: o.notes.filter((n) => n.id !== noteId) })),
   })),
+  addAttachments: (orderId, noteId, attachments) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => mapNote(o, noteId, (n) => ({
+      ...n, attachments: [...n.attachments, ...attachments],
+    }))),
+  })),
+  removeAttachment: (orderId, noteId, attachmentId) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => mapNote(o, noteId, (n) => ({
+      ...n, attachments: n.attachments.filter((a) => a.id !== attachmentId),
+    }))),
+  })),
 }));
 
-/** Anzahl offener Notes (state !== freigegeben) */
+/**
+ * Ist eine Note noch „offen" (= erfordert Aufmerksamkeit)?
+ * Frage:  nur solange noch nicht erledigt (kein Freigabe-Schritt).
+ * Review: bis der Partner freigegeben hat (offen oder „wartet auf Freigabe").
+ */
+export function noteOffen(n: Note): boolean {
+  return n.kind === 'frage' ? n.noteState === 'offen' : n.noteState !== 'freigegeben';
+}
+
+/** Anzahl offener Notes/Fragen (für Karten-Badge & Kopfzeile) */
 export function offeneNotes(o: Order): number {
-  return o.notes.filter((n) => n.noteState !== 'freigegeben').length;
+  return o.notes.filter(noteOffen).length;
 }

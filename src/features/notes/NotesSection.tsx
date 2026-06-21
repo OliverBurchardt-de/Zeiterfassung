@@ -1,35 +1,99 @@
-import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
-import type { Order, Note } from '@/lib/types';
-import { useStore } from '@/state/store';
-import { NOTE_KIND, NOTE_STATE, notePolicy } from '@/lib/tokens';
+import { useRef, useState } from 'react';
+import { Trash2, Paperclip, X } from 'lucide-react';
+import type { Order, Note, Attachment } from '@/lib/types';
+import { useStore, noteOffen } from '@/state/store';
+import { NOTE_KIND, NOTE_STATE, notePolicy, colors } from '@/lib/tokens';
 import { CURRENT_USER } from '@/mock/orders';
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/** Aus einer Dateiauswahl Anhänge erzeugen (Mock: Object-URL fürs Herunterladen). */
+function filesToAttachments(files: FileList | null): Attachment[] {
+  if (!files) return [];
+  return Array.from(files).map((f) => ({
+    id: crypto.randomUUID(), name: f.name, size: f.size, url: URL.createObjectURL(f),
+  }));
+}
+
+/** Button mit verstecktem Datei-Input. */
+function AttachButton({ onFiles, label }: { onFiles: (a: Attachment[]) => void; label: string }) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <input
+        ref={ref}
+        type="file"
+        multiple
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const atts = filesToAttachments(e.target.files);
+          if (atts.length) onFiles(atts);
+          if (ref.current) ref.current.value = '';
+        }}
+      />
+      <button
+        type="button"
+        className="btn btn--ghost btn--sm"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+        onClick={() => ref.current?.click()}
+      >
+        <Paperclip size={14} /> {label}
+      </button>
+    </>
+  );
+}
+
+function AttachmentList({ items, onRemove }: { items: Attachment[]; onRemove?: (id: string) => void }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="note__files">
+      {items.map((a) => (
+        <span className="attach-chip" key={a.id}>
+          <Paperclip size={13} />
+          <a href={a.url} download={a.name}>{a.name}</a>
+          <span className="attach-chip__size">{formatSize(a.size)}</span>
+          {onRemove && (
+            <button className="attach-chip__x" onClick={() => onRemove(a.id)} aria-label="Anhang entfernen">
+              <X size={12} />
+            </button>
+          )}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function NotesSection({ order }: { order: Order }) {
   const role = useStore((s) => s.role);
   const addNote = useStore((s) => s.addNote);
 
   const [draft, setDraft] = useState('');
+  const [pending, setPending] = useState<Attachment[]>([]);
   const author = role === 'partner' ? order.partner : CURRENT_USER.name;
 
-  const offen = order.notes.filter((n) => n.noteState !== 'freigegeben').length;
-  const freigegeben = order.notes.filter((n) => n.noteState === 'freigegeben').length;
+  const offen = order.notes.filter(noteOffen).length;
+  const erledigt = order.notes.length - offen;
 
   // Rolle bestimmt den Typ der neu angelegten Note (frage = MA, review = Partner)
   const eigenerKind = notePolicy.canCreateKind(role);
 
   function submit() {
-    if (draft.trim()) {
-      addNote(order.id, draft.trim(), role, author);
+    if (draft.trim() || pending.length) {
+      addNote(order.id, draft.trim() || '(ohne Text)', role, author, pending);
       setDraft('');
+      setPending([]);
     }
   }
 
   return (
     <section className="notes-section">
       <div className="notes-section__head">
-        <h3>Review Notes</h3>
-        <span className="muted">{offen} offen · {freigegeben} freigegeben</span>
+        <h3>Review Notes &amp; Fragen</h3>
+        <span className="muted">{offen} offen · {erledigt} erledigt</span>
       </div>
 
       {order.notes.map((n) => (
@@ -58,12 +122,14 @@ export function NotesSection({ order }: { order: Order }) {
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
           />
+          <AttachButton onFiles={(a) => setPending((p) => [...p, ...a])} label="Datei" />
           <button className="btn btn--deep" onClick={submit}>Anlegen</button>
         </div>
+        <AttachmentList items={pending} onRemove={(id) => setPending((p) => p.filter((a) => a.id !== id))} />
         <div className="hint">
           {role === 'partner'
-            ? 'Als Partner legst du Review Notes an und kannst Notes freigeben oder zurückgeben.'
-            : 'Als Mitarbeiter legst du Fragen / Hinweise an und meldest Notes als erledigt.'}
+            ? 'Als Partner legst du Review Notes an und gibst sie nach Bearbeitung frei. Dateien lassen sich anhängen.'
+            : 'Als Mitarbeiter legst du Fragen / Hinweise an, schließt sie selbst (ohne Freigabe) und kannst Dateien anhängen.'}
         </div>
       </div>
     </section>
@@ -76,13 +142,20 @@ function NoteCard({ order, note }: { order: Order; note: Note }) {
   const addComment = useStore((s) => s.addComment);
   const setNoteState = useStore((s) => s.setNoteState);
   const deleteNote = useStore((s) => s.deleteNote);
+  const addAttachments = useStore((s) => s.addAttachments);
+  const removeAttachment = useStore((s) => s.removeAttachment);
 
   const [comment, setComment] = useState('');
   const author = role === 'partner' ? order.partner : CURRENT_USER.name;
 
-  const locked = note.noteState === 'freigegeben';
-  const stateMeta = NOTE_STATE[note.noteState];
+  const isFrage = note.kind === 'frage';
+  // Nur Review-Notes werden vom Partner freigegeben und sind danach gesperrt.
+  const locked = note.kind === 'review' && note.noteState === 'freigegeben';
   const kindMeta = NOTE_KIND[note.kind];
+  // Eine erledigte Frage ist abgeschlossen (kein „wartet auf Freigabe").
+  const stateMeta = isFrage && note.noteState === 'erledigt'
+    ? { label: 'Erledigt', color: colors.success, soft: colors.successSoft }
+    : NOTE_STATE[note.noteState];
 
   function submitComment() {
     if (comment.trim()) {
@@ -104,8 +177,8 @@ function NoteCard({ order, note }: { order: Order; note: Note }) {
         <div className="note__badges">
           <span className="type-pill" style={{ color: kindMeta.color, background: kindMeta.soft }}>{kindMeta.label}</span>
           <span className="type-pill" style={{ color: stateMeta.color, background: stateMeta.soft }}>{stateMeta.label}</span>
-          {notePolicy.canDelete(role) && (
-            <button className="icon-btn" onClick={() => deleteNote(order.id, note.id)} aria-label="Note löschen">
+          {notePolicy.canDelete(role, note.kind) && (
+            <button className="icon-btn" onClick={() => deleteNote(order.id, note.id)} aria-label="Eintrag löschen">
               <Trash2 size={16} />
             </button>
           )}
@@ -124,30 +197,47 @@ function NoteCard({ order, note }: { order: Order; note: Note }) {
         </div>
       )}
 
+      <AttachmentList
+        items={note.attachments}
+        onRemove={!locked ? (id) => removeAttachment(order.id, note.id, id) : undefined}
+      />
+
       {!locked && (
         <div className="note__actions">
           <input
             className="input"
-            placeholder="Kommentar hinzufügen …"
+            placeholder={isFrage ? 'Rückfrage / Kommentar …' : 'Kommentar hinzufügen …'}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') submitComment(); }}
           />
           <button className="btn btn--ghost btn--sm" onClick={submitComment}>Kommentar</button>
 
-          {/* Mitarbeiter: offen -> erledigt */}
+          {notePolicy.canAttach(role) && (
+            <AttachButton onFiles={(a) => addAttachments(order.id, note.id, a)} label="Datei anhängen" />
+          )}
+
+          {/* offen -> erledigt: Mitarbeiter (Frage selbst schließen / Review als erledigt melden) */}
           {note.noteState === 'offen' && notePolicy.canMarkDone(role) && (
             <button className="btn btn--blue btn--sm" onClick={() => setNoteState(order.id, note.id, 'erledigt')}>
-              Als erledigt melden
+              {isFrage ? 'Als erledigt markieren' : 'Als erledigt melden'}
             </button>
           )}
-          {/* Partner: freigeben + zurück an Mitarbeiter */}
-          {notePolicy.canApprove(role) && (
+
+          {/* Frage: erledigt -> offen wieder aufnehmen (Mitarbeiter) */}
+          {isFrage && note.noteState === 'erledigt' && notePolicy.canReopenFrage(role) && (
+            <button className="btn btn--ghost btn--sm" onClick={() => setNoteState(order.id, note.id, 'offen')}>
+              Wieder aufnehmen
+            </button>
+          )}
+
+          {/* Review: Partner-Freigabe + zurück an Mitarbeiter */}
+          {note.kind === 'review' && notePolicy.canApprove(role, note.kind) && (
             <button className="btn btn--success btn--sm" onClick={() => setNoteState(order.id, note.id, 'freigegeben')}>
               Freigeben
             </button>
           )}
-          {note.noteState === 'erledigt' && notePolicy.canApprove(role) && (
+          {note.kind === 'review' && note.noteState === 'erledigt' && notePolicy.canApprove(role, note.kind) && (
             <button className="btn btn--ghost btn--sm" onClick={() => setNoteState(order.id, note.id, 'offen')}>
               Zurück an Mitarbeiter
             </button>
@@ -155,8 +245,8 @@ function NoteCard({ order, note }: { order: Order; note: Note }) {
         </div>
       )}
 
-      {/* Freigegebene Note: Partner kann wieder öffnen */}
-      {locked && notePolicy.canApprove(role) && (
+      {/* Freigegebene Review-Note: Partner kann wieder öffnen */}
+      {locked && notePolicy.canApprove(role, note.kind) && (
         <div className="note__actions">
           <button className="btn btn--ghost btn--sm" onClick={() => setNoteState(order.id, note.id, 'offen')}>
             Wieder öffnen

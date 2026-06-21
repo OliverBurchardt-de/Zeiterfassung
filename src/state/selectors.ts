@@ -1,5 +1,5 @@
 import type { Order } from '@/lib/types';
-import { useStore } from './store';
+import { useStore, noteOffen } from './store';
 import { erfassteStunden } from '@/lib/art';
 
 /** Hat der Auftrag offene (nicht freigegebene) Zeiten? */
@@ -33,7 +33,7 @@ export function kpis(orders: Order[]) {
   const zugeteilt = orders.length;
   const inBearbeitung = orders.filter((o) => o.status === 'bb').length;
   const zeitenOffen = orders.filter((o) => hasOffeneZeiten(o) || ohneZeit(o)).length;
-  const reviewNotes = orders.filter((o) => o.notes.some((n) => n.noteState !== 'freigegeben')).length;
+  const reviewNotes = orders.filter((o) => o.notes.some(noteOffen)).length;
   return { zugeteilt, inBearbeitung, zeitenOffen, reviewNotes };
 }
 

@@ -29,9 +29,14 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
 
 ## Fachliche Kernregeln (Details in `design_handoff_zeiterfassung/README.md`)
 - **Geplanter Monat** aus EO-Datumsfeldern (`fristStart`/`fristEnde`).
-- **Review Notes / Fragen** = Thread mit `kind` (`frage` = Mitarbeiter, `review` = Partner) und
-  `noteState` (`offen → erledigt → freigegeben`). Erledigt melden: Mitarbeiter. Freigeben/Löschen:
-  nur Partner. Kommentieren/Bearbeiten: beide.
+- **Review Notes / Fragen** = Thread mit `kind` (`frage` = Mitarbeiter, `review` = Partner),
+  `noteState` und optionalen Datei-**Anhängen** (`attachments`). Zwei Workflows:
+  - **Frage** (`offen ↔ erledigt`): **keine Partner-Freigabe**. Der Mitarbeiter schließt selbst
+    (`erledigt`), nimmt sie wieder auf oder stellt eine Rückfrage (Kommentar). Löschen: Mitarbeiter.
+  - **Review** (`offen → erledigt → freigegeben`): Mitarbeiter meldet `erledigt`, der Partner gibt
+    frei; Freigeben/Zurückgeben/Löschen: nur Partner.
+  - Kommentieren/Bearbeiten/**Dateien anhängen**: beide. „Offen"-Zählung kind-bewusst über
+    `noteOffen` (Frage zählt nur `offen`, Review bis `freigegeben`).
 - **Zeiterfassung:** Live-Timer oder manuell; übertragene Zeit ist „nicht freigegeben" bis
   Partner-Freigabe. E-Mail-Reminder (Backend-Job, M2) für Aufträge ohne Zeit / mit nicht
   freigegebenen Zeiten.

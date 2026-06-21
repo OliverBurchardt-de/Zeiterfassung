@@ -65,12 +65,22 @@ export const NOTE_STATE: Record<NoteState, { label: string; color: string; soft:
 
 export type Role = 'mitarbeiter' | 'partner';
 
-// Rollen-Policy für Review Notes (durchsetzen, nicht in der UI verstreuen)
+// Rollen-Policy für Review Notes / Fragen (durchsetzen, nicht in der UI verstreuen)
+//
+// Frage  (Mitarbeiter): offen <-> erledigt — KEINE Partner-Freigabe. Der Mitarbeiter
+//                        schließt selbst oder stellt eine Rückfrage (Kommentar).
+// Review (Partner):      offen -> erledigt (Mitarbeiter meldet) -> freigegeben (Partner gibt frei).
 export const notePolicy = {
   canCreateKind: (role: Role): NoteKind => (role === 'partner' ? 'review' : 'frage'),
   canEditText:   (_role: Role) => true,
   canComment:    (_role: Role) => true,
-  canMarkDone:   (role: Role) => role === 'mitarbeiter',  // offen -> erledigt
-  canApprove:    (role: Role) => role === 'partner',      // -> freigegeben
-  canDelete:     (role: Role) => role === 'partner',
+  canAttach:     (_role: Role) => true,
+  // offen -> erledigt: bei Reviews meldet der Mitarbeiter, bei Fragen schließt der Mitarbeiter selbst
+  canMarkDone:   (role: Role) => role === 'mitarbeiter',
+  // erledigt -> offen für eine Frage (Rückfrage/wieder aufnehmen): Mitarbeiter
+  canReopenFrage: (role: Role) => role === 'mitarbeiter',
+  // nur Review-Notes durchlaufen eine Partner-Freigabe
+  canApprove:    (role: Role, kind: NoteKind) => role === 'partner' && kind === 'review',
+  // Fragen entfernt der Mitarbeiter (Urheber), Review-Notes der Partner
+  canDelete:     (role: Role, kind: NoteKind) => (kind === 'frage' ? role === 'mitarbeiter' : role === 'partner'),
 };

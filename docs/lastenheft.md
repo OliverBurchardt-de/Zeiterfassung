@@ -29,12 +29,14 @@ begonnen · `rf` Reviewfähig · `rn` Review Notes · `fg` Freigegeben · `am` A
 `fa` Beim FA eingereicht · `er` Erledigt.
 *Nur für Auftragsarten mit Unterlagen-Prozess.
 
-## Review-Notes-Regeln (Thread)
-- `kind`: `frage` (nur Mitarbeiter anlegen) / `review` (nur Partner anlegen).
-- `noteState`: `offen → erledigt → freigegeben`.
-- Anlegen: beide (Typ nach Rolle). Bearbeiten/Kommentieren: beide.
-- „Als erledigt melden" (offen→erledigt): Mitarbeiter. „Freigeben" + „Löschen": nur Partner.
-- Partner zusätzlich: „Zurück an Mitarbeiter" (erledigt→offen), „Wieder öffnen" (freigegeben→offen).
+## Review-Notes- & Fragen-Regeln (Thread)
+- `kind`: `frage` (Mitarbeiter) / `review` (Partner). Anlegen: beide (Typ nach Rolle).
+- **Frage** (`offen ↔ erledigt`): **ohne Partner-Freigabe**. Mitarbeiter „Als erledigt markieren"
+  bzw. „Wieder aufnehmen" oder Rückfrage (Kommentar). Löschen: Mitarbeiter.
+- **Review** (`offen → erledigt → freigegeben`): „Als erledigt melden" (Mitarbeiter); „Freigeben",
+  „Zurück an Mitarbeiter" (erledigt→offen), „Wieder öffnen" (freigegeben→offen), „Löschen": Partner.
+- Bearbeiten/Kommentieren/**Dateien anhängen**: beide. Anhänge (`attachments`) an jeder Note/Frage;
+  im Mock als Object-URL, im Backend (M2) echte Datei-Ablage.
 
 ## Offene Punkte (Feinschliff)
 - Exakte Status↔`completion_status`-Übergänge für das DATEV-Writeback.
