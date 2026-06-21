@@ -1,0 +1,184 @@
+import type { Order, Employee } from '@/lib/types';
+
+export const EMPLOYEES: Employee[] = [
+  { id: 'sw', name: 'S. Wolf', initials: 'SW' },
+  { id: 'mk', name: 'M. Klein', initials: 'MK' },
+  { id: 'tb', name: 'T. Berg', initials: 'TB' },
+];
+
+export const CURRENT_USER: Employee = EMPLOYEES[0];
+
+let seq = 1100;
+const nextNr = () => `A-2025-${++seq}`;
+
+export const MOCK_ORDERS: Order[] = [
+  {
+    id: 'o1', mandant: 'Praxis Dr. Wagner', mandantNr: 'D10217', auftragsNr: nextNr(),
+    art: 'Jahresabschluss 2024', artKey: 'ja',
+    fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
+    soll: 18, seiten: 42, kosten: 1840, status: 'av',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: defaultChecklist(), notes: [], times: [],
+  },
+  {
+    id: 'o2', mandant: 'Müller Immobilien GmbH', mandantNr: 'D10219', auftragsNr: nextNr(),
+    art: 'Jahresabschluss 2024', artKey: 'ja',
+    fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
+    soll: 24, seiten: 0, kosten: 0, status: 'av',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: defaultChecklist(), notes: [], times: [],
+    umplanung: { zielMonat: 'Apr 2025', freigabeAusstehend: true },
+  },
+  {
+    id: 'o3', mandant: 'TechStart UG', mandantNr: 'D10221', auftragsNr: nextNr(),
+    art: 'Finanzbuchhaltung', artKey: 'fibu',
+    fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
+    soll: 10, seiten: 12, kosten: 620, status: 'ua',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: defaultChecklist(), notes: [], times: [],
+  },
+  {
+    id: 'o4', mandant: 'Hotel Seeblick KG', mandantNr: 'D10224', auftragsNr: nextNr(),
+    art: 'Finanzbuchhaltung', artKey: 'fibu',
+    fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
+    soll: 8, seiten: 6, kosten: 410, status: 'uv',
+    bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
+    checklist: defaultChecklist(), notes: [], times: [],
+  },
+  {
+    id: 'o5', mandant: 'Bäckerei Lindner', mandantNr: 'D10216', auftragsNr: nextNr(),
+    art: 'Jahresabschluss 2023', artKey: 'ja',
+    fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Jan 2025',
+    soll: 16, seiten: 22, kosten: 1320, status: 'bb',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: defaultChecklist(),
+    notes: [],
+    times: [{ id: 't1', datum: '2025-03-18', dauer: 3.5, freigegeben: false }],
+    timerRunning: true, timerSec: 0,
+  },
+  {
+    id: 'o6', mandant: 'Schmidt & Partner', mandantNr: 'D10230', auftragsNr: nextNr(),
+    art: 'Umsatzsteuer-Voranmeldung', artKey: 'ust',
+    fristStart: '2025-03-01', fristEnde: '2025-03-10', monat: 'Mär 2025',
+    soll: 3, seiten: 2, kosten: 180, status: 'bb',
+    bearbeiter: 'T. Berg', bearbeiterId: 'tb', partner: 'O. Burchardt',
+    checklist: [], notes: [],
+    times: [{ id: 't2', datum: '2025-03-17', dauer: 2.0, freigegeben: false }],
+  },
+  {
+    id: 'o7', mandant: 'Gärtnerei Blum', mandantNr: 'D10233', auftragsNr: nextNr(),
+    art: 'Einkommensteuer 2024', artKey: 'est',
+    fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
+    soll: 6, seiten: 14, kosten: 540, status: 'rf',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: [], notes: [],
+    times: [{ id: 't3', datum: '2025-03-15', dauer: 5.5, freigegeben: true }],
+  },
+  {
+    id: 'o8', mandant: 'Bäckerei Lindner', mandantNr: 'D10216', auftragsNr: nextNr(),
+    art: 'Jahresabschluss 2023', artKey: 'ja',
+    fristStart: '2025-01-01', fristEnde: '2025-01-31', monat: 'Jan 2025',
+    soll: 16, seiten: 30, kosten: 980, status: 'rn',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: defaultChecklist(),
+    notes: [
+      {
+        id: 'n1', kind: 'review', noteState: 'offen', author: 'O. Burchardt',
+        text: 'Abschreibung Anlage Nr. 1240 prüfen — Nutzungsdauer korrekt?',
+        comments: [],
+      },
+      {
+        id: 'n2', kind: 'review', noteState: 'erledigt', author: 'O. Burchardt',
+        text: 'Rückstellung Steuerberatungskosten zu niedrig angesetzt.',
+        comments: [
+          { id: 'c1', author: 'S. Wolf', role: 'mitarbeiter', text: 'Rückstellung auf 2.400 € angepasst, Beleg im DMS hinterlegt.' },
+        ],
+      },
+      {
+        id: 'n3', kind: 'frage', noteState: 'freigegeben', author: 'S. Wolf',
+        text: 'Privatanteil Kfz mit 1%-Regelung korrekt?',
+        comments: [
+          { id: 'c2', author: 'O. Burchardt', role: 'partner', text: 'Ja, 1%-Regelung passt. Freigegeben.' },
+        ],
+      },
+    ],
+    times: [{ id: 't4', datum: '2025-03-14', dauer: 3.5, freigegeben: true }],
+  },
+  {
+    id: 'o9', mandant: 'Autohaus Reuter', mandantNr: 'D10240', auftragsNr: nextNr(),
+    art: 'Lohnbuchhaltung', artKey: 'lohn',
+    fristStart: '2025-03-01', fristEnde: '2025-03-05', monat: 'Mär 2025',
+    soll: 4, seiten: 8, kosten: 320, status: 'fg',
+    bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
+    checklist: [], notes: [],
+    times: [{ id: 't5', datum: '2025-03-04', dauer: 4.0, freigegeben: true }],
+  },
+  {
+    id: 'o10', mandant: 'Café Central', mandantNr: 'D10244', auftragsNr: nextNr(),
+    art: 'Umsatzsteuer-Voranmeldung', artKey: 'ust',
+    fristStart: '2025-02-01', fristEnde: '2025-02-10', monat: 'Feb 2025',
+    soll: 2, seiten: 2, kosten: 120, status: 'am',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: [], notes: [],
+    times: [{ id: 't6', datum: '2025-02-08', dauer: 2.0, freigegeben: true }],
+  },
+  {
+    id: 'o11', mandant: 'Zahnarztpraxis Dr. Vogel', mandantNr: 'D10248', auftragsNr: nextNr(),
+    art: 'Einkommensteuer 2023', artKey: 'est',
+    fristStart: '2025-02-01', fristEnde: '2025-02-28', monat: 'Feb 2025',
+    soll: 5, seiten: 16, kosten: 600, status: 'fa',
+    bearbeiter: 'T. Berg', bearbeiterId: 'tb', partner: 'O. Burchardt',
+    checklist: [], notes: [],
+    times: [{ id: 't7', datum: '2025-02-20', dauer: 5.0, freigegeben: true }],
+  },
+  {
+    id: 'o12', mandant: 'Maler Brandt GmbH', mandantNr: 'D10250', auftragsNr: nextNr(),
+    art: 'Jahresabschluss 2023', artKey: 'ja',
+    fristStart: '2025-01-01', fristEnde: '2025-01-31', monat: 'Jan 2025',
+    soll: 20, seiten: 38, kosten: 1620, status: 'er',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: defaultChecklist(), notes: [],
+    times: [{ id: 't8', datum: '2025-01-28', dauer: 19.5, freigegeben: true }],
+  },
+  {
+    id: 'o13', mandant: 'Fahrschule Konrad', mandantNr: 'D10255', auftragsNr: nextNr(),
+    art: 'Lohnbuchhaltung', artKey: 'lohn',
+    fristStart: '2025-03-01', fristEnde: '2025-03-05', monat: 'Mär 2025',
+    soll: 3, seiten: 0, kosten: 0, status: 'av',
+    bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
+    checklist: [], notes: [], times: [],
+  },
+  {
+    id: 'o14', mandant: 'Weingut Stein', mandantNr: 'D10260', auftragsNr: nextNr(),
+    art: 'Finanzbuchhaltung', artKey: 'fibu',
+    fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
+    soll: 9, seiten: 0, kosten: 0, status: 'av',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: defaultChecklist(), notes: [], times: [],
+  },
+  {
+    id: 'o15', mandant: 'IT-Systeme Faber', mandantNr: 'D10262', auftragsNr: nextNr(),
+    art: 'Umsatzsteuer-Voranmeldung', artKey: 'ust',
+    fristStart: '2025-03-01', fristEnde: '2025-03-10', monat: 'Mär 2025',
+    soll: 2, seiten: 0, kosten: 0, status: 'av',
+    bearbeiter: 'T. Berg', bearbeiterId: 'tb', partner: 'O. Burchardt',
+    checklist: [], notes: [], times: [],
+  },
+  {
+    id: 'o16', mandant: 'Spedition Krämer', mandantNr: 'D10266', auftragsNr: nextNr(),
+    art: 'Jahresabschluss 2024', artKey: 'ja',
+    fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
+    soll: 22, seiten: 4, kosten: 240, status: 'uv',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: defaultChecklist(), notes: [], times: [],
+  },
+];
+
+function defaultChecklist() {
+  return [
+    { id: crypto.randomUUID(), label: 'Summen- & Saldenliste', done: true },
+    { id: crypto.randomUUID(), label: 'Kontonachweise', done: false },
+    { id: crypto.randomUUID(), label: 'Inventar / Bestände', done: false },
+    { id: crypto.randomUUID(), label: 'Anlagenverzeichnis', done: false },
+  ];
+}

@@ -1,0 +1,49 @@
+# Lastenheft (Arbeitsstand)
+
+## Ziel
+Eine App, in der Mitarbeiter der Kanzlei **Zeiterfassung**, **Auftragsplanung** und die
+**Auftragsabwicklung** (Kanban-Board) an einer Stelle erledigen. Auftragsdaten aus DATEV EO,
+Rückschreibung nach EO Comfort.
+
+## Rollen
+- **Mitarbeiter** (Sachbearbeiter) — Standard-Sicht.
+- **Partner** (mandatsverantwortlich) — Review/Freigaben.
+
+## Flow
+1. **Arbeitsvorrat:** Mitarbeiter sehen alle Aufträge und filtern (Zuständigkeit, geplanter
+   Monat, Auftragsart, Schnellfilter) → persönlicher Arbeitsvorrat.
+2. **Umplanung:** Auftrag in anderen Monat verschieben → Freigabe-Anfrage an den Partner
+   (Badge „Freigabe ausstehend"), bis der Partner freigibt.
+3. **Abwicklung:** Aufträge wandern durch 10 Status-Buckets (Kanban, Planner-Stil) — per
+   Drag & Drop oder Status-Leiste.
+4. **Zeiterfassung am Auftrag:** Live-Timer oder manuell; erfasste Zeit ist zunächst „nicht
+   freigegeben" und wird vom Partner freigegeben.
+5. **Reminder:** Aufträge ohne erfasste Zeit oder mit nicht freigegebenen Zeiten werden in festen
+   Intervallen per E-Mail an den Bearbeiter gemeldet (Backend-Job, M2).
+6. **Review:** Aufträge im Status „Reviewfähig" werden vom Partner geprüft; Review Notes anlegen,
+   Mitarbeiter bearbeitet und meldet erledigt, Partner gibt frei.
+
+## Status-Buckets (Reihenfolge)
+`av` Arbeitsvorrat · `ua` Unterlagen anfordern* · `uv` Unterlagen vollständig* · `bb` Bearbeitung
+begonnen · `rf` Reviewfähig · `rn` Review Notes · `fg` Freigegeben · `am` An Mandant übermittelt ·
+`fa` Beim FA eingereicht · `er` Erledigt.
+*Nur für Auftragsarten mit Unterlagen-Prozess.
+
+## Review-Notes-Regeln (Thread)
+- `kind`: `frage` (nur Mitarbeiter anlegen) / `review` (nur Partner anlegen).
+- `noteState`: `offen → erledigt → freigegeben`.
+- Anlegen: beide (Typ nach Rolle). Bearbeiten/Kommentieren: beide.
+- „Als erledigt melden" (offen→erledigt): Mitarbeiter. „Freigeben" + „Löschen": nur Partner.
+- Partner zusätzlich: „Zurück an Mitarbeiter" (erledigt→offen), „Wieder öffnen" (freigegeben→offen).
+
+## Offene Punkte (Feinschliff)
+- Exakte Status↔`completion_status`-Übergänge für das DATEV-Writeback.
+- Zeit-Rückschreibung gegen Live-DATEVconnect verifizieren (Endpunkt vs. Export-Fallback) —
+  siehe `docs/datev-integration.md`.
+- Reminder-Intervalle, Empfänger, Eskalation an den Partner.
+- Auftragsart-Konfiguration: welche Arten benötigen `ua`/`uv` (aktuell Mock: Jahresabschluss,
+  Finanzbuchhaltung — `ARTEN_MIT_UNTERLAGEN` in `src/lib/art.ts`).
+- Soll Umplanung zusätzlich per Drag & Drop möglich sein? (aktuell bewusst freigabebasiert)
+- Offizielles Logo-Asset (SVG/transparentes PNG) statt `assets/logo.jpg`.
+- Suchfeld in der Top-Bar mit Funktion hinterlegen.
+- Module „Meine Zeiten" und „Freigaben" ausgestalten (aktuell Platzhalter).
