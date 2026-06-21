@@ -1,6 +1,6 @@
 import { useDraggable } from '@dnd-kit/core';
 import type { Order } from '@/lib/types';
-import { ART, formatTimer, formatEuro } from '@/lib/art';
+import { ART, formatTimer, formatHours, erfassteStunden } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
 import { offeneNotes, useStore } from '@/state/store';
 import { hasOffeneZeiten } from '@/state/selectors';
@@ -24,9 +24,8 @@ function CardInner({ order }: { order: Order }) {
 
       <div className="chips">
         <span className="chip">Soll {order.soll} h</span>
+        <span className="chip">Ist {formatHours(erfassteStunden(order.times))}</span>
         <span className="chip">{order.monat}</span>
-        <span className="chip">{order.seiten} S.</span>
-        <span className="chip">{order.kosten > 0 ? formatEuro(order.kosten) : '—'}</span>
       </div>
 
       <div className="card__state">

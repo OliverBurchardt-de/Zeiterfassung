@@ -97,12 +97,9 @@ export function OrderModal({ orderId }: { orderId: string }) {
                 <input className="input" type="number" defaultValue={order.soll} />
               </div>
               <div className="field">
-                <label>Ist-Seiten</label>
-                <input className="input" type="number" defaultValue={order.seiten} readOnly />
-              </div>
-              <div className="field">
-                <label>Ist-Kosten</label>
-                <input className="input" defaultValue={`${order.kosten.toLocaleString('de-DE')} €`} readOnly />
+                <label>Ist-Stunden</label>
+                <input className="input" defaultValue={formatHours(erfasst)} readOnly />
+                <div className="hint">Summe der erfassten Zeiten</div>
               </div>
 
               <div className="field">
