@@ -5,9 +5,10 @@ import { FilterSidebar } from '@/features/board/FilterSidebar';
 import { Board } from '@/features/board/Board';
 import { RightColumn } from '@/features/board/RightColumn';
 import { OrderModal } from '@/features/order/OrderModal';
+import { LaufendeView } from '@/features/laufende/LaufendeView';
 import { useStore } from '@/state/store';
 
-export type ModuleKey = 'board' | 'zeiten' | 'freigaben';
+export type ModuleKey = 'board' | 'laufende' | 'zeiten' | 'freigaben';
 
 export function App() {
   const [module, setModule] = useState<ModuleKey>('board');
@@ -27,6 +28,8 @@ export function App() {
           </div>
         </>
       )}
+
+      {module === 'laufende' && <LaufendeView />}
 
       {module === 'zeiten' && (
         <Placeholder title="Meine Zeiten" hint="Persönliche Zeitübersicht und Freigabestatus (in Vorbereitung)." />

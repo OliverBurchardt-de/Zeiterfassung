@@ -7,6 +7,7 @@ const logo = '/assets/logo.jpg';
 
 const MODULES: { key: ModuleKey; label: string }[] = [
   { key: 'board', label: 'Board' },
+  { key: 'laufende', label: 'Laufende Buchungen' },
   { key: 'zeiten', label: 'Meine Zeiten' },
   { key: 'freigaben', label: 'Freigaben' },
 ];

@@ -327,3 +327,11 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 /* Placeholder-Views */
 .placeholder { max-width: 1640px; margin: 0 auto; padding: 24px 28px; }
 .placeholder .panel { display: flex; flex-direction: column; gap: 8px; }
+
+/* Modul „Laufende Buchungen" */
+.laufende { max-width: 860px; display: flex; flex-direction: column; gap: 16px; }
+.laufende-order { border-top: 1px solid var(--bk-stone); padding-top: 14px; margin-top: 6px; }
+.laufende-order:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+.laufende-order__head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.laufende-order__art { font-weight: 600; }
+.laufende-order__sum { margin-left: auto; font-size: 13px; }

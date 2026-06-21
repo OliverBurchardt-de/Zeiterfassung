@@ -82,7 +82,7 @@ export function TimePanel({ order }: { order: Order }) {
           value={notiz}
           onChange={(e) => setNotiz(e.target.value)}
         />
-        {notizPflicht && !notizOk && (
+        {notizPflicht && !notizOk && (manualDauer.trim() !== '' || laufStunden > 0) && (
           <div className="hint" style={{ color: 'var(--bk-blood-orange)' }}>
             Bei dieser Auftragsart ist eine Notiz erforderlich.
           </div>

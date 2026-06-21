@@ -1,6 +1,6 @@
 import type { Order } from '@/lib/types';
 import { useStore, noteOffen } from './store';
-import { erfassteStunden } from '@/lib/art';
+import { erfassteStunden, isLaufendeArt } from '@/lib/art';
 
 /** Hat der Auftrag offene (nicht freigegebene) Zeiten? */
 export function hasOffeneZeiten(o: Order): boolean {
@@ -19,6 +19,8 @@ export function useFilteredOrders(): Order[] {
   const f = useStore((s) => s.filters);
 
   return orders.filter((o) => {
+    // Laufende Buchungs-Arten (Beratung/Mehraufwand) gehören nicht ins Kanban-Board
+    if (isLaufendeArt(o.artKey)) return false;
     if (f.employeeId !== 'team' && o.bearbeiterId !== f.employeeId) return false;
     if (f.monat !== 'alle' && o.monat !== f.monat) return false;
     if (f.vj !== 'alle' && o.vj !== f.vj) return false;

@@ -25,6 +25,16 @@ export function artNeedsNotiz(artKey: ArtKey): boolean {
   return ARTEN_MIT_PFLICHT_NOTIZ.includes(artKey);
 }
 
+/**
+ * „Laufende" Auftragsarten: kein Status-Flow / keine Planung, sondern dauerhafte
+ * Buchungs-Container pro Mandant (Modul „Laufende Buchungen", nicht im Kanban-Board).
+ */
+export const LAUFENDE_ARTEN: ArtKey[] = ['beratung', 'mehraufwand'];
+
+export function isLaufendeArt(artKey: ArtKey): boolean {
+  return LAUFENDE_ARTEN.includes(artKey);
+}
+
 /** Stunden dezimal → "X,X h" (de-DE) */
 export function formatHours(h: number): string {
   return `${h.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} h`;

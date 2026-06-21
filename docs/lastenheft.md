@@ -17,7 +17,12 @@ Rückschreibung nach EO Comfort.
 3. **Abwicklung:** Aufträge wandern durch 10 Status-Buckets (Kanban, Planner-Stil) — per
    Drag & Drop oder Status-Leiste.
 4. **Zeiterfassung am Auftrag:** Live-Timer oder manuell; erfasste Zeit ist zunächst „nicht
-   freigegeben" und wird vom Partner freigegeben.
+   freigegeben" und wird vom Partner freigegeben. Jede Buchung kann eine **Notiz** tragen;
+   bei den Auftragsarten *Laufende Steuerberatung* und *Mehraufwand* ist die Notiz **Pflicht**.
+4b. **Laufende Buchungen (eigenes Modul):** *Laufende Steuerberatung* und *Mehraufwand / Dumm
+   gelaufen* haben keinen Status-Ablauf und erscheinen nicht im Kanban-Board. Sie sind dauerhafte
+   Buchungs-Container je Mandant; im Modul „Laufende Buchungen" wird nur Zeit (mit Pflicht-Notiz)
+   gebucht und vom Partner freigegeben.
 5. **Reminder:** Aufträge ohne erfasste Zeit oder mit nicht freigegebenen Zeiten werden in festen
    Intervallen per E-Mail an den Bearbeiter gemeldet (Backend-Job, M2).
 6. **Review:** Aufträge im Status „Reviewfähig" werden vom Partner geprüft; Review Notes anlegen,
