@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Info } from 'lucide-react';
+import { X, Info, ListChecks } from 'lucide-react';
 import { useStore } from '@/state/store';
 import { STATUS, STATUS_ORDER, type StatusId } from '@/lib/tokens';
 import { ART, formatHours, erfassteStunden } from '@/lib/art';
@@ -16,6 +16,7 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const setStatus = useStore((s) => s.setStatus);
   const requestUmplanung = useStore((s) => s.requestUmplanung);
   const openBes = useStore((s) => s.openBesonderheiten);
+  const openChecklist = useStore((s) => s.openChecklist);
 
   const [zielMonat, setZielMonat] = useState('Apr 2025');
 
@@ -50,15 +51,18 @@ export function OrderModal({ orderId }: { orderId: string }) {
           </div>
           <div className="modal__sub">
             {order.art} · VJ {order.vj}
-            {hasBesonderheiten(order.artKey) && (
-              <button
-                className="btn btn--ghost btn--sm"
-                style={{ marginLeft: 12, display: 'inline-flex', alignItems: 'center', gap: 6, verticalAlign: 'middle' }}
-                onClick={() => openBes(order)}
-              >
-                <Info size={13} /> Besonderheiten
-              </button>
-            )}
+            <span className="modal__sub-actions">
+              {order.checklist.length > 0 && (
+                <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={() => openChecklist(order.id)}>
+                  <ListChecks size={13} /> Checkliste ({order.checklist.length - offenCheck}/{order.checklist.length})
+                </button>
+              )}
+              {hasBesonderheiten(order.artKey) && (
+                <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={() => openBes(order)}>
+                  <Info size={13} /> Besonderheiten
+                </button>
+              )}
+            </span>
           </div>
           <div className="meta">
             <Meta label="Auftrags-Nr." value={order.auftragsNr} />

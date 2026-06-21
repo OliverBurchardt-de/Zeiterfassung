@@ -34,6 +34,7 @@ interface AppState {
   role: Role;
   filters: Filters;
   openCardId: string | null;
+  checklistOpenId: string | null;
   besonderheiten: Record<string, Besonderheit[]>;
   besOpen: BesContext | null;
 
@@ -46,6 +47,8 @@ interface AppState {
   toggleQuick: (key: 'nurOffeneZeiten' | 'freigabeAusstehend') => void;
   openCard: (id: string) => void;
   closeCard: () => void;
+  openChecklist: (id: string) => void;
+  closeChecklist: () => void;
 
   // Mandantenbesonderheiten (je Mandant + Auftragsart)
   openBesonderheiten: (o: Order) => void;
@@ -99,6 +102,7 @@ export const useStore = create<AppState>((set) => ({
   role: 'mitarbeiter',
   filters: { employeeId: 'sw', monat: 'alle', vj: 'alle', arten: [], nurOffeneZeiten: false, freigabeAusstehend: false },
   openCardId: null,
+  checklistOpenId: null,
   besonderheiten: MOCK_BESONDERHEITEN,
   besOpen: null,
 
@@ -113,6 +117,8 @@ export const useStore = create<AppState>((set) => ({
   toggleQuick: (key) => set((s) => ({ filters: { ...s.filters, [key]: !s.filters[key] } })),
   openCard: (id) => set({ openCardId: id }),
   closeCard: () => set({ openCardId: null }),
+  openChecklist: (id) => set({ checklistOpenId: id }),
+  closeChecklist: () => set({ checklistOpenId: null }),
 
   openBesonderheiten: (o) => set({ besOpen: { mandantNr: o.mandantNr, mandant: o.mandant, artKey: o.artKey, art: o.art } }),
   closeBesonderheiten: () => set({ besOpen: null }),

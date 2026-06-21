@@ -1,5 +1,5 @@
 import { useDraggable } from '@dnd-kit/core';
-import { Info } from 'lucide-react';
+import { Info, ListChecks } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { ART, formatTimer, formatHours, erfassteStunden, hasBesonderheiten } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
@@ -13,7 +13,10 @@ function CardInner({ order }: { order: Order }) {
   const offeneZeit = !timerLaufend && hasOffeneZeiten(order);
   const reviewCount = offeneNotes(order);
   const openBes = useStore((s) => s.openBesonderheiten);
+  const openChecklist = useStore((s) => s.openChecklist);
   const besCount = useStore((s) => (s.besonderheiten[besKey(order.mandantNr, order.artKey)] ?? []).length);
+  const checkOffen = order.checklist.filter((c) => !c.done).length;
+  const checkGesamt = order.checklist.length;
 
   return (
     <>
@@ -62,14 +65,24 @@ function CardInner({ order }: { order: Order }) {
         )}
       </div>
 
-      {hasBesonderheiten(order.artKey) && (
+      {(hasBesonderheiten(order.artKey) || checkGesamt > 0) && (
         <div className="card__foot">
-          <button
-            className="btn btn--ghost btn--sm card__bes"
-            onClick={(e) => { e.stopPropagation(); openBes(order); }}
-          >
-            <Info size={13} /> Besonderheiten{besCount > 0 ? ` (${besCount})` : ''}
-          </button>
+          {checkGesamt > 0 && (
+            <button
+              className="btn btn--ghost btn--sm card__bes"
+              onClick={(e) => { e.stopPropagation(); openChecklist(order.id); }}
+            >
+              <ListChecks size={13} /> Checkliste ({checkGesamt - checkOffen}/{checkGesamt})
+            </button>
+          )}
+          {hasBesonderheiten(order.artKey) && (
+            <button
+              className="btn btn--ghost btn--sm card__bes"
+              onClick={(e) => { e.stopPropagation(); openBes(order); }}
+            >
+              <Info size={13} /> Besonderheiten{besCount > 0 ? ` (${besCount})` : ''}
+            </button>
+          )}
         </div>
       )}
     </>

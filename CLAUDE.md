@@ -28,7 +28,8 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
   in `src/lib/art.ts`).
 - **Checkliste je Auftragsart** über Vorlagen (`CHECKLIST_TEMPLATES`/`checklistFor` in
   `src/lib/checklists.ts`); „Erledigt" ist gesperrt bis vollständig (`canComplete` in
-  `src/state/selectors.ts`), durchgesetzt in `OrderModal.tsx` **und** `Board.tsx`.
+  `src/state/selectors.ts`), durchgesetzt in `OrderModal.tsx` **und** `Board.tsx`. Bedienung in
+  eigenem Panel (`ChecklistModal`, Button neben „Besonderheiten").
 - **Laufende Arten** (Beratung/Mehraufwand, `LAUFENDE_ARTEN`) nicht im Board, sondern im Modul
   „Laufende Buchungen" — Zeitbuchung mit Pflicht-Notiz (`artNeedsNotiz`).
 - **Mandantenbesonderheiten** am Schlüssel `besKey(mandantNr, artKey)` (period-unabhängig, nicht am

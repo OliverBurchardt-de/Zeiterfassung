@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Check } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
 import { formatTimer, formatHours, artNeedsNotiz } from '@/lib/art';
@@ -13,13 +12,9 @@ export function TimePanel({ order }: { order: Order }) {
   const transfer = useStore((s) => s.transferTimer);
   const addManual = useStore((s) => s.addManualTime);
   const approveTime = useStore((s) => s.approveTime);
-  const toggleCheck = useStore((s) => s.toggleCheck);
-  const addCheck = useStore((s) => s.addCheck);
-  const removeCheck = useStore((s) => s.removeCheck);
 
   const [manualDauer, setManualDauer] = useState('');
   const [notiz, setNotiz] = useState('');
-  const [checkDraft, setCheckDraft] = useState('');
 
   const notizPflicht = artNeedsNotiz(order.artKey);
   const notizOk = !notizPflicht || notiz.trim().length > 0;
@@ -118,45 +113,6 @@ export function TimePanel({ order }: { order: Order }) {
             {t.notiz && <div className="time-row__notiz">{t.notiz}</div>}
           </div>
         ))}
-      </div>
-
-      <div className="checklist">
-        <div className="section-label" style={{ marginBottom: 6 }}>Checkliste (vor Erledigung)</div>
-        {order.checklist.length > 0 && (
-          <div className="hint" style={{ marginBottom: 6 }}>
-            Alle Punkte müssen erledigt sein, bevor der Auftrag auf „Erledigt" gestellt werden kann.
-          </div>
-        )}
-        {order.checklist.map((c) => (
-          <div key={c.id} className="check-item">
-            <button
-              className={`checkbox${c.done ? ' is-on' : ''}`}
-              onClick={() => toggleCheck(order.id, c.id)}
-              aria-label="abhaken"
-            >
-              {c.done && <Check size={13} strokeWidth={3} />}
-            </button>
-            <span className={`check-item__label${c.done ? ' is-done' : ''}`}>{c.label}</span>
-            <button className="icon-btn" onClick={() => removeCheck(order.id, c.id)} aria-label="löschen">
-              <Trash2 size={16} />
-            </button>
-          </div>
-        ))}
-        <div className="add-row">
-          <input
-            className="input"
-            placeholder="Position hinzufügen …"
-            value={checkDraft}
-            onChange={(e) => setCheckDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && checkDraft.trim()) { addCheck(order.id, checkDraft.trim()); setCheckDraft(''); } }}
-          />
-          <button
-            className="btn btn--deep btn--sm"
-            onClick={() => { if (checkDraft.trim()) { addCheck(order.id, checkDraft.trim()); setCheckDraft(''); } }}
-          >
-            <Plus size={14} /> Hinzufügen
-          </button>
-        </div>
       </div>
     </div>
   );
