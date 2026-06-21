@@ -50,14 +50,32 @@ ersetzt das im M1-Mock fest verdrahtete 5er-Schema (`ART` in `src/lib/art.ts`).
 
 ## Status-Mapping (10 App-Status ↔ DATEV `completion_status`)
 Die 10 Kanban-Status (`av, ua, uv, bb, rf, rn, fg, am, fa, er`) sind App-intern (Status-Historie
-in der eigenen DB). Zurückgeschrieben werden nur fachlich relevante Übergänge, z. B.:
-| App-Status | DATEV `completion_status` |
-|---|---|
-| `bb` Bearbeitung begonnen | resumed / work started |
-| (Unterbrechung) | interrupted |
-| `er` Erledigt | done |
+in der eigenen DB). DATEV kennt auf **Gesamtauftrags**-Ebene das Feld `completion_status` mit
+festen Werten (lesbar **und** per `PUT /orders/{id}` schreibbar):
 
-Die genaue Übergangstabelle (welcher App-Status welches Writeback auslöst) ist noch festzulegen.
+`created/planned` · `started` · `interrupted` · `work completed` · `work partially completed` · `done` (= **Erledigt**)
+
+Begleitend liefert/setzt DATEV automatisch Datumsfelder: `completion_date` (Datum Erledigt),
+`interruption_date`, `resume_date`, `date_completion_status`.
+
+**Writeback-Semantik laut Spec** (`PUT /orders/{id}` setzt Datum + Mitarbeiter automatisch aus
+aktuellem Tag/Benutzer):
+| App-Status | DATEV `completion_status` (PUT) |
+|---|---|
+| `bb` Bearbeitung begonnen | `started` bzw. `resumed` (nur aus `interrupted` möglich) |
+| (Unterbrechung) | `interrupted` |
+| `er` Erledigt | `done` (Erledigt-Datum wird automatisch gesetzt) |
+
+→ **Antwort auf die Praxisfrage:** „Auftrag erledigt" kommt aus der API (`completion_status = done`)
+und lässt sich zurückschreiben. Die genaue Zuordnung der übrigen App-Status ist noch festzulegen.
+
+### Teilauftrag (Monat) — FIBU / Lohn
+Monatliche Arbeit läuft auf **Suborder**-Ebene. Schreibbar sind dort nur:
+`planned_hours_time_units`, `planned_start`, `planned_end` und **`date_work_completed`**
+(„Teilauftrag erledigt"-Datum). Es gibt **kein** `completion_status`-Enum auf Teilauftragsebene —
+ein Monat wird also über das Erledigt-**Datum** als fertig markiert, der Gesamtauftrag über
+`completion_status = done`. **Wichtig:** PUT überschreibt Order bzw. Suborder **komplett** → immer
+erst GET, dann das geänderte Objekt zurückschreiben.
 
 ## Offener Punkt — Zeit-Rückschreibung
 Für **einzelne** Tages-/Mitarbeiter-Zeiteinträge gibt es in dieser API keinen Schreib-Endpunkt;
