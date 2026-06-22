@@ -106,6 +106,15 @@ aber bereits **Buchungen** (erfasste Zeiten/Leistungen) liegen. Quelle des Statu
 Buchungen kommen aus der eigenen Zeiterfassung. Im M1-Mock bildet `istNichtAbgerechnet` diese
 Regel read-only ab (`!fakturiert && times.length > 0`).
 
+## Aufwandsarten (Mehraufwand / Dumm gelaufen) & KI-Prüfung
+- Auf der Mehraufwand-Karte (Modul „Laufende Buchungen") wird je Buchung eine **Aufwandsart**
+  gewählt (Mehraufwand / Dumm gelaufen). Diese mappt auf die **Aufwandsarten in EO Comfort**;
+  Rückschreibung als **Aufwandsbuchung** über `POST /orders/{id}/suborders/{sid}/expensepostings`
+  (einziger POST der API). Mapping Aufwandsart → EO-ID gegen die Live-Instanz festlegen (M2).
+- **KI-Prüfung (V2, vorgesehen):** Bei Freigabe wird die Notiz per API an eine KI/ein LLM gegeben
+  (Kategorie/Rechtschreibung/Aussagekraft). Schnittstelle: `src/lib/ki.ts` (`pruefeNotizKI`),
+  Hook an `store.approveTime`. Definition/Anbindung erst in V2.
+
 ## Offener Punkt — Zeit-Rückschreibung
 Für **einzelne** Tages-/Mitarbeiter-Zeiteinträge gibt es in dieser API keinen Schreib-Endpunkt;
 Stunden werden auf Auftrags-/Unterauftragsebene geführt (`planned_hours`, Suborder-Stunden). Die

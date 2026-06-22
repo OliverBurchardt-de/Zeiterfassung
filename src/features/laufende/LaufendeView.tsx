@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
-import { ART, formatHours, erfassteStunden, artNeedsNotiz, isLaufendeArt } from '@/lib/art';
+import { ART, formatHours, erfassteStunden, artNeedsNotiz, isLaufendeArt, AUFWANDSARTEN, needsAufwandsart } from '@/lib/art';
+import type { Aufwandsart } from '@/lib/types';
 
 /**
  * Modul „Laufende Buchungen": Auftragsarten ohne Status-Flow (Laufende Steuerberatung,
@@ -50,18 +51,22 @@ function LaufendeOrder({ order }: { order: Order }) {
 
   const [dauer, setDauer] = useState('');
   const [notiz, setNotiz] = useState('');
+  const [aufwandsart, setAufwandsart] = useState<Aufwandsart | ''>('');
 
   const art = ART[order.artKey];
   const pflicht = artNeedsNotiz(order.artKey);
+  const needsAuf = needsAufwandsart(order.artKey);
   const notizOk = !pflicht || notiz.trim().length > 0;
+  const aufOk = !needsAuf || aufwandsart !== '';
   const gesamt = erfassteStunden(order.times);
 
   function submit() {
     const v = parseFloat(dauer.replace(',', '.'));
-    if (!isNaN(v) && v > 0 && notizOk) {
-      addManual(order.id, new Date().toISOString().slice(0, 10), v, notiz);
+    if (!isNaN(v) && v > 0 && notizOk && aufOk) {
+      addManual(order.id, new Date().toISOString().slice(0, 10), v, notiz, aufwandsart || undefined);
       setDauer('');
       setNotiz('');
+      setAufwandsart('');
     }
   }
 
@@ -87,12 +92,38 @@ function LaufendeOrder({ order }: { order: Order }) {
                 <button className="btn btn--success btn--sm" onClick={() => approveTime(order.id, t.id)}>Freigeben</button>
               )}
             </div>
-            {t.notiz && <div className="time-row__notiz">{t.notiz}</div>}
+            {(t.notiz || t.aufwandsart) && (
+              <div className="time-row__notiz">
+                {t.aufwandsart && (
+                  <span className="auf-tag">{AUFWANDSARTEN.find((a) => a.key === t.aufwandsart)?.label}</span>
+                )}
+                {t.notiz}
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      <div className="field" style={{ marginTop: 12, marginBottom: 8 }}>
+      {needsAuf && (
+        <div className="field" style={{ marginTop: 12, marginBottom: 8 }}>
+          <label>Aufwandsart (Pflicht)</label>
+          <select
+            className="input"
+            value={aufwandsart}
+            onChange={(e) => setAufwandsart(e.target.value as Aufwandsart | '')}
+          >
+            <option value="">— bitte wählen —</option>
+            {AUFWANDSARTEN.map((a) => <option key={a.key} value={a.key}>{a.label}</option>)}
+          </select>
+          {!aufOk && dauer.trim() !== '' && (
+            <div className="hint" style={{ color: 'var(--bk-blood-orange)' }}>
+              Bitte Mehraufwand oder „Dumm gelaufen" wählen.
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="field" style={{ marginTop: needsAuf ? 0 : 12, marginBottom: 8 }}>
         <label>Notiz{pflicht ? ' (Pflicht)' : ' (optional)'}</label>
         <textarea
           className="input"
@@ -115,7 +146,7 @@ function LaufendeOrder({ order }: { order: Order }) {
           onChange={(e) => setDauer(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
         />
-        <button className="btn btn--deep btn--sm" disabled={!notizOk} onClick={submit}>Zeit buchen</button>
+        <button className="btn btn--deep btn--sm" disabled={!notizOk || !aufOk} onClick={submit}>Zeit buchen</button>
       </div>
     </div>
   );

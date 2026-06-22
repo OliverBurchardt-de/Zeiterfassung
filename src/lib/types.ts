@@ -31,12 +31,16 @@ export interface Note {
   attachments: Attachment[];
 }
 
+/** Aufwandsart hinter „Mehraufwand / Dumm gelaufen" — mappt auf Aufwandsarten in DATEV EO Comfort. */
+export type Aufwandsart = 'mehraufwand' | 'dumm';
+
 export interface TimeEntry {
   id: string;
   datum: string; // ISO-Datum
   dauer: number; // Stunden (dezimal)
   freigegeben: boolean;
   notiz?: string; // optionale Notiz zur Buchung (Pflicht bei Beratung/Mehraufwand)
+  aufwandsart?: Aufwandsart; // nur bei Mehraufwand/Dumm gelaufen: gewählte EO-Aufwandsart
 }
 
 export interface ChecklistItem {

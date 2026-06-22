@@ -12,6 +12,13 @@ _(leer)_
 
 ## Offen — neu (noch zu besprechen)
 
+### KI-Prüfung der Buchungs-Notiz bei Freigabe — V2 (technisch vorgesehen)
+Bei der **Freigabe** einer laufenden Buchung wird die Notiz per API an eine KI gegeben, die prüft:
+passt die **Kategorie** (Mehraufwand vs. Dumm gelaufen), stimmt die **Rechtschreibung**, ist die
+**Beschreibung ausreichend**. Saubere Definition (Prompt/Schwellen/Workflow bei „nicht ok") = Aufwand → **V2**.
+- **Jetzt vorgesehen:** Schnittstelle `pruefeNotizKI` + Typen in `src/lib/ki.ts`; Aufruf-Hook an der
+  Zeit-Freigabe (`store.approveTime`) als Kommentar markiert. Noch nicht aktiv.
+
 ### Auftrags-Anforderung durch Mitarbeiter (Workflow) — M2
 Mitarbeiter können einen **fehlenden Auftrag anfordern**; das **Backoffice** legt ihn an und
 schreibt ihn nach DATEV.
@@ -63,7 +70,8 @@ Aufbauend auf dem Planungs-Modul (Pool + Kalender, Drag & Drop):
   Hintergrund-DATEV-Pull). Stichtag im Mock `HEUTE` (= 2025-03-20).
 - Veranlagungsjahr lesen + Filter; Farben je Auftragsart.
 - Zeitbuchung mit Notiz (Pflicht bei Beratung/Mehraufwand).
-- Modul „Laufende Buchungen" (Beratung/Mehraufwand, ohne Status-Flow).
+- Modul „Laufende Buchungen" (Beratung/Mehraufwand, ohne Status-Flow); je Buchung auf der
+  Mehraufwand-Karte Auswahl **Aufwandsart** (Mehraufwand / Dumm gelaufen → EO-Aufwandsarten).
 - Mandantenbesonderheiten (Schlüssel Mandant + Auftragsart, period-unabhängig).
 - Checkliste je Auftragsart in eigenem Panel; „Erledigt" gesperrt bis vollständig.
 - Modul „Verwaltung" (Nutzerverwaltung als Mock, Admin-Zusatzrecht).

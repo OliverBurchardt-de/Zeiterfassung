@@ -1,4 +1,4 @@
-import type { ArtKey } from './types';
+import type { ArtKey, Aufwandsart } from './types';
 
 /** Kürzel + Farbe je Auftragsart (vgl. design-tokens.css --bk-art-*) */
 export const ART: Record<ArtKey, { label: string; color: string }> = {
@@ -40,6 +40,20 @@ export const LAUFENDE_ARTEN: ArtKey[] = ['beratung', 'mehraufwand'];
 
 export function isLaufendeArt(artKey: ArtKey): boolean {
   return LAUFENDE_ARTEN.includes(artKey);
+}
+
+/**
+ * Aufwandsarten hinter „Mehraufwand / Dumm gelaufen". Pro Buchung wählbar; mappt in M2 auf die
+ * Aufwandsarten in DATEV EO Comfort (Aufwandsbuchung via `POST …/expensepostings`).
+ */
+export const AUFWANDSARTEN: { key: Aufwandsart; label: string }[] = [
+  { key: 'mehraufwand', label: 'Mehraufwand' },
+  { key: 'dumm', label: 'Dumm gelaufen' },
+];
+
+/** Braucht diese Auftragsart die Auswahl der Aufwandsart je Buchung? (nur Mehraufwand/Dumm gelaufen) */
+export function needsAufwandsart(artKey: ArtKey): boolean {
+  return artKey === 'mehraufwand';
 }
 
 /** Stunden dezimal → "X,X h" (de-DE) */

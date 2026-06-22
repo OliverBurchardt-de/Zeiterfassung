@@ -203,7 +203,7 @@ const BASE_ORDERS: Order[] = [
     soll: 0, seiten: 0, kosten: 0, status: 'bb',
     bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
     checklist: [], notes: [],
-    times: [{ id: 't18', datum: '2025-03-13', dauer: 1.25, freigegeben: false, notiz: 'Nacherfassung fehlender Belege – durch Mandant verursacht.' }],
+    times: [{ id: 't18', datum: '2025-03-13', dauer: 1.25, freigegeben: false, aufwandsart: 'dumm', notiz: 'Nacherfassung fehlender Belege – durch Mandant verursacht.' }],
   },
 
   // --- Noch nicht geplante Aufträge (Pool fürs Planungs-Modul: ohne Monat/Datum) ---

@@ -346,6 +346,7 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 .laufende-order__head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 .laufende-order__art { font-weight: 600; }
 .laufende-order__sum { margin-left: auto; font-size: 13px; }
+.auf-tag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: var(--bk-radius-pill); font-size: 11px; font-weight: 600; color: var(--bk-fg-1); background: var(--bk-stone); }
 
 /* Admin-Umschalter (Demo) in der Top-Bar */
 .admin-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--bk-fg-2); cursor: pointer; user-select: none; }

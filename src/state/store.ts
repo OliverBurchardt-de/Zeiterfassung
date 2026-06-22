@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User } from '@/lib/types';
+import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User, Aufwandsart } from '@/lib/types';
 import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
 import { MOCK_USERS } from '@/mock/users';
 import { monatBounds } from '@/lib/monate';
@@ -87,7 +87,7 @@ interface AppState {
   resetTimer: (orderId: string) => void;
   tick: (orderId: string) => void;
   transferTimer: (orderId: string, notiz?: string) => void;
-  addManualTime: (orderId: string, datum: string, dauer: number, notiz?: string) => void;
+  addManualTime: (orderId: string, datum: string, dauer: number, notiz?: string, aufwandsart?: Aufwandsart) => void;
   approveTime: (orderId: string, timeId: string) => void;
 
   // Checkliste
@@ -213,11 +213,13 @@ export const useStore = create<AppState>((set) => ({
       return { ...o, times: [...o.times, entry], timerRunning: false, timerSec: 0 };
     }),
   })),
-  addManualTime: (orderId, datum, dauer, notiz) => set((s) => ({
+  addManualTime: (orderId, datum, dauer, notiz, aufwandsart) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({
-      ...o, times: [...o.times, { id: uid(), datum, dauer, freigegeben: false, notiz: notiz?.trim() || undefined }],
+      ...o, times: [...o.times, { id: uid(), datum, dauer, freigegeben: false, notiz: notiz?.trim() || undefined, aufwandsart }],
     })),
   })),
+  // V2-Hook: vor der Freigabe wird die Notiz per API an eine KI gegeben (Kategorie/Rechtschreibung/
+  // Aussagekraft prüfen) — siehe src/lib/ki.ts (pruefeNotizKI). Aktuell nur technisch vorgesehen.
   approveTime: (orderId, timeId) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({
       ...o, times: o.times.map((t) => (t.id === timeId ? { ...t, freigegeben: true } : t)),
