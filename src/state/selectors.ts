@@ -1,7 +1,38 @@
-import type { Order } from '@/lib/types';
+import type { Order, Note, TimeEntry } from '@/lib/types';
 import { useStore, noteOffen } from './store';
 import { erfassteStunden, isLaufendeArt } from '@/lib/art';
 import { HEUTE } from '@/mock/orders';
+
+// ---- Freigaben (Partner-Cockpit) ---------------------------------------
+
+export interface ZeitFreigabe { order: Order; time: TimeEntry }
+export interface ReviewFreigabe { order: Order; note: Note }
+
+/** Alle noch nicht freigegebenen Zeitbuchungen (über alle Aufträge). */
+export function offeneZeitFreigaben(orders: Order[]): ZeitFreigabe[] {
+  const out: ZeitFreigabe[] = [];
+  for (const o of orders) for (const t of o.times) if (!t.freigegeben) out.push({ order: o, time: t });
+  return out;
+}
+
+/** Aufträge mit ausstehender Umplanungs-Freigabe. */
+export function offeneUmplanungen(orders: Order[]): Order[] {
+  return orders.filter((o) => o.umplanung?.freigabeAusstehend);
+}
+
+/** Review-Notes, die der Mitarbeiter als „erledigt" gemeldet hat → warten auf Partner-Freigabe. */
+export function offeneReviewFreigaben(orders: Order[]): ReviewFreigabe[] {
+  const out: ReviewFreigabe[] = [];
+  for (const o of orders) for (const n of o.notes) if (n.kind === 'review' && n.noteState === 'erledigt') out.push({ order: o, note: n });
+  return out;
+}
+
+/** Zeitbuchungen eines Bearbeiters (Modul „Meine Zeiten"). */
+export function zeitenVon(orders: Order[], autor: string): ZeitFreigabe[] {
+  const out: ZeitFreigabe[] = [];
+  for (const o of orders) if (o.bearbeiter === autor) for (const t of o.times) out.push({ order: o, time: t });
+  return out;
+}
 
 /** Hat der Auftrag offene (nicht freigegebene) Zeiten? */
 export function hasOffeneZeiten(o: Order): boolean {

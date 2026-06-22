@@ -40,7 +40,38 @@
 - **E-Mail-Reminder-Job**: periodischer Scheduler; meldet Aufträge ohne erfasste Zeit bzw. mit
   nicht freigegebenen Zeiten an die Bearbeiter.
 
-## Datenhaltung: DATEV vs. eigene DB
+## DATEV-Anbindung — Netzwerk-„Ebene" & Deployment (M2)
+**Kernproblem:** DATEVconnect ist eine **lokale** REST-Schnittstelle, die nur **innerhalb der
+DATEV-Umgebung der Kanzlei** erreichbar ist (kein Internet-Zugang, Basic Auth, lauscht auf dem
+DATEV-Host, z. B. `:58454`). Wer DATEVconnect aufruft, **muss in derselben Netzwerk-Ebene laufen**
+wie DATEV — also im Kanzlei-LAN, mit Sicht auf den DATEV-Host. Das ist die „Ebene", die sichergestellt
+werden muss.
+
+**Wer muss wo laufen?**
+- **Browser-Frontend (SPA):** beliebig — spricht nur unser App-Backend (HTTPS). Ruft **nie** direkt
+  DATEVconnect auf.
+- **DATEV-Adapter** (Teil des App-Backends): **muss on-prem im Kanzleinetz** laufen und den
+  DATEV-Host erreichen (`http://<datev-host>:<port>`; `localhost` nur, wenn Adapter und DATEV auf
+  **derselben** Maschine liegen).
+
+**Empfohlenes Deployment (passt zur Entscheidung „On-Prem"):**
+Das gesamte App-Backend (+ PostgreSQL) läuft auf einem **Server im Kanzleinetz**, im selben
+Segment wie der DATEV-Arbeitsplatz. Der Adapter erreicht DATEVconnect über das LAN; die Mitarbeiter
+öffnen die App im Browser (intern bzw. per VPN). Einfachste Variante für die DATEVconnect-Erreichbarkeit.
+
+**Alternative, falls später Cloud-Hosting gewünscht ist:** App in der Cloud + **kleiner On-Prem-Agent**
+im Kanzleinetz, der DATEVconnect anspricht und nur **ausgehend** mit der Cloud synchronisiert (kein
+eingehender Port von außen auf DATEV → kein Loch in der Firewall). Mehr Aufwand; nur wenn nötig.
+
+**Vor der M2-Umsetzung zu klären / zu verifizieren:**
+- Auf **welcher Maschine** läuft DATEVconnect, welche **Version**, welcher **Port**? Ist die
+  Komponente überhaupt lizenziert/installiert (DATEVconnect-Freischaltung)?
+- **Netzwerkpfad:** Erreicht der geplante App-Server den DATEV-Host (Firewall/Routing im LAN)?
+- **Technischer DATEVconnect-Benutzer** (Basic Auth) mit passenden Rechten.
+- **Verfügbarkeit:** DATEV-Host muss für Sync/Polling laufen (Zeitfenster, Nacht-Sync?).
+- **Sicherheit:** DATEVconnect bleibt rein intern; nur unser Backend vermittelt, mit TLS zur SPA.
+
+
 | Datum | Quelle / Persistenz |
 |---|---|
 | Auftrag, Mandant, Auftragsart, Plandaten, Soll-Stunden, Ist-Werte | DATEV EO (lesen) |

@@ -8,6 +8,8 @@ import { OrderModal } from '@/features/order/OrderModal';
 import { LaufendeView } from '@/features/laufende/LaufendeView';
 import { PlanungView } from '@/features/planung/PlanungView';
 import { ControllingView } from '@/features/controlling/ControllingView';
+import { FreigabenView } from '@/features/freigaben/FreigabenView';
+import { ZeitenView } from '@/features/zeiten/ZeitenView';
 import { VerwaltungView } from '@/features/verwaltung/VerwaltungView';
 import { UserModal } from '@/features/verwaltung/UserModal';
 import { BesonderheitenModal } from '@/features/besonderheiten/BesonderheitenModal';
@@ -43,28 +45,13 @@ export function App() {
 
       {module === 'verwaltung' && <VerwaltungView />}
 
-      {module === 'zeiten' && (
-        <Placeholder title="Meine Zeiten" hint="Persönliche Zeitübersicht und Freigabestatus (in Vorbereitung)." />
-      )}
-      {module === 'freigaben' && (
-        <Placeholder title="Freigaben" hint="Umplanungs- und Zeit-Freigaben für den mandatsverantwortlichen Partner (in Vorbereitung)." />
-      )}
+      {module === 'zeiten' && <ZeitenView />}
+      {module === 'freigaben' && <FreigabenView />}
 
       {openCardId && <OrderModal orderId={openCardId} />}
       <BesonderheitenModal />
       <ChecklistModal />
       <UserModal />
-    </div>
-  );
-}
-
-function Placeholder({ title, hint }: { title: string; hint: string }) {
-  return (
-    <div className="placeholder">
-      <div className="panel">
-        <h1 style={{ fontSize: 'var(--bk-fs-h1)' }}>{title}</h1>
-        <p className="muted">{hint}</p>
-      </div>
     </div>
   );
 }

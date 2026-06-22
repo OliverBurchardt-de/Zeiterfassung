@@ -424,3 +424,4 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 .ctrl-row__mandant { font-weight: 600; font-size: 14px; }
 .ctrl-row__meta { font-size: 12px; }
 .ctrl-row__right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.ctrl-row__note { flex: 1; font-size: 13px; color: var(--bk-fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
