@@ -124,15 +124,15 @@ export function OrderModal({ orderId }: { orderId: string }) {
               <div className="field">
                 <label>Geplanter Zeitraum (aus DATEV EO)</label>
                 <div className="date-range">
-                  <input className="input" type="date" defaultValue={order.fristStart} />
+                  <input className="input" type="date" value={order.fristStart} readOnly />
                   <span>→</span>
-                  <input className="input" type="date" defaultValue={order.fristEnde} />
+                  <input className="input" type="date" value={order.fristEnde} readOnly />
                 </div>
-                <div className="hint">ergibt Monat: {order.monat}</div>
+                <div className="hint">ergibt Monat: {order.monat} · Änderung über „Umplanung"</div>
               </div>
               <div className="field">
-                <label>Soll-Stunden</label>
-                <input className="input" type="number" defaultValue={order.soll} />
+                <label>Soll-Stunden (aus DATEV EO)</label>
+                <input className="input" type="number" value={order.soll} readOnly />
               </div>
               <div className="field">
                 <label>Ist-Stunden</label>

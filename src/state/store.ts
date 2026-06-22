@@ -4,6 +4,7 @@ import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besond
 import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
 import { MOCK_USERS } from '@/mock/users';
 import { monatBounds } from '@/lib/monate';
+import { notePolicy } from '@/lib/tokens';
 
 /** Schlüssel der Besonderheiten: Mandantennummer + Auftragsart (period-unabhängig). */
 export const besKey = (mandantNr: string, artKey: ArtKey) => `${mandantNr}::${artKey}`;
@@ -266,7 +267,7 @@ export const useStore = create<AppState>()(persist((set) => ({
       ...o,
       notes: [...o.notes, {
         id: uid(), text, author, comments: [], attachments,
-        kind: role === 'partner' ? 'review' : 'frage',
+        kind: notePolicy.canCreateKind(role),
         noteState: 'offen',
       }],
     })),

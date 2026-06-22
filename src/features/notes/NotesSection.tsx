@@ -231,8 +231,8 @@ function NoteCard({ order, note }: { order: Order; note: Note }) {
             </button>
           )}
 
-          {/* Review: Partner-Freigabe + zurück an Mitarbeiter */}
-          {note.kind === 'review' && notePolicy.canApprove(role, note.kind) && (
+          {/* Review: Partner-Freigabe (nur nachdem der Mitarbeiter „erledigt" gemeldet hat) + zurück an Mitarbeiter */}
+          {note.kind === 'review' && note.noteState === 'erledigt' && notePolicy.canApprove(role, note.kind) && (
             <button className="btn btn--success btn--sm" onClick={() => setNoteState(order.id, note.id, 'freigegeben')}>
               Freigeben
             </button>

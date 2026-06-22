@@ -19,7 +19,7 @@ export function FilterSidebar() {
   const toggleArt = useStore((s) => s.toggleArt);
   const toggleQuick = useStore((s) => s.toggleQuick);
 
-  const monate = ['alle', ...Array.from(new Set(orders.map((o) => o.monat)))];
+  const monate = ['alle', ...Array.from(new Set(orders.map((o) => o.monat).filter(Boolean)))];
   const jahre = Array.from(new Set(orders.map((o) => o.vj))).sort((a, b) => b - a);
   const countFor = (id: string) => orders.filter((o) => o.bearbeiterId === id).length;
 

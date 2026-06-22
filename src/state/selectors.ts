@@ -75,7 +75,8 @@ export function istUeberfaellig(o: Order): boolean {
  * (erfasste Zeiten/Leistungen). In Produktion liefert dies ein Hintergrund-API-Pull aus DATEV.
  */
 export function istNichtAbgerechnet(o: Order): boolean {
-  return !o.fakturiert && o.times.length > 0;
+  // Nur freigegebene Zeiten gelten als abrechenbar — unbestätigte Buchungen sind noch kein Rückstand.
+  return !o.fakturiert && o.times.some((t) => t.freigegeben);
 }
 
 /** Auftragsliste nach den aktuellen Filtern (ohne Status — der ergibt die Spalte) */
@@ -110,14 +111,14 @@ export function kpis(orders: Order[]) {
   return { zugeteilt, inBearbeitung, zeitenOffen, reviewNotes };
 }
 
-/** Heute erfasste Stunden (Demo: noch nicht freigegebene Zeiten der gefilterten Aufträge) */
+/** Heute (Stichtag HEUTE) erfasste Stunden der gefilterten Aufträge — unabhängig vom Freigabestatus. */
 export const TAGES_SOLL = 8.0;
 
 export function heuteErfasst(orders: Order[]): { gesamt: number; perMandant: { mandant: string; stunden: number }[] } {
   const perMandant: { mandant: string; stunden: number }[] = [];
   let gesamt = 0;
   for (const o of orders) {
-    const h = erfassteStunden(o.times.filter((t) => !t.freigegeben));
+    const h = erfassteStunden(o.times.filter((t) => t.datum === HEUTE));
     if (h > 0) {
       gesamt += h;
       perMandant.push({ mandant: o.mandant, stunden: h });
