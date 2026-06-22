@@ -106,5 +106,14 @@ begonnen · `rf` Reviewfähig · `rn` Review Notes · `fg` Freigegeben · `am` A
   Veranlagungsjahr kommt aus `assessment_year`.
 - Soll Umplanung zusätzlich per Drag & Drop möglich sein? (aktuell bewusst freigabebasiert)
 - Offizielles Logo-Asset (SVG/transparentes PNG) statt `assets/logo.jpg`.
-- Suchfeld in der Top-Bar mit Funktion hinterlegen.
-- Module „Meine Zeiten" und „Freigaben" ausgestalten (aktuell Platzhalter).
+- Teilaufträge (FiBu/Lohn): Zeitbuchung **je Monat** (aktuell nur „erledigt"-Status + Anzeige);
+  Suborder-Rückschreibung via DATEV (`date_work_completed`, Suborder-Stunden) — M2.
+
+## Module „Freigaben" & „Meine Zeiten" (umgesetzt)
+- **Freigaben** (Partner-Cockpit): alle offenen Freigaben an einer Stelle — Zeiten
+  (`approveTime`), Umplanungen (`approveUmplanung`), Review-Notes (`setNoteState`). Aktionen nur
+  in Partner-Rolle aktiv.
+- **Meine Zeiten**: persönliche Übersicht des Bearbeiters — nicht freigegebene / freigegebene
+  Buchungen und eigene Aufträge ohne erfasste Zeit (Reminder-Grundlage).
+- **Teilaufträge (FiBu/Lohn):** im Auftrags-Detail ein Monatsraster (12 Monate, Suborder-Ebene);
+  je Monat Soll/Ist und „erledigt" (Analogon DATEV `date_work_completed`).

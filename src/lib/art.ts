@@ -56,6 +56,13 @@ export function needsAufwandsart(artKey: ArtKey): boolean {
   return artKey === 'mehraufwand';
 }
 
+/** Auftragsarten mit Monats-Teilaufträgen (Suborder-Ebene in DATEV): FiBu & Lohn */
+export const TEILAUFTRAG_ARTEN: ArtKey[] = ['fibu', 'lohn'];
+
+export function hasTeilauftraege(artKey: ArtKey): boolean {
+  return TEILAUFTRAG_ARTEN.includes(artKey);
+}
+
 /** Stunden dezimal → "X,X h" (de-DE) */
 export function formatHours(h: number): string {
   return `${h.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} h`;

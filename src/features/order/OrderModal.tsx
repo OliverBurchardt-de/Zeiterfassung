@@ -3,7 +3,8 @@ import { X, Info, ListChecks, Clock } from 'lucide-react';
 import { useStore } from '@/state/store';
 import { STATUS, STATUS_ORDER, type StatusId } from '@/lib/tokens';
 import { ART, formatHours, erfassteStunden } from '@/lib/art';
-import { hasUnterlagenProzess, hasBesonderheiten, isLaufendeArt } from '@/lib/art';
+import { hasUnterlagenProzess, hasBesonderheiten, isLaufendeArt, hasTeilauftraege } from '@/lib/art';
+import type { Order } from '@/lib/types';
 import { TimePanel } from '@/features/time/TimePanel';
 import { QuickTimeDialog } from '@/features/time/QuickTimeDialog';
 import { NotesSection } from '@/features/notes/NotesSection';
@@ -160,11 +161,44 @@ export function OrderModal({ orderId }: { orderId: string }) {
             <TimePanel order={order} />
           </div>
 
+          {hasTeilauftraege(order.artKey) && order.suborders && <TeilauftragPanel order={order} />}
+
           <NotesSection order={order} />
         </div>
       </div>
 
       {quickOpen && <QuickTimeDialog order={order} onClose={() => setQuickOpen(false)} />}
+    </div>
+  );
+}
+
+/** Monats-Teilaufträge (FiBu/Lohn) — Klick schaltet „erledigt" (DATEV: date_work_completed). */
+function TeilauftragPanel({ order }: { order: Order }) {
+  const setDone = useStore((s) => s.setSuborderDone);
+  const subs = order.suborders ?? [];
+  const erledigt = subs.filter((s) => s.erledigtAm).length;
+
+  return (
+    <div className="tl">
+      <div className="subhead">Teilaufträge (Monate) · {erledigt}/{subs.length} erledigt</div>
+      <div className="tl-grid">
+        {subs.map((sb) => {
+          const done = !!sb.erledigtAm;
+          return (
+            <button
+              key={sb.id}
+              className={`tl-cell${done ? ' tl-cell--done' : ''}`}
+              onClick={() => setDone(order.id, sb.id, !done)}
+              title={done ? `erledigt am ${new Date(sb.erledigtAm!).toLocaleDateString('de-DE')}` : 'als erledigt markieren'}
+            >
+              <div className="tl-cell__m">{sb.monat.split(' ')[0]}</div>
+              <div className="tl-cell__h">{formatHours(sb.erfasst)} / {sb.soll} h</div>
+              <div className="tl-cell__s">{done ? 'erledigt' : 'offen'}</div>
+            </button>
+          );
+        })}
+      </div>
+      <div className="hint">Klick schaltet „erledigt" (DATEV: date_work_completed). Zeitbuchung je Monat folgt in M2.</div>
     </div>
   );
 }

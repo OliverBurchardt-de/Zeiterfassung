@@ -1,5 +1,21 @@
-import type { Order, Employee, Besonderheit } from '@/lib/types';
+import type { Order, Employee, Besonderheit, Suborder } from '@/lib/types';
 import { checklistFor } from '@/lib/checklists';
+import { hasTeilauftraege } from '@/lib/art';
+import { monthRange, monatBounds } from '@/lib/monate';
+
+/** 12 Monats-Teilaufträge eines Jahres (FiBu/Lohn). `erledigteMonate` Monate gelten als fertig. */
+function monthlySuborders(year: number, sollProMonat: number, erledigteMonate: number): Suborder[] {
+  return monthRange(year, 0, 12).map((monat, i) => {
+    const erledigt = i < erledigteMonate;
+    return {
+      id: `sb-${year}-${i}`,
+      monat,
+      soll: sollProMonat,
+      erfasst: erledigt ? sollProMonat : i === erledigteMonate ? Math.round(sollProMonat * 0.4 * 10) / 10 : 0,
+      erledigtAm: erledigt ? monatBounds(monat)?.end : undefined,
+    };
+  });
+}
 
 export const EMPLOYEES: Employee[] = [
   { id: 'sw', name: 'S. Wolf', initials: 'SW' },
@@ -257,10 +273,14 @@ const BASE_ORDERS: Order[] = [
   },
 ];
 
-/** Checkliste je Auftrag aus der Auftragsart-Vorlage seeden (sofern nicht explizit gesetzt). */
+/**
+ * Checkliste je Auftrag aus der Auftragsart-Vorlage seeden (sofern nicht explizit gesetzt);
+ * FiBu/Lohn zusätzlich mit 12 Monats-Teilaufträgen (2 Monate erledigt — Demo zum Stichtag März).
+ */
 export const MOCK_ORDERS: Order[] = BASE_ORDERS.map((o) => ({
   ...o,
   checklist: o.checklist.length ? o.checklist : checklistFor(o.artKey),
+  suborders: hasTeilauftraege(o.artKey) ? monthlySuborders(o.vj, o.soll, 2) : undefined,
 }));
 
 /**

@@ -93,6 +93,9 @@ interface AppState {
   addManualTime: (orderId: string, datum: string, dauer: number, notiz?: string, aufwandsart?: Aufwandsart) => void;
   approveTime: (orderId: string, timeId: string) => void;
 
+  // Teilaufträge (Monate, FiBu/Lohn)
+  setSuborderDone: (orderId: string, suborderId: string, done: boolean) => void;
+
   // Checkliste
   toggleCheck: (orderId: string, itemId: string) => void;
   addCheck: (orderId: string, label: string) => void;
@@ -230,6 +233,14 @@ export const useStore = create<AppState>()(persist((set) => ({
     })),
   })),
 
+  setSuborderDone: (orderId, suborderId, done) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => ({
+      ...o,
+      suborders: o.suborders?.map((sb) =>
+        sb.id === suborderId ? { ...sb, erledigtAm: done ? new Date().toISOString().slice(0, 10) : undefined } : sb),
+    })),
+  })),
+
   toggleCheck: (orderId, itemId) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({
       ...o, checklist: o.checklist.map((c) => (c.id === itemId ? { ...c, done: !c.done } : c)),
@@ -280,7 +291,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   // Klick-Prototyp: Stand im Browser sichern, damit ein Reload nichts verwirft.
   // version bei Änderungen am Mock-Datenmodell erhöhen → alter Stand wird verworfen.
   name: 'bk-zeiterfassung',
-  version: 2,
+  version: 3,
   partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten }),
 }));
 

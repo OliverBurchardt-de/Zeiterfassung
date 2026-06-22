@@ -425,3 +425,14 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 .ctrl-row__meta { font-size: 12px; }
 .ctrl-row__right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .ctrl-row__note { flex: 1; font-size: 13px; color: var(--bk-fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Teilaufträge (Monate, FiBu/Lohn) im Auftrags-Detail */
+.tl { margin-top: 20px; }
+.tl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; margin-top: 8px; }
+.tl-cell { text-align: left; border: 1px solid var(--bk-stone); border-radius: var(--bk-radius-md); padding: 8px 10px; background: var(--bk-white); cursor: pointer; }
+.tl-cell:hover { background: var(--bk-cloud); }
+.tl-cell--done { background: var(--bk-success-soft); border-color: var(--bk-success-soft); }
+.tl-cell__m { font-weight: 600; font-size: 13px; }
+.tl-cell__h { font-size: 12px; color: var(--bk-fg-2); margin-top: 2px; }
+.tl-cell__s { font-size: 11px; margin-top: 4px; color: var(--bk-fg-3); }
+.tl-cell--done .tl-cell__s { color: var(--bk-success); font-weight: 600; }

@@ -58,6 +58,12 @@ Aufbauend auf dem Planungs-Modul (Pool + Kalender, Drag & Drop):
   unabhängig (Mandant + Auftragsart) und überstehen Auftragswechsel ohnehin.
 
 ## Umgesetzt
+- **Freigaben-Cockpit** (Partner): Zeiten/Umplanungen/Review-Notes an einer Stelle freigeben.
+- **Meine Zeiten**: persönliche Zeitübersicht (offen/freigegeben/ohne Zeit).
+- **Teilaufträge FiBu & Lohn**: Monatsraster (12 Monate) im Auftrags-Detail, je Monat
+  Soll/Ist + „erledigt" (DATEV `date_work_completed`). Zeitbuchung je Monat = M2.
+- **Kleinpolituren**: Browser-Persistenz (localStorage) + funktionierende Top-Bar-Suche.
+  (Logo-Asset bleibt offen.)
 - **Planungstool** — Modul „Planung": oben Pool **noch nicht geplanter** Aufträge, unten
   **Kalender** mit Monatskapazität (Tagessoll × Arbeitstage); per **Drag & Drop** Auftrag in einen
   Monat ziehen → setzt Anfangs-/Enddatum (`planOrder`), zurück in den Pool hebt die Planung auf.

@@ -31,7 +31,14 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
   `src/state/selectors.ts`), durchgesetzt in `OrderModal.tsx` **und** `Board.tsx`. Bedienung in
   eigenem Panel (`ChecklistModal`, Button neben „Besonderheiten").
 - **Laufende Arten** (Beratung/Mehraufwand, `LAUFENDE_ARTEN`) nicht im Board, sondern im Modul
-  „Laufende Buchungen" — Zeitbuchung mit Pflicht-Notiz (`artNeedsNotiz`).
+  „Laufende Buchungen" — Zeitbuchung mit Pflicht-Notiz (`artNeedsNotiz`). Schnellbuchung aus dem
+  Auftrag heraus (`QuickTimeDialog`) bucht über Mandant+Art aufs passende laufende Order.
+- **Teilaufträge** (FiBu/Lohn, `TEILAUFTRAG_ARTEN`/`hasTeilauftraege`): Monats-Suborders am Order
+  (`suborders[]`), „erledigt" via `setSuborderDone` (DATEV `date_work_completed`).
+- **Freigaben** (Partner-Cockpit) und **Meine Zeiten** sind reine Sichten über `orders[]`
+  (Selektoren `offeneZeitFreigaben`/`offeneUmplanungen`/`offeneReviewFreigaben`/`zeitenVon`).
+- **Persistenz:** Store via `persist` (localStorage, Key `bk-zeiterfassung`); `version` bei
+  Änderungen am Order-Datenmodell erhöhen, damit der Mock neu seedet.
 - **Mandantenbesonderheiten** am Schlüssel `besKey(mandantNr, artKey)` (period-unabhängig, nicht am
   Order-Objekt) → automatische Übernahme in Folgeaufträge. Button nur für `BESONDERHEITEN_ARTEN`.
 - **Controlling** ist eine reine Sicht über `orders[]` (Logik zentral in `src/state/selectors.ts`:

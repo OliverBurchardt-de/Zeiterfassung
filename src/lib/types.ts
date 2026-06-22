@@ -60,6 +60,18 @@ export interface Besonderheit {
   datum: string; // ISO
 }
 
+/**
+ * Teilauftrag (Monat) für FiBu/Lohn — entspricht der Suborder-Ebene in DATEV EO.
+ * `erledigtAm` ist das Analogon zu DATEV `date_work_completed` (kein Status-Enum auf Suborder-Ebene).
+ */
+export interface Suborder {
+  id: string;
+  monat: string; // "Jan 2025"
+  soll: number; // Planstunden des Monats
+  erfasst: number; // erfasste Stunden (Mock-Anzeige)
+  erledigtAm?: string; // ISO
+}
+
 export interface Umplanung {
   zielMonat: string; // z. B. "Apr 2025"
   freigabeAusstehend: boolean;
@@ -86,6 +98,7 @@ export interface Order {
   bearbeiterId: string;
   partner: string;
   checklist: ChecklistItem[];
+  suborders?: Suborder[]; // nur FiBu/Lohn: Monats-Teilaufträge
   notes: Note[];
   times: TimeEntry[];
   umplanung?: Umplanung | null;
