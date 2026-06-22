@@ -371,27 +371,42 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 .check-line { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; padding-top: 6px; }
 .check-line input { accent-color: var(--bk-deep-blue); }
 
-/* Modul „Planung" — Auslastung */
-.plan-grid { margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-.plan-card { display: flex; flex-direction: column; }
-.plan-card__head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.plan-card__name { font-weight: 600; }
-.plan-pct { margin-left: auto; font-weight: 700; font-size: 18px; }
-.plan-pct--ok { color: var(--bk-success); }
-.plan-pct--warn { color: var(--bk-amber-text); }
-.plan-pct--over { color: var(--bk-blood-orange); }
-.plan-bar { height: 10px; border-radius: var(--bk-radius-pill); background: var(--bk-cloud); overflow: hidden; }
+/* Modul „Planung" — Pool + Kalender */
+.plan-bar { height: 8px; border-radius: var(--bk-radius-pill); background: var(--bk-cloud); overflow: hidden; }
 .plan-bar__fill { height: 100%; border-radius: var(--bk-radius-pill); }
 .plan-bar__fill--ok { background: var(--bk-success); }
 .plan-bar__fill--warn { background: var(--bk-amber); }
 .plan-bar__fill--over { background: var(--bk-blood-orange); }
-.plan-card__sum { font-size: 12px; margin-top: 6px; }
-.plan-over { color: var(--bk-blood-orange); }
-.plan-orders { margin-top: 14px; border-top: 1px solid var(--bk-stone); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
-.plan-order { display: flex; align-items: center; gap: 8px; }
-.plan-order__mandant { flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.plan-order__h { font-size: 13px; }
-.plan-order__sel { width: auto; padding: 4px 8px; font-size: 13px; }
+
+.pool { margin-top: 18px; transition: background .12s; }
+.pool.is-over { background: var(--bk-blue-soft); }
+.pool__table { margin-top: 4px; }
+.pool__row { cursor: grab; }
+.pool__row:hover { background: var(--bk-cloud); }
+.pool__grip { color: var(--bk-fg-3); width: 24px; }
+.pool__mandant { font-weight: 600; }
+
+.cal-row { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 12px; }
+.cal-card {
+  flex: 0 0 168px; background: var(--bk-white); border: 1px solid var(--bk-stone);
+  border-radius: var(--bk-radius-card); padding: 12px; display: flex; flex-direction: column;
+  min-height: 132px; transition: border-color .12s, background .12s;
+}
+.cal-card.is-over { border-color: var(--bk-blue); background: var(--bk-blue-soft); }
+.cal-card__month { font-weight: 600; font-size: 13px; margin-bottom: 8px; }
+.cal-card__kap { font-size: 20px; font-weight: 700; line-height: 1; }
+.cal-card__unit { font-size: 11px; font-weight: 400; color: var(--bk-fg-2); }
+.cal-card__plan { font-size: 12px; margin: 6px 0 8px; display: flex; align-items: center; gap: 4px; }
+.cal-card__plan--ok { color: var(--bk-success); }
+.cal-card__plan--warn { color: var(--bk-amber-text); }
+.cal-card__plan--over { color: var(--bk-blood-orange); font-weight: 600; }
+.cal-card__orders { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.cal-chip {
+  display: flex; align-items: center; gap: 6px; background: var(--bk-cloud);
+  border-radius: var(--bk-radius-sm); padding: 4px 6px; font-size: 12px; cursor: grab;
+}
+.cal-chip__mandant { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-chip--drag { background: var(--bk-white); box-shadow: var(--bk-shadow-1); border: 1px solid var(--bk-stone); }
 
 /* Modul „Controlling" */
 .ctrl-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 22px; }

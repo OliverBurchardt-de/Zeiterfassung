@@ -30,10 +30,13 @@ Eigener Reiter, **nur für Admins sichtbar**. Mitarbeiterliste mit Detail-/Bearb
 Board · **Planung** · Laufende Buchungen · **Controlling** · Meine Zeiten · Freigaben ·
 Verwaltung *(nur mit Admin-Recht)*.
 
-- **Planung:** Auslastung je Mitarbeiter und Monat — geplante Soll-Stunden vs. Kapazität
-  (Tagessoll × Arbeitstage), Auslastungsbalken (Ampel: ok/≥90 %/>100 %), Aufträge einem
-  Kollegen zuordnen. Monatswechsel selbst über die Umplanung (Partner-Freigabe). M2:
-  Urlaub/Teilzeit, Feiertage, echte Monatskapazität.
+- **Planung:** oben der Pool **nicht geplanter** Aufträge, unten ein **Kalender** mit
+  Monatskapazität (Tagessoll × Arbeitstage). Per **Drag & Drop** wird ein Auftrag in einen Monat
+  gezogen → im Hintergrund werden Anfangs-/Enddatum gesetzt; Zurückziehen in den Pool hebt die
+  Planung auf. Monatskarte zeigt Kapazität, geplante Stunden, Füllbalken (Ampel) und ⚠ bei
+  Überbuchung. **Geplant (als Nächstes):** JA/Einkommensteuer 1× Umplanung/Jahr; **nach**
+  Erstplanung jede Umplanung mit Partner-Freigabe. M2: echte Kapazität aus DATEV
+  (`employeecapacities`).
 - **Controlling:** Auftragsüberwachung für Partner/Leitung zum Stichtag — **überfällig**
   (`fristEnde < Stichtag` & nicht erledigt), **Planwert** erreicht/überschritten (erfasst ÷ Soll
   ≥ 80 % bzw. > 100 %), **noch nicht abgerechnet** = Auftrag **ohne DATEV-Status „Fakturiert"**,

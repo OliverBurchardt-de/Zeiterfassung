@@ -35,6 +35,15 @@ schreibt ihn nach DATEV.
 - **Offen:** Wo läuft die Inbox (eigenes Modul/Reiter „Anforderungen")? E-Mail-Empfänger/-Text;
   soll der Mitarbeiter zusätzlich eine Benachrichtigung im Tool sehen?
 
+### Umplanungs-Regeln für JA & Einkommensteuer — als Nächstes
+Aufbauend auf dem Planungs-Modul (Pool + Kalender, Drag & Drop):
+- **Erstplanung** (Auftrag aus dem Pool in einen Monat): frei durch den Mitarbeiter.
+- Jeder Auftrag **Jahresabschluss / Einkommensteuer** darf **einmal im Jahr umgeplant** werden.
+- **Nach** der Erstplanung erfordert **jede Umplanung die Freigabe** des Partners (wie die bereits
+  vorhandene Umplanung im Auftrags-Detail → Badge „Freigabe ausstehend").
+- Offen: Zähler „1× Umplanung/Jahr" — pro Vj? Wer hebt die Sperre auf (Partner)? Verhalten bei
+  Drag & Drop eines bereits geplanten Auftrags (direkt Freigabe-Anfrage statt sofort verschieben).
+
 ### Sync-Architektur DATEV ↔ Tool (führend: DATEV) — M2
 - Aufträge werden **in DATEV angelegt/gelöscht**; das Tool spiegelt den Bestand (Pull).
 - Eigene Zusatzdaten (Zeiten, Notes, Checklisten) am Auftrag: bei DATEV-Löschung **archivieren
@@ -42,9 +51,12 @@ schreibt ihn nach DATEV.
   unabhängig (Mandant + Auftragsart) und überstehen Auftragswechsel ohnehin.
 
 ## Umgesetzt
-- **Planungstool (Auslastung & Monatsplanung)** — Modul „Planung": je Mitarbeiter/Monat
-  geplante Stunden vs. Kapazität (Tagessoll × Arbeitstage), Auslastungsbalken mit Ampel,
-  Auftrag einem Kollegen zuordnen. Offen für M2: Urlaub/Teilzeit, Feiertage, echte Kapazität.
+- **Planungstool** — Modul „Planung": oben Pool **noch nicht geplanter** Aufträge, unten
+  **Kalender** mit Monatskapazität (Tagessoll × Arbeitstage); per **Drag & Drop** Auftrag in einen
+  Monat ziehen → setzt Anfangs-/Enddatum (`planOrder`), zurück in den Pool hebt die Planung auf.
+  Monatskarte zeigt Kapazität, geplante Stunden, Füllbalken (Ampel) und ⚠ bei Überbuchung.
+  Offen/Next: Umplanungs-Regeln (s. o.); M2: Kapazität aus DATEV `employeecapacities`
+  (Urlaub/Teilzeit/Feiertage) statt fixem Tagessoll.
 - **Controlling (Auftrags-Überwachung)** — Modul „Controlling": überfällige Aufträge
   (`fristEnde < Stichtag`, nicht erledigt), Planwert-Ausschöpfung (≥80 % / >100 %), noch nicht
   abgerechnet = ohne DATEV-Status „Fakturiert", aber mit Buchungen (read-only, in M2 per

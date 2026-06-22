@@ -39,3 +39,27 @@ export function arbeitstage(s: string): number {
 export function uniqueMonate(monate: string[]): string[] {
   return Array.from(new Set(monate)).sort((a, b) => monatSortKey(a) - monatSortKey(b));
 }
+
+/** „Mär 2025" aus Jahr + Monatsindex. */
+export function monatLabel(year: number, monthIndex: number): string {
+  return `${MONAT_ABBR[monthIndex]} ${year}`;
+}
+
+/** Fortlaufende Monatsliste ab (year, monthIndex), `count` Monate lang. */
+export function monthRange(year: number, monthIndex: number, count: number): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const d = new Date(year, monthIndex + i, 1);
+    out.push(monatLabel(d.getFullYear(), d.getMonth()));
+  }
+  return out;
+}
+
+/** Erster und letzter Tag (ISO) eines Monats-Strings — für Auftrags-Start/-Ende beim Einplanen. */
+export function monatBounds(s: string): { start: string; end: string } | null {
+  const p = parseMonat(s);
+  if (!p) return null;
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return { start: iso(new Date(p.year, p.monthIndex, 1)), end: iso(new Date(p.year, p.monthIndex + 1, 0)) };
+}

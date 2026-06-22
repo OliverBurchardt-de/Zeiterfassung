@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User } from '@/lib/types';
 import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
 import { MOCK_USERS } from '@/mock/users';
+import { monatBounds } from '@/lib/monate';
 
 /** Schlüssel der Besonderheiten: Mandantennummer + Auftragsart (period-unabhängig). */
 export const besKey = (mandantNr: string, artKey: ArtKey) => `${mandantNr}::${artKey}`;
@@ -75,6 +76,8 @@ interface AppState {
   // Auftrag
   setStatus: (orderId: string, status: StatusId) => void;
   assignOrder: (orderId: string, bearbeiterId: string, bearbeiter: string) => void;
+  planOrder: (orderId: string, monat: string) => void; // Auftrag in einen Monat einplanen (setzt Start/Ende)
+  unplanOrder: (orderId: string) => void; // Einplanung aufheben (zurück in den Pool)
   requestUmplanung: (orderId: string, zielMonat: string) => void;
   approveUmplanung: (orderId: string) => void;
 
@@ -179,6 +182,15 @@ export const useStore = create<AppState>((set) => ({
 
   assignOrder: (orderId, bearbeiterId, bearbeiter) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({ ...o, bearbeiterId, bearbeiter })),
+  })),
+  planOrder: (orderId, monat) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => {
+      const b = monatBounds(monat);
+      return b ? { ...o, monat, fristStart: b.start, fristEnde: b.end } : o;
+    }),
+  })),
+  unplanOrder: (orderId) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => ({ ...o, monat: '', fristStart: '', fristEnde: '' })),
   })),
 
   requestUmplanung: (orderId, zielMonat) => set((s) => ({

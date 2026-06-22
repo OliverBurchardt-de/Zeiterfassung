@@ -31,7 +31,7 @@ function CardInner({ order }: { order: Order }) {
       <div className="chips">
         <span className="chip">Soll {order.soll} h</span>
         <span className="chip">Ist {formatHours(erfassteStunden(order.times))}</span>
-        <span className="chip">{order.monat}</span>
+        <span className="chip">{order.monat || 'ungeplant'}</span>
       </div>
 
       <div className="card__state">

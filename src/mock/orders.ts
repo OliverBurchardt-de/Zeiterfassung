@@ -205,6 +205,48 @@ const BASE_ORDERS: Order[] = [
     checklist: [], notes: [],
     times: [{ id: 't18', datum: '2025-03-13', dauer: 1.25, freigegeben: false, notiz: 'Nacherfassung fehlender Belege – durch Mandant verursacht.' }],
   },
+
+  // --- Noch nicht geplante Aufträge (Pool fürs Planungs-Modul: ohne Monat/Datum) ---
+  {
+    id: 'p1', mandant: 'Bauunternehmen Vogt', mandantNr: 'D10270', auftragsNr: nextNr(),
+    art: 'Jahresabschluss', artKey: 'ja', vj: 2025,
+    fristStart: '', fristEnde: '', monat: '',
+    soll: 20, seiten: 0, kosten: 0, status: 'av',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: [], notes: [], times: [],
+  },
+  {
+    id: 'p2', mandant: 'Apotheke am Markt', mandantNr: 'D10272', auftragsNr: nextNr(),
+    art: 'Einkommensteuer', artKey: 'est', vj: 2025,
+    fristStart: '', fristEnde: '', monat: '',
+    soll: 6, seiten: 0, kosten: 0, status: 'av',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: [], notes: [], times: [],
+  },
+  {
+    id: 'p3', mandant: 'Stadtwerke Beteiligung', mandantNr: 'D10275', auftragsNr: nextNr(),
+    art: 'Jahresabschluss', artKey: 'ja', vj: 2025,
+    fristStart: '', fristEnde: '', monat: '',
+    soll: 24, seiten: 0, kosten: 0, status: 'av',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: [], notes: [], times: [],
+  },
+  {
+    id: 'p4', mandant: 'Logistik Nord GmbH', mandantNr: 'D10278', auftragsNr: nextNr(),
+    art: 'Jahresabschluss', artKey: 'ja', vj: 2025,
+    fristStart: '', fristEnde: '', monat: '',
+    soll: 16, seiten: 0, kosten: 0, status: 'av',
+    bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
+    checklist: [], notes: [], times: [],
+  },
+  {
+    id: 'p5', mandant: 'Praxis Dr. Sommer', mandantNr: 'D10281', auftragsNr: nextNr(),
+    art: 'Einkommensteuer', artKey: 'est', vj: 2024,
+    fristStart: '', fristEnde: '', monat: '',
+    soll: 5, seiten: 0, kosten: 0, status: 'av',
+    bearbeiter: 'T. Berg', bearbeiterId: 'tb', partner: 'O. Burchardt',
+    checklist: [], notes: [], times: [],
+  },
 ];
 
 /** Checkliste je Auftrag aus der Auftragsart-Vorlage seeden (sofern nicht explizit gesetzt). */
