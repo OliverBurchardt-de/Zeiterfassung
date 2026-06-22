@@ -205,6 +205,14 @@ const BASE_ORDERS: Order[] = [
     checklist: [], notes: [],
     times: [{ id: 't18', datum: '2025-03-13', dauer: 1.25, freigegeben: false, aufwandsart: 'dumm', notiz: 'Nacherfassung fehlender Belege – durch Mandant verursacht.' }],
   },
+  {
+    id: 'o19', mandant: 'Hotel Seeblick KG', mandantNr: 'D10224', auftragsNr: nextNr(),
+    art: 'Laufende Steuerberatung', artKey: 'beratung', vj: 2025,
+    fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
+    soll: 0, seiten: 0, kosten: 0, status: 'bb',
+    bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
+    checklist: [], notes: [], times: [],
+  },
 
   // --- Noch nicht geplante Aufträge (Pool fürs Planungs-Modul: ohne Monat/Datum) ---
   {

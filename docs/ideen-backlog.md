@@ -72,6 +72,9 @@ Aufbauend auf dem Planungs-Modul (Pool + Kalender, Drag & Drop):
 - Zeitbuchung mit Notiz (Pflicht bei Beratung/Mehraufwand).
 - Modul „Laufende Buchungen" (Beratung/Mehraufwand, ohne Status-Flow); je Buchung auf der
   Mehraufwand-Karte Auswahl **Aufwandsart** (Mehraufwand / Dumm gelaufen → EO-Aufwandsarten).
+- **Schnellbuchung im Auftrag**: Button „Laufende Zeit buchen" im Auftrags-Detail bucht — ohne
+  Screenwechsel — auf den passenden laufenden Auftrag desselben Mandanten (1:1 über Mandantennr +
+  Auftragsart aufgelöst); Kategorie Steuerberatung / Mehraufwand / Dumm gelaufen, Pflicht-Notiz.
 - Mandantenbesonderheiten (Schlüssel Mandant + Auftragsart, period-unabhängig).
 - Checkliste je Auftragsart in eigenem Panel; „Erledigt" gesperrt bis vollständig.
 - Modul „Verwaltung" (Nutzerverwaltung als Mock, Admin-Zusatzrecht).

@@ -57,7 +57,12 @@ Verwaltung *(nur mit Admin-Recht)*.
 4b. **Laufende Buchungen (eigenes Modul):** *Laufende Steuerberatung* und *Mehraufwand / Dumm
    gelaufen* haben keinen Status-Ablauf und erscheinen nicht im Kanban-Board. Sie sind dauerhafte
    Buchungs-Container je Mandant; im Modul „Laufende Buchungen" wird nur Zeit (mit Pflicht-Notiz)
-   gebucht und vom Partner freigegeben.
+   gebucht und vom Partner freigegeben. Auf der Mehraufwand-Karte wird je Buchung die
+   **Aufwandsart** (Mehraufwand / Dumm gelaufen → EO-Aufwandsarten) gewählt.
+4c. **Schnellbuchung im Auftrag:** Aus dem Auftrags-Detail kann laufende Zeit direkt gebucht werden
+   („Laufende Zeit buchen") — ohne Screenwechsel; das Tool bucht auf den passenden laufenden Auftrag
+   desselben Mandanten (1:1 über Mandantennr + Auftragsart). Bei Freigabe ist eine **KI-Prüfung der
+   Notiz** technisch vorgesehen (Kategorie/Rechtschreibung/Aussagekraft) — Umsetzung V2.
 5. **Reminder:** Aufträge ohne erfasste Zeit oder mit nicht freigegebenen Zeiten werden in festen
    Intervallen per E-Mail an den Bearbeiter gemeldet (Backend-Job, M2).
 6. **Review:** Aufträge im Status „Reviewfähig" werden vom Partner geprüft; Review Notes anlegen,

@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { X, Info, ListChecks } from 'lucide-react';
+import { X, Info, ListChecks, Clock } from 'lucide-react';
 import { useStore } from '@/state/store';
 import { STATUS, STATUS_ORDER, type StatusId } from '@/lib/tokens';
 import { ART, formatHours, erfassteStunden } from '@/lib/art';
-import { hasUnterlagenProzess, hasBesonderheiten } from '@/lib/art';
+import { hasUnterlagenProzess, hasBesonderheiten, isLaufendeArt } from '@/lib/art';
 import { TimePanel } from '@/features/time/TimePanel';
+import { QuickTimeDialog } from '@/features/time/QuickTimeDialog';
 import { NotesSection } from '@/features/notes/NotesSection';
 import { canComplete, offeneChecklist } from '@/state/selectors';
 
@@ -19,6 +20,7 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const openChecklist = useStore((s) => s.openChecklist);
 
   const [zielMonat, setZielMonat] = useState('Apr 2025');
+  const [quickOpen, setQuickOpen] = useState(false);
 
   if (!order) return null;
   const art = ART[order.artKey];
@@ -60,6 +62,11 @@ export function OrderModal({ orderId }: { orderId: string }) {
               {hasBesonderheiten(order.artKey) && (
                 <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={() => openBes(order)}>
                   <Info size={13} /> Besonderheiten
+                </button>
+              )}
+              {!isLaufendeArt(order.artKey) && (
+                <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={() => setQuickOpen(true)}>
+                  <Clock size={13} /> Laufende Zeit buchen
                 </button>
               )}
             </span>
@@ -156,6 +163,8 @@ export function OrderModal({ orderId }: { orderId: string }) {
           <NotesSection order={order} />
         </div>
       </div>
+
+      {quickOpen && <QuickTimeDialog order={order} onClose={() => setQuickOpen(false)} />}
     </div>
   );
 }
