@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User, Aufwandsart } from '@/lib/types';
 import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
 import { MOCK_USERS } from '@/mock/users';
@@ -29,6 +30,7 @@ export interface Filters {
   arten: ArtKey[]; // leere Liste = alle
   nurOffeneZeiten: boolean;
   freigabeAusstehend: boolean;
+  suche: string; // Freitext: Mandant / Auftrags-Nr.
 }
 
 /** Daten eines Nutzers im Bearbeiten-/Anlegen-Dialog (ohne id/Status). */
@@ -59,6 +61,7 @@ interface AppState {
   setEmployee: (id: string | 'team') => void;
   setMonat: (m: string | 'alle') => void;
   setVj: (vj: number | 'alle') => void;
+  setSuche: (q: string) => void;
   toggleArt: (a: ArtKey) => void;
   toggleQuick: (key: 'nurOffeneZeiten' | 'freigabeAusstehend') => void;
   openCard: (id: string) => void;
@@ -116,11 +119,11 @@ function mapNote(o: Order, noteId: string, fn: (n: Note) => Note): Order {
   return { ...o, notes: o.notes.map((n) => (n.id === noteId ? fn(n) : n)) };
 }
 
-export const useStore = create<AppState>((set) => ({
+export const useStore = create<AppState>()(persist((set) => ({
   orders: MOCK_ORDERS,
   role: 'mitarbeiter',
   isAdmin: true,
-  filters: { employeeId: 'sw', monat: 'alle', vj: 'alle', arten: [], nurOffeneZeiten: false, freigabeAusstehend: false },
+  filters: { employeeId: 'sw', monat: 'alle', vj: 'alle', arten: [], nurOffeneZeiten: false, freigabeAusstehend: false, suche: '' },
   openCardId: null,
   checklistOpenId: null,
   besonderheiten: MOCK_BESONDERHEITEN,
@@ -147,6 +150,7 @@ export const useStore = create<AppState>((set) => ({
   setEmployee: (employeeId) => set((s) => ({ filters: { ...s.filters, employeeId } })),
   setMonat: (monat) => set((s) => ({ filters: { ...s.filters, monat } })),
   setVj: (vj) => set((s) => ({ filters: { ...s.filters, vj } })),
+  setSuche: (suche) => set((s) => ({ filters: { ...s.filters, suche } })),
   toggleArt: (a) => set((s) => {
     const has = s.filters.arten.includes(a);
     return { filters: { ...s.filters, arten: has ? s.filters.arten.filter((x) => x !== a) : [...s.filters.arten, a] } };
@@ -272,6 +276,12 @@ export const useStore = create<AppState>((set) => ({
       ...n, attachments: n.attachments.filter((a) => a.id !== attachmentId),
     }))),
   })),
+}), {
+  // Klick-Prototyp: Stand im Browser sichern, damit ein Reload nichts verwirft.
+  // version bei Änderungen am Mock-Datenmodell erhöhen → alter Stand wird verworfen.
+  name: 'bk-zeiterfassung',
+  version: 2,
+  partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten }),
 }));
 
 /**

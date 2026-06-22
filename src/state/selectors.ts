@@ -90,6 +90,11 @@ export function useFilteredOrders(): Order[] {
     if (f.arten.length > 0 && !f.arten.includes(o.artKey)) return false;
     if (f.nurOffeneZeiten && !(hasOffeneZeiten(o) || ohneZeit(o))) return false;
     if (f.freigabeAusstehend && !o.umplanung?.freigabeAusstehend) return false;
+    if (f.suche.trim()) {
+      const q = f.suche.trim().toLowerCase();
+      const haystack = `${o.mandant} ${o.mandantNr} ${o.auftragsNr} ${o.art}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
     return true;
   });
 }

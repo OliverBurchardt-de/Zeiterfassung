@@ -20,6 +20,8 @@ export function TopBar({ module, onModule }: { module: ModuleKey; onModule: (m: 
   const setRole = useStore((s) => s.setRole);
   const isAdmin = useStore((s) => s.isAdmin);
   const setAdmin = useStore((s) => s.setAdmin);
+  const suche = useStore((s) => s.filters.suche);
+  const setSuche = useStore((s) => s.setSuche);
 
   function toggleAdmin(v: boolean) {
     setAdmin(v);
@@ -46,7 +48,12 @@ export function TopBar({ module, onModule }: { module: ModuleKey; onModule: (m: 
 
       <div className="search">
         <Search size={16} />
-        <input placeholder="Auftrag oder Mandant suchen …" aria-label="Suche" />
+        <input
+          placeholder="Auftrag oder Mandant suchen …"
+          aria-label="Suche"
+          value={suche}
+          onChange={(e) => { setSuche(e.target.value); if (e.target.value.trim()) onModule('board'); }}
+        />
       </div>
 
       <div className="role-switch" role="group" aria-label="Rolle wählen">
