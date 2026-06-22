@@ -56,10 +56,17 @@ export function ControllingView() {
             })}
       </Section>
 
-      <Section title="Noch nicht abgerechnet" hint="Bearbeitung abgeschlossen (an Mandant / beim FA / erledigt), aber nicht fakturiert.">
+      <Section
+        title="Noch nicht abgerechnet"
+        hint={'Aufträge ohne DATEV-Status „Fakturiert", auf denen bereits Buchungen liegen. Wird im Hintergrund per DATEV-Pull ermittelt (M2) — keine manuelle Pflege.'}
+      >
         {nichtAbgerechnet.length === 0
-          ? <Empty text="Alles abgerechnet." />
-          : nichtAbgerechnet.map((o) => <RowAbrechnen key={o.id} o={o} />)}
+          ? <Empty text="Keine offenen, abrechenbaren Buchungen." />
+          : nichtAbgerechnet.map((o) => (
+              <Row key={o.id} o={o}>
+                <span className="muted tabular">{formatHours(erfassteStunden(o.times))} gebucht</span>
+              </Row>
+            ))}
       </Section>
     </div>
   );
@@ -100,17 +107,6 @@ function Row({ o, children }: { o: Order; children: React.ReactNode }) {
       </span>
       <span className="ctrl-row__right">{children}</span>
     </div>
-  );
-}
-
-function RowAbrechnen({ o }: { o: Order }) {
-  const setAbgerechnet = useStore((s) => s.setAbgerechnet);
-  return (
-    <Row o={o}>
-      <button className="btn btn--success btn--sm" onClick={() => setAbgerechnet(o.id, true)}>
-        Als abgerechnet markieren
-      </button>
-    </Row>
   );
 }
 

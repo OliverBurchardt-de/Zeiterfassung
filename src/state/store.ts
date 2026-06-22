@@ -75,7 +75,6 @@ interface AppState {
   // Auftrag
   setStatus: (orderId: string, status: StatusId) => void;
   assignOrder: (orderId: string, bearbeiterId: string, bearbeiter: string) => void;
-  setAbgerechnet: (orderId: string, abgerechnet: boolean) => void;
   requestUmplanung: (orderId: string, zielMonat: string) => void;
   approveUmplanung: (orderId: string) => void;
 
@@ -180,9 +179,6 @@ export const useStore = create<AppState>((set) => ({
 
   assignOrder: (orderId, bearbeiterId, bearbeiter) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({ ...o, bearbeiterId, bearbeiter })),
-  })),
-  setAbgerechnet: (orderId, abgerechnet) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => ({ ...o, abgerechnet })),
   })),
 
   requestUmplanung: (orderId, zielMonat) => set((s) => ({

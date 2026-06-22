@@ -37,9 +37,12 @@ export function istUeberfaellig(o: Order): boolean {
   return o.fristEnde < HEUTE && o.status !== 'er';
 }
 
-/** Fertig bearbeitet (an Mandant / beim FA / erledigt), aber noch nicht fakturiert. */
+/**
+ * Noch nicht abgerechnet: Auftrag ist nicht „Fakturiert", trägt aber bereits Buchungen
+ * (erfasste Zeiten/Leistungen). In Produktion liefert dies ein Hintergrund-API-Pull aus DATEV.
+ */
 export function istNichtAbgerechnet(o: Order): boolean {
-  return ['am', 'fa', 'er'].includes(o.status) && !o.abgerechnet;
+  return !o.fakturiert && o.times.length > 0;
 }
 
 /** Auftragsliste nach den aktuellen Filtern (ohne Status — der ergibt die Spalte) */

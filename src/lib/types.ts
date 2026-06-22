@@ -76,7 +76,8 @@ export interface Order {
   seiten: number; // Ist-Seiten
   kosten: number; // Ist-Kosten in €
   status: StatusId;
-  abgerechnet?: boolean; // fakturiert (Controlling: „noch nicht abgerechnet")
+  /** DATEV-Status „Fakturiert" (abgerechnet). In M2 per Hintergrund-API-Pull ermittelt, nicht in der App gepflegt. */
+  fakturiert?: boolean;
   bearbeiter: string;
   bearbeiterId: string;
   partner: string;

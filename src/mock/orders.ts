@@ -150,7 +150,7 @@ const BASE_ORDERS: Order[] = [
     id: 'o12', mandant: 'Maler Brandt GmbH', mandantNr: 'D10250', auftragsNr: nextNr(),
     art: 'Jahresabschluss', artKey: 'ja', vj: 2023,
     fristStart: '2025-01-01', fristEnde: '2025-01-31', monat: 'Jan 2025',
-    soll: 20, seiten: 38, kosten: 1620, status: 'er', abgerechnet: true,
+    soll: 20, seiten: 38, kosten: 1620, status: 'er', fakturiert: true,
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
     checklist: [], notes: [],
     times: [{ id: 't8', datum: '2025-01-28', dauer: 19.5, freigegeben: true }],

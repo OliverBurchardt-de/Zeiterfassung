@@ -87,6 +87,15 @@ ein Monat wird also über das Erledigt-**Datum** als fertig markiert, der Gesamt
 `completion_status = done`. **Wichtig:** PUT überschreibt Order bzw. Suborder **komplett** → immer
 erst GET, dann das geänderte Objekt zurückschreiben.
 
+## Controlling — Abrechnungs-Pull (M2)
+Die Controlling-Liste **„noch nicht abgerechnet"** wird **nicht** in der App gepflegt, sondern
+**im Hintergrund per DATEV-Pull** ermittelt: Ein periodischer Job liest die Aufträge und meldet
+diejenigen, die **nicht** den Abrechnungs-/Fakturierungs-Status („Fakturiert") tragen, auf denen
+aber bereits **Buchungen** (erfasste Zeiten/Leistungen) liegen. Quelle des Status ist DATEV
+(`billing_status` bzw. das entsprechende Faktura-Feld — gegen die Live-Instanz verifizieren); die
+Buchungen kommen aus der eigenen Zeiterfassung. Im M1-Mock bildet `istNichtAbgerechnet` diese
+Regel read-only ab (`!fakturiert && times.length > 0`).
+
 ## Offener Punkt — Zeit-Rückschreibung
 Für **einzelne** Tages-/Mitarbeiter-Zeiteinträge gibt es in dieser API keinen Schreib-Endpunkt;
 Stunden werden auf Auftrags-/Unterauftragsebene geführt (`planned_hours`, Suborder-Stunden). Die

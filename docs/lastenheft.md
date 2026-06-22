@@ -36,8 +36,10 @@ Verwaltung *(nur mit Admin-Recht)*.
   Urlaub/Teilzeit, Feiertage, echte Monatskapazität.
 - **Controlling:** Auftragsüberwachung für Partner/Leitung zum Stichtag — **überfällig**
   (`fristEnde < Stichtag` & nicht erledigt), **Planwert** erreicht/überschritten (erfasst ÷ Soll
-  ≥ 80 % bzw. > 100 %), **noch nicht abgerechnet** (`am`/`fa`/`er` & `abgerechnet = false`,
-  direkt als abgerechnet markierbar). Stichtag im Mock `HEUTE`; in Produktion das Tagesdatum.
+  ≥ 80 % bzw. > 100 %), **noch nicht abgerechnet** = Auftrag **ohne DATEV-Status „Fakturiert"**,
+  auf dem bereits **Buchungen** (erfasste Zeiten/Leistungen) liegen. Diese Liste wird **im
+  Hintergrund per DATEV-Pull** ermittelt (M2) — read-only, **keine manuelle Pflege** in der App.
+  Stichtag im Mock `HEUTE`; in Produktion das Tagesdatum.
 
 ## Flow
 1. **Arbeitsvorrat:** Mitarbeiter sehen alle Aufträge und filtern (Zuständigkeit, geplanter

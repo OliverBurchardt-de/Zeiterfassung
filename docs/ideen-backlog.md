@@ -19,7 +19,8 @@ _(leer)_
   Auftrag einem Kollegen zuordnen. Offen für M2: Urlaub/Teilzeit, Feiertage, echte Kapazität.
 - **Controlling (Auftrags-Überwachung)** — Modul „Controlling": überfällige Aufträge
   (`fristEnde < Stichtag`, nicht erledigt), Planwert-Ausschöpfung (≥80 % / >100 %), noch nicht
-  abgerechnet (neues Feld `abgerechnet`). Stichtag im Mock `HEUTE` (= 2025-03-20).
+  abgerechnet = ohne DATEV-Status „Fakturiert", aber mit Buchungen (read-only, in M2 per
+  Hintergrund-DATEV-Pull). Stichtag im Mock `HEUTE` (= 2025-03-20).
 - Veranlagungsjahr lesen + Filter; Farben je Auftragsart.
 - Zeitbuchung mit Notiz (Pflicht bei Beratung/Mehraufwand).
 - Modul „Laufende Buchungen" (Beratung/Mehraufwand, ohne Status-Flow).
