@@ -23,8 +23,17 @@ schreibt ihn nach DATEV.
   Mitarbeiter stellt Anforderung (Mandant, Auftragsart, VJ/Zeitraum, Notiz) → Aufgabe/Inbox fürs
   Backoffice → Backoffice legt den Auftrag **manuell in DATEV EO** an → beim nächsten **Sync**
   erscheint er im Tool. Wahrt „DATEV ist führend".
-- **Offen:** Wo läuft die Anforderungs-Inbox (eigenes Modul/Status)? Benachrichtigung ans
-  Backoffice? Rückmeldung an den Mitarbeiter, wenn angelegt.
+- **Workflow (abgestimmt):**
+  1. Mitarbeiter erstellt eine Anforderung (Mandant, Auftragsart, VJ/Zeitraum, Notiz).
+  2. **Auslöser:** automatische **E-Mail ans Backoffice** (Backend-Job, wie der Reminder).
+  3. Backoffice legt den Auftrag **in DATEV EO** an.
+  4. Backoffice **meldet im Workflow „angelegt" zurück** → Anforderung wechselt den Status und der
+     Mitarbeiter bekommt Rückmeldung; der Auftrag kommt per Sync ins Tool.
+- **Status-Modell der Anforderung:** `angefordert → angelegt` (optional `abgelehnt` mit Grund).
+- **M1-mockbar:** Anforderungs-Formular + Backoffice-Inbox mit „als angelegt melden" (UI/States).
+  **M2:** echte E-Mail (Backend) und die DATEV-Anlage selbst.
+- **Offen:** Wo läuft die Inbox (eigenes Modul/Reiter „Anforderungen")? E-Mail-Empfänger/-Text;
+  soll der Mitarbeiter zusätzlich eine Benachrichtigung im Tool sehen?
 
 ### Sync-Architektur DATEV ↔ Tool (führend: DATEV) — M2
 - Aufträge werden **in DATEV angelegt/gelöscht**; das Tool spiegelt den Bestand (Pull).
