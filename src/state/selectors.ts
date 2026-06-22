@@ -65,6 +65,8 @@ export function auslastungPct(o: Order): number {
 
 /** Überfällig: Fristende liegt vor dem Stichtag und der Auftrag ist nicht erledigt. */
 export function istUeberfaellig(o: Order): boolean {
+  // Ungeplante Aufträge haben leeres Fristende ('') → nicht als überfällig werten (Review-Hinweis 5.2).
+  if (!o.fristEnde) return false;
   return o.fristEnde < HEUTE && o.status !== 'er';
 }
 

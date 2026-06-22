@@ -204,8 +204,16 @@ export const useStore = create<AppState>()(persist((set) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({ ...o, umplanung: { zielMonat, freigabeAusstehend: true } })),
   })),
   approveUmplanung: (orderId) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) =>
-      o.umplanung ? { ...o, monat: o.umplanung.zielMonat, umplanung: null } : o),
+    orders: mapOrder(s.orders, orderId, (o) => {
+      if (!o.umplanung) return o;
+      const zielMonat = o.umplanung.zielMonat;
+      // Wie planOrder: Monat + Fristdaten konsistent setzen, sonst zeigen Detail/Filter/Controlling
+      // widersprüchliche Daten (Review-Hinweis 5.1).
+      const b = monatBounds(zielMonat);
+      return b
+        ? { ...o, monat: zielMonat, fristStart: b.start, fristEnde: b.end, umplanung: null }
+        : { ...o, monat: zielMonat, umplanung: null };
+    }),
   })),
 
   startTimer: (orderId) => set((s) => ({ orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerRunning: true })) })),
