@@ -7,7 +7,9 @@ const logo = '/assets/logo.jpg';
 
 const MODULES: { key: ModuleKey; label: string; adminOnly?: boolean }[] = [
   { key: 'board', label: 'Board' },
+  { key: 'planung', label: 'Planung' },
   { key: 'laufende', label: 'Laufende Buchungen' },
+  { key: 'controlling', label: 'Controlling' },
   { key: 'zeiten', label: 'Meine Zeiten' },
   { key: 'freigaben', label: 'Freigaben' },
   { key: 'verwaltung', label: 'Verwaltung', adminOnly: true },

@@ -1,6 +1,7 @@
 import type { Order } from '@/lib/types';
 import { useStore, noteOffen } from './store';
 import { erfassteStunden, isLaufendeArt } from '@/lib/art';
+import { HEUTE } from '@/mock/orders';
 
 /** Hat der Auftrag offene (nicht freigegebene) Zeiten? */
 export function hasOffeneZeiten(o: Order): boolean {
@@ -21,6 +22,24 @@ export function canComplete(o: Order): boolean {
 export function ohneZeit(o: Order): boolean {
   const aktiv = ['bb', 'rf', 'rn'].includes(o.status);
   return aktiv && o.times.length === 0;
+}
+
+// ---- Controlling --------------------------------------------------------
+
+/** Auslastung (0..n) eines Auftragsbestands: erfasste Stunden / Soll-Stunden. */
+export function auslastungPct(o: Order): number {
+  if (o.soll <= 0) return 0;
+  return erfassteStunden(o.times) / o.soll;
+}
+
+/** Überfällig: Fristende liegt vor dem Stichtag und der Auftrag ist nicht erledigt. */
+export function istUeberfaellig(o: Order): boolean {
+  return o.fristEnde < HEUTE && o.status !== 'er';
+}
+
+/** Fertig bearbeitet (an Mandant / beim FA / erledigt), aber noch nicht fakturiert. */
+export function istNichtAbgerechnet(o: Order): boolean {
+  return ['am', 'fa', 'er'].includes(o.status) && !o.abgerechnet;
 }
 
 /** Auftragsliste nach den aktuellen Filtern (ohne Status — der ergibt die Spalte) */

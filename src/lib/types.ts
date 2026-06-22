@@ -76,6 +76,7 @@ export interface Order {
   seiten: number; // Ist-Seiten
   kosten: number; // Ist-Kosten in €
   status: StatusId;
+  abgerechnet?: boolean; // fakturiert (Controlling: „noch nicht abgerechnet")
   bearbeiter: string;
   bearbeiterId: string;
   partner: string;

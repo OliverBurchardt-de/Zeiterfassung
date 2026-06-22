@@ -9,6 +9,12 @@ export const EMPLOYEES: Employee[] = [
 
 export const CURRENT_USER: Employee = EMPLOYEES[0];
 
+/**
+ * Demo-Stichtag für Auswertungen (Controlling: „überfällig"). Die Mock-Aufträge liegen rund um
+ * den März 2025; in Produktion wird hier das echte Tagesdatum verwendet.
+ */
+export const HEUTE = '2025-03-20';
+
 let seq = 1100;
 const nextNr = () => `A-2025-${++seq}`;
 
@@ -64,7 +70,7 @@ const BASE_ORDERS: Order[] = [
     soll: 3, seiten: 2, kosten: 180, status: 'bb',
     bearbeiter: 'T. Berg', bearbeiterId: 'tb', partner: 'O. Burchardt',
     checklist: [], notes: [],
-    times: [{ id: 't2', datum: '2025-03-17', dauer: 2.0, freigegeben: false }],
+    times: [{ id: 't2', datum: '2025-03-17', dauer: 4.0, freigegeben: false }],
   },
   {
     id: 'o7', mandant: 'Gärtnerei Blum', mandantNr: 'D10233', auftragsNr: nextNr(),
@@ -144,7 +150,7 @@ const BASE_ORDERS: Order[] = [
     id: 'o12', mandant: 'Maler Brandt GmbH', mandantNr: 'D10250', auftragsNr: nextNr(),
     art: 'Jahresabschluss', artKey: 'ja', vj: 2023,
     fristStart: '2025-01-01', fristEnde: '2025-01-31', monat: 'Jan 2025',
-    soll: 20, seiten: 38, kosten: 1620, status: 'er',
+    soll: 20, seiten: 38, kosten: 1620, status: 'er', abgerechnet: true,
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
     checklist: [], notes: [],
     times: [{ id: 't8', datum: '2025-01-28', dauer: 19.5, freigegeben: true }],

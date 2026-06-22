@@ -11,26 +11,15 @@ _(leer — wird beim Start eines Punktes hierher verschoben)_
 _(leer)_
 
 ## Offen — neu (noch zu besprechen)
-
-### Planungstool (Auslastung & Monatsplanung) — M1-Mock möglich
-Mitarbeiter sehen ihre **Auslastung** und planen, welche Aufträge sie im Monat bearbeiten.
-- **Auslastung je Mitarbeiter & Monat:** geplante Soll-Stunden der zugewiesenen Aufträge vs.
-  verfügbare Kapazität. Kapazität ableitbar aus `tagessoll` (Nutzer) × Arbeitstage im Monat.
-- **Planen:** Auftrag einem Monat / sich selbst zuordnen; Über-/Unterlast sichtbar (Ampel/Balken).
-- **Datenbasis:** vorhanden — `soll`, `monat`, `bearbeiter`/`bearbeiterId`, `tagessoll`.
-  Ergänzen evtl.: Kapazität pro Monat (Urlaub/Teilzeit), Feiertage/Arbeitstage.
-- **Bezug:** überschneidet sich mit „Umplanung" (Monat ändern → Partner-Freigabe).
-
-### Controlling (Auftrags-Überwachung) — M1-Mock möglich
-Auswertungs-Sicht für Partner/Leitung.
-- **Überfällig:** `fristEnde < heute` und Status ≠ `er` (Erledigt).
-- **Planwert erreicht/überschritten:** erfasste Stunden ≥ `soll` (Schwellen z. B. ≥80 %, ≥100 %).
-- **Noch nicht abgerechnet:** Aufträge erledigt, aber nicht fakturiert.
-  - **Ergänzen nötig:** Feld `abgerechnet` (ja/nein) bzw. Rechnungsstatus am Auftrag.
-- **Datenbasis:** weitgehend vorhanden (`fristEnde`, `status`, `soll`, `times`); nur
-  Abrechnungs-Status fehlt.
+_(leer)_
 
 ## Umgesetzt
+- **Planungstool (Auslastung & Monatsplanung)** — Modul „Planung": je Mitarbeiter/Monat
+  geplante Stunden vs. Kapazität (Tagessoll × Arbeitstage), Auslastungsbalken mit Ampel,
+  Auftrag einem Kollegen zuordnen. Offen für M2: Urlaub/Teilzeit, Feiertage, echte Kapazität.
+- **Controlling (Auftrags-Überwachung)** — Modul „Controlling": überfällige Aufträge
+  (`fristEnde < Stichtag`, nicht erledigt), Planwert-Ausschöpfung (≥80 % / >100 %), noch nicht
+  abgerechnet (neues Feld `abgerechnet`). Stichtag im Mock `HEUTE` (= 2025-03-20).
 - Veranlagungsjahr lesen + Filter; Farben je Auftragsart.
 - Zeitbuchung mit Notiz (Pflicht bei Beratung/Mehraufwand).
 - Modul „Laufende Buchungen" (Beratung/Mehraufwand, ohne Status-Flow).

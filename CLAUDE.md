@@ -34,6 +34,10 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
   „Laufende Buchungen" — Zeitbuchung mit Pflicht-Notiz (`artNeedsNotiz`).
 - **Mandantenbesonderheiten** am Schlüssel `besKey(mandantNr, artKey)` (period-unabhängig, nicht am
   Order-Objekt) → automatische Übernahme in Folgeaufträge. Button nur für `BESONDERHEITEN_ARTEN`.
+- **Auswertungs-Module** „Planung" und „Controlling" sind reine Sichten über `orders[]`; ihre
+  Logik liegt zentral in `src/state/selectors.ts` (`auslastungPct`, `istUeberfaellig`,
+  `istNichtAbgerechnet`) und `src/lib/monate.ts` (Arbeitstage/Monatsparsing) — nicht in der UI.
+  Demo-Stichtag `HEUTE` in `src/mock/orders.ts`; in Produktion das echte Tagesdatum.
 
 ## Fachliche Kernregeln (Details in `design_handoff_zeiterfassung/README.md`)
 - **Geplanter Monat** aus EO-Datumsfeldern (`fristStart`/`fristEnde`).

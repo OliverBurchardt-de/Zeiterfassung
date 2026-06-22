@@ -6,13 +6,15 @@ import { Board } from '@/features/board/Board';
 import { RightColumn } from '@/features/board/RightColumn';
 import { OrderModal } from '@/features/order/OrderModal';
 import { LaufendeView } from '@/features/laufende/LaufendeView';
+import { PlanungView } from '@/features/planung/PlanungView';
+import { ControllingView } from '@/features/controlling/ControllingView';
 import { VerwaltungView } from '@/features/verwaltung/VerwaltungView';
 import { UserModal } from '@/features/verwaltung/UserModal';
 import { BesonderheitenModal } from '@/features/besonderheiten/BesonderheitenModal';
 import { ChecklistModal } from '@/features/checklist/ChecklistModal';
 import { useStore } from '@/state/store';
 
-export type ModuleKey = 'board' | 'laufende' | 'zeiten' | 'freigaben' | 'verwaltung';
+export type ModuleKey = 'board' | 'planung' | 'laufende' | 'controlling' | 'zeiten' | 'freigaben' | 'verwaltung';
 
 export function App() {
   const [module, setModule] = useState<ModuleKey>('board');
@@ -33,7 +35,11 @@ export function App() {
         </>
       )}
 
+      {module === 'planung' && <PlanungView />}
+
       {module === 'laufende' && <LaufendeView />}
+
+      {module === 'controlling' && <ControllingView />}
 
       {module === 'verwaltung' && <VerwaltungView />}
 

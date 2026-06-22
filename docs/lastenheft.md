@@ -26,6 +26,19 @@ Eigener Reiter, **nur für Admins sichtbar**. Mitarbeiterliste mit Detail-/Bearb
 - **Nutzerquelle:** in der App gepflegt; je Nutzer wird die DATEV-Mitarbeiter-ID hinterlegt
   (optional Vorbefüllung aus DATEV beim Setup). Login/Rollen/Rechte liegen in der eigenen App-DB.
 
+## Module (Navigation)
+Board · **Planung** · Laufende Buchungen · **Controlling** · Meine Zeiten · Freigaben ·
+Verwaltung *(nur mit Admin-Recht)*.
+
+- **Planung:** Auslastung je Mitarbeiter und Monat — geplante Soll-Stunden vs. Kapazität
+  (Tagessoll × Arbeitstage), Auslastungsbalken (Ampel: ok/≥90 %/>100 %), Aufträge einem
+  Kollegen zuordnen. Monatswechsel selbst über die Umplanung (Partner-Freigabe). M2:
+  Urlaub/Teilzeit, Feiertage, echte Monatskapazität.
+- **Controlling:** Auftragsüberwachung für Partner/Leitung zum Stichtag — **überfällig**
+  (`fristEnde < Stichtag` & nicht erledigt), **Planwert** erreicht/überschritten (erfasst ÷ Soll
+  ≥ 80 % bzw. > 100 %), **noch nicht abgerechnet** (`am`/`fa`/`er` & `abgerechnet = false`,
+  direkt als abgerechnet markierbar). Stichtag im Mock `HEUTE`; in Produktion das Tagesdatum.
+
 ## Flow
 1. **Arbeitsvorrat:** Mitarbeiter sehen alle Aufträge und filtern (Zuständigkeit, geplanter
    Monat, **Veranlagungsjahr**, Auftragsart, Schnellfilter) → persönlicher Arbeitsvorrat.
