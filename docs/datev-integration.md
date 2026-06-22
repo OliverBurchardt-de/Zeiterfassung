@@ -58,6 +58,16 @@ erweitert werden (sonst gelten die Besonderheiten für alle Perioden des Auftrag
 - **`PUT /orders/{orderid}/suborders/{suborderid}`** (Body `suborders`): Stunden/Plandaten/Kosten
   auf Unterauftragsebene.
 
+## Aufträge anlegen/löschen — nicht über die API (führend: DATEV)
+Die API kennt nur **GET/POST/PUT, kein DELETE**. Es gibt **kein `POST /orders`** und **kein
+DELETE** — der einzige POST ist `…/expensepostings`. Aufträge werden also **ausschließlich in
+DATEV** angelegt/gelöscht; das Tool **spiegelt** den Bestand (Sync/Pull) und schreibt nur
+**Änderungen** an bestehenden Aufträgen zurück (PUT). Daraus folgt:
+- **„Fehlenden Auftrag anfordern"** ist nur als **Workflow** umsetzbar (Mitarbeiter-Anforderung →
+  Backoffice legt in DATEV EO **manuell** an → erscheint beim nächsten Sync). Kein Auto-Write.
+- Bei in DATEV **gelöschten** Aufträgen: eigene Zusatzdaten (Zeiten/Notes/Checklisten)
+  **archivieren statt hart löschen**. Mandantenbesonderheiten sind period-unabhängig und bleiben.
+
 ## Status-Mapping (10 App-Status ↔ DATEV `completion_status`)
 Die 10 Kanban-Status (`av, ua, uv, bb, rf, rn, fg, am, fa, er`) sind App-intern (Status-Historie
 in der eigenen DB). DATEV kennt auf **Gesamtauftrags**-Ebene das Feld `completion_status` mit

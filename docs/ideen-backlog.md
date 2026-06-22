@@ -11,7 +11,26 @@ _(leer — wird beim Start eines Punktes hierher verschoben)_
 _(leer)_
 
 ## Offen — neu (noch zu besprechen)
-_(leer)_
+
+### Auftrags-Anforderung durch Mitarbeiter (Workflow) — M2
+Mitarbeiter können einen **fehlenden Auftrag anfordern**; das **Backoffice** legt ihn an und
+schreibt ihn nach DATEV.
+- **API-Befund (geprüft, `Order Management-1.4.9.json`):** Die Schnittstelle kennt nur
+  **GET/POST/PUT, kein DELETE**. Es gibt **kein `POST /orders`** (Anlegen) und **kein DELETE**
+  (Löschen); der einzige POST ist `…/expensepostings`. → **Aufträge können nicht automatisch nach
+  DATEV geschrieben oder dort gelöscht werden.**
+- **Konsequenz:** Funktion nur als **Workflow** umsetzbar, nicht als API-Write:
+  Mitarbeiter stellt Anforderung (Mandant, Auftragsart, VJ/Zeitraum, Notiz) → Aufgabe/Inbox fürs
+  Backoffice → Backoffice legt den Auftrag **manuell in DATEV EO** an → beim nächsten **Sync**
+  erscheint er im Tool. Wahrt „DATEV ist führend".
+- **Offen:** Wo läuft die Anforderungs-Inbox (eigenes Modul/Status)? Benachrichtigung ans
+  Backoffice? Rückmeldung an den Mitarbeiter, wenn angelegt.
+
+### Sync-Architektur DATEV ↔ Tool (führend: DATEV) — M2
+- Aufträge werden **in DATEV angelegt/gelöscht**; das Tool spiegelt den Bestand (Pull).
+- Eigene Zusatzdaten (Zeiten, Notes, Checklisten) am Auftrag: bei DATEV-Löschung **archivieren
+  statt hart löschen** (Historie/Nachvollziehbarkeit). Mandantenbesonderheiten sind period-
+  unabhängig (Mandant + Auftragsart) und überstehen Auftragswechsel ohnehin.
 
 ## Umgesetzt
 - **Planungstool (Auslastung & Monatsplanung)** — Modul „Planung": je Mitarbeiter/Monat
