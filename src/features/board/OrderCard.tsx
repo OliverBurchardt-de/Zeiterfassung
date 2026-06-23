@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { Info, ListChecks } from 'lucide-react';
 import type { Order } from '@/lib/types';
@@ -5,9 +6,10 @@ import { ART, formatTimer, formatHours, erfassteStunden, hasBesonderheiten } fro
 import { STATUS } from '@/lib/tokens';
 import { offeneNotes, useStore, besKey } from '@/state/store';
 import { hasOffeneZeiten } from '@/state/selectors';
+import { CardFlyout, type FlyoutKind } from './CardFlyout';
 
 /** Reine Darstellung einer Karte – wird sowohl im Board als auch im Drag-Overlay genutzt. */
-function CardInner({ order }: { order: Order }) {
+function CardInner({ order, onFlyout }: { order: Order; onFlyout?: (k: FlyoutKind) => void }) {
   const art = ART[order.artKey];
   const timerLaufend = order.timerRunning;
   const offeneZeit = !timerLaufend && hasOffeneZeiten(order);
@@ -70,7 +72,7 @@ function CardInner({ order }: { order: Order }) {
           {checkGesamt > 0 && (
             <button
               className="btn btn--ghost btn--sm card__bes"
-              onClick={(e) => { e.stopPropagation(); openChecklist(order.id); }}
+              onClick={(e) => { e.stopPropagation(); if (onFlyout) onFlyout('checkliste'); else openChecklist(order.id); }}
             >
               <ListChecks size={13} /> Checkliste ({checkGesamt - checkOffen}/{checkGesamt})
             </button>
@@ -78,7 +80,7 @@ function CardInner({ order }: { order: Order }) {
           {hasBesonderheiten(order.artKey) && (
             <button
               className="btn btn--ghost btn--sm card__bes"
-              onClick={(e) => { e.stopPropagation(); openBes(order); }}
+              onClick={(e) => { e.stopPropagation(); if (onFlyout) onFlyout('besonderheiten'); else openBes(order); }}
             >
               <Info size={13} /> Besonderheiten{besCount > 0 ? ` (${besCount})` : ''}
             </button>
@@ -93,6 +95,17 @@ function CardInner({ order }: { order: Order }) {
 export function OrderCard({ order }: { order: Order }) {
   const openCard = useStore((s) => s.openCard);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: order.id });
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [flyout, setFlyout] = useState<FlyoutKind | null>(null);
+
+  // dnd-kit-Ref und eigener DOM-Ref (Anker fürs Flyout) zusammenführen
+  const setRefs = (node: HTMLDivElement | null) => {
+    cardRef.current = node;
+    setNodeRef(node);
+  };
+
+  // Beim Ziehen kein offenes Flyout
+  useEffect(() => { if (isDragging) setFlyout(null); }, [isDragging]);
 
   const style = {
     borderLeftColor: STATUS[order.status].color,
@@ -102,19 +115,24 @@ export function OrderCard({ order }: { order: Order }) {
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      className="card"
-      style={style}
-      onClick={() => openCard(order.id)}
-      {...attributes}
-      {...listeners}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter') openCard(order.id); }}
-    >
-      <CardInner order={order} />
-    </div>
+    <>
+      <div
+        ref={setRefs}
+        className="card"
+        style={style}
+        onClick={() => openCard(order.id)}
+        {...attributes}
+        {...listeners}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter') openCard(order.id); }}
+      >
+        <CardInner order={order} onFlyout={(k) => setFlyout((prev) => (prev === k ? null : k))} />
+      </div>
+      {flyout && (
+        <CardFlyout anchorEl={cardRef.current} kind={flyout} order={order} onClose={() => setFlyout(null)} />
+      )}
+    </>
   );
 }
 
