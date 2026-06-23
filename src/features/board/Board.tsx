@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable,
+  DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable, pointerWithin,
   type DragStartEvent, type DragEndEvent,
 } from '@dnd-kit/core';
 import { STATUS, STATUS_ORDER, type StatusId } from '@/lib/tokens';
@@ -48,7 +48,12 @@ export function Board() {
 
   return (
     <div className="board-wrap">
-      <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+      >
         <div className="board">
           {columns.map((s) => (
             <Column key={s} status={s} orders={byStatus(s)} />
@@ -62,10 +67,11 @@ export function Board() {
 
 function Column({ status, orders }: { status: StatusId; orders: Order[] }) {
   const meta = STATUS[status];
+  // Die ganze Spalte ist Drop-Ziel (nicht nur die Karten-Liste), damit auch Kopf/Leerraum zählen.
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   return (
-    <section className="column">
+    <section ref={setNodeRef} className={`column${isOver ? ' is-over' : ''}`}>
       <div className="column__accent" style={{ background: meta.color }} />
       <div className="column__head">
         <span className="dot" style={{ background: meta.color }} />
@@ -73,7 +79,7 @@ function Column({ status, orders }: { status: StatusId; orders: Order[] }) {
         <span className="count-pill" style={{ color: meta.color, background: meta.soft }}>{orders.length}</span>
       </div>
       {meta.special && <div className="column__hint">nur best. Auftragsarten</div>}
-      <div ref={setNodeRef} className={`column__list${isOver ? ' is-over' : ''}`}>
+      <div className="column__list">
         {orders.map((o) => (
           <OrderCard key={o.id} order={o} />
         ))}
