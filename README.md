@@ -53,5 +53,6 @@ design_handoff_zeiterfassung/   verbindliche Design-Referenz (Prototyp, Screensh
 - `CLAUDE.md` — Projektkontext & Konventionen
 - `docs/architektur.md` — Zielarchitektur (Frontend, Backend, DATEV-Adapter, Persistenz)
 - `docs/datev-integration.md` — Feld-Mapping & Rückschreibung nach EO Comfort
+- `docs/datev-developer-portal.md` — Developer-Portal: Onboarding, Cloud vs. On-Premise, Auth, Links
 - `docs/lastenheft.md` — Flow, Regeln, offene Punkte
 - `design_handoff_zeiterfassung/README.md` — vollständige Design-Spezifikation

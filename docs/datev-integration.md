@@ -1,5 +1,9 @@
 # DATEV-Integration (Order Management v1)
 
+> Portal-/Onboarding-Ebene (Cloud vs. On-Premise, Registrierung, Sandbox, Auth-Wege,
+> Gateway-Migration) siehe **`docs/datev-developer-portal.md`**. Dieses Dokument behandelt das
+> konkrete Feld-/Status-Mapping und die Rückschreibung.
+
 Quelle der Auftragsdaten ist die **On-Premise-API** *Order Management 1.4.9*
 (`Order Management-1.4.9.json`), erreichbar über DATEVconnect unter
 `http://localhost:58454/datev/api/order-management/v1/` mit **Basic Auth**.
