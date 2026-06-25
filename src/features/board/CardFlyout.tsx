@@ -44,13 +44,25 @@ export function CardFlyout({
       setPos({ left, top });
     }
     place();
+    const raf = requestAnimationFrame(place); // zweite Messung, sobald der Inhalt gelayoutet ist
     window.addEventListener('scroll', place, true);
     window.addEventListener('resize', place);
+    // Position nachführen, wenn der Inhalt wächst (z. B. weitere Checklistenpunkte)
+    const ro = new ResizeObserver(place);
+    if (ref.current) ro.observe(ref.current);
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener('scroll', place, true);
       window.removeEventListener('resize', place);
+      ro.disconnect();
     };
   }, [anchorEl, kind]);
+
+  // Fokus beim Öffnen ins Panel, beim Schließen zurück auf die Karte
+  useEffect(() => {
+    ref.current?.focus();
+    return () => { anchorEl?.focus?.(); };
+  }, [anchorEl]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
@@ -75,6 +87,9 @@ export function CardFlyout({
     <div
       ref={ref}
       className="flyout"
+      role="dialog"
+      aria-label={kind === 'checkliste' ? 'Checkliste' : 'Besonderheiten'}
+      tabIndex={-1}
       style={{ left: pos?.left ?? -9999, top: pos?.top ?? -9999, width: WIDTH, visibility: pos ? 'visible' : 'hidden' }}
       onClick={(e) => e.stopPropagation()}
     >

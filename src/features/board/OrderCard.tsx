@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { Info, ListChecks } from 'lucide-react';
 import type { Order } from '@/lib/types';
@@ -9,7 +9,7 @@ import { hasOffeneZeiten } from '@/state/selectors';
 import { CardFlyout, type FlyoutKind } from './CardFlyout';
 
 /** Reine Darstellung einer Karte – wird sowohl im Board als auch im Drag-Overlay genutzt. */
-function CardInner({ order, onFlyout }: { order: Order; onFlyout?: (k: FlyoutKind) => void }) {
+function CardInner({ order, onFlyout, openFlyout }: { order: Order; onFlyout?: (k: FlyoutKind) => void; openFlyout?: FlyoutKind | null }) {
   const art = ART[order.artKey];
   const timerLaufend = order.timerRunning;
   const offeneZeit = !timerLaufend && hasOffeneZeiten(order);
@@ -40,7 +40,7 @@ function CardInner({ order, onFlyout }: { order: Order; onFlyout?: (k: FlyoutKin
         {timerLaufend && (
           <div className="state-line" style={{ color: 'var(--bk-blood-orange)', fontWeight: 600 }}>
             <span className="dot dot--pulse" style={{ background: 'var(--bk-blood-orange)' }} />
-            {formatTimer(order.timerSec ?? 0)} h läuft
+            {formatTimer(order.timerSec ?? 0)} läuft
           </div>
         )}
         {offeneZeit && (
@@ -72,6 +72,8 @@ function CardInner({ order, onFlyout }: { order: Order; onFlyout?: (k: FlyoutKin
           {checkGesamt > 0 && (
             <button
               className="btn btn--ghost btn--sm card__bes"
+              aria-haspopup="dialog"
+              aria-expanded={onFlyout ? openFlyout === 'checkliste' : undefined}
               onClick={(e) => { e.stopPropagation(); if (onFlyout) onFlyout('checkliste'); else openChecklist(order.id); }}
             >
               <ListChecks size={13} /> Checkliste ({checkGesamt - checkOffen}/{checkGesamt})
@@ -80,6 +82,8 @@ function CardInner({ order, onFlyout }: { order: Order; onFlyout?: (k: FlyoutKin
           {hasBesonderheiten(order.artKey) && (
             <button
               className="btn btn--ghost btn--sm card__bes"
+              aria-haspopup="dialog"
+              aria-expanded={onFlyout ? openFlyout === 'besonderheiten' : undefined}
               onClick={(e) => { e.stopPropagation(); if (onFlyout) onFlyout('besonderheiten'); else openBes(order); }}
             >
               <Info size={13} /> Besonderheiten{besCount > 0 ? ` (${besCount})` : ''}
@@ -92,7 +96,7 @@ function CardInner({ order, onFlyout }: { order: Order; onFlyout?: (k: FlyoutKin
 }
 
 /** Ziehbare Karte im Board. Klick öffnet das Detail, Ziehen verschiebt den Status. */
-export function OrderCard({ order }: { order: Order }) {
+export const OrderCard = memo(function OrderCard({ order }: { order: Order }) {
   const openCard = useStore((s) => s.openCard);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: order.id });
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -106,6 +110,9 @@ export function OrderCard({ order }: { order: Order }) {
 
   // Beim Ziehen kein offenes Flyout
   useEffect(() => { if (isDragging) setFlyout(null); }, [isDragging]);
+
+  const closeFlyout = useCallback(() => setFlyout(null), []);
+  const toggleFlyout = useCallback((k: FlyoutKind) => setFlyout((prev) => (prev === k ? null : k)), []);
 
   const style = {
     borderLeftColor: STATUS[order.status].color,
@@ -127,14 +134,14 @@ export function OrderCard({ order }: { order: Order }) {
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === 'Enter') openCard(order.id); }}
       >
-        <CardInner order={order} onFlyout={(k) => setFlyout((prev) => (prev === k ? null : k))} />
+        <CardInner order={order} onFlyout={toggleFlyout} openFlyout={flyout} />
       </div>
       {flyout && (
-        <CardFlyout anchorEl={cardRef.current} kind={flyout} order={order} onClose={() => setFlyout(null)} />
+        <CardFlyout anchorEl={cardRef.current} kind={flyout} order={order} onClose={closeFlyout} />
       )}
     </>
   );
-}
+});
 
 /** Visuelle Kopie, die beim Ziehen dem Cursor folgt (kein Klick, kein Drag-Hook). */
 export function OrderCardOverlay({ order }: { order: Order }) {

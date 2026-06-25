@@ -31,7 +31,9 @@ export function ChecklistBody({ order }: { order: Order }) {
           <button
             className={`checkbox${c.done ? ' is-on' : ''}`}
             onClick={() => toggleCheck(order.id, c.id)}
-            aria-label="abhaken"
+            role="checkbox"
+            aria-checked={c.done}
+            aria-label={c.label}
           >
             {c.done && <Check size={13} strokeWidth={3} />}
           </button>

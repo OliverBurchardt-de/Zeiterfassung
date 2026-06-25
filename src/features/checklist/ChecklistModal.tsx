@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useStore } from '@/state/store';
 import { ART } from '@/lib/art';
@@ -9,6 +10,13 @@ export function ChecklistModal() {
   const id = useStore((s) => s.checklistOpenId);
   const order = useStore((s) => s.orders.find((o) => o.id === id));
   const close = useStore((s) => s.closeChecklist);
+
+  useEffect(() => {
+    if (!id) return;
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [id, close]);
 
   if (!order) return null;
   const art = ART[order.artKey];

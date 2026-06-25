@@ -74,7 +74,7 @@ export function TopBar({ module, onModule }: { module: ModuleKey; onModule: (m: 
         <span className="avatar avatar--34">{CURRENT_USER.initials}</span>
         <div>
           <div className="user-chip__name">{CURRENT_USER.name}</div>
-          <div className="user-chip__role">{role === 'partner' ? 'Partner' : 'Sachbearbeiter'}</div>
+          <div className="user-chip__role">{role === 'partner' ? 'Partner' : 'Mitarbeiter'}</div>
         </div>
       </div>
     </header>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Info, ListChecks, Clock } from 'lucide-react';
 import { useStore } from '@/state/store';
 import { STATUS, STATUS_ORDER, type StatusId } from '@/lib/tokens';
@@ -19,9 +19,20 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const requestUmplanung = useStore((s) => s.requestUmplanung);
   const openBes = useStore((s) => s.openBesonderheiten);
   const openChecklist = useStore((s) => s.openChecklist);
+  const checklistOpen = useStore((s) => s.checklistOpenId);
+  const besOpen = useStore((s) => s.besOpen);
 
   const [zielMonat, setZielMonat] = useState('Apr 2025');
   const [quickOpen, setQuickOpen] = useState(false);
+
+  // Esc schließt das Detail – aber nur, wenn kein anderes Overlay darüber liegt (das schließt zuerst)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !quickOpen && !checklistOpen && !besOpen) closeCard();
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [closeCard, quickOpen, checklistOpen, besOpen]);
 
   if (!order) return null;
   const art = ART[order.artKey];

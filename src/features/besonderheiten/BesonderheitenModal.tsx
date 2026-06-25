@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useStore } from '@/state/store';
 import { ART } from '@/lib/art';
@@ -10,6 +11,13 @@ import { BesonderheitenBody } from './BesonderheitenBody';
 export function BesonderheitenModal() {
   const ctx = useStore((s) => s.besOpen);
   const close = useStore((s) => s.closeBesonderheiten);
+
+  useEffect(() => {
+    if (!ctx) return;
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [ctx, close]);
 
   if (!ctx) return null;
   const art = ART[ctx.artKey];

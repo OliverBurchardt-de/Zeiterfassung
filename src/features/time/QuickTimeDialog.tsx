@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
@@ -26,6 +26,12 @@ export function QuickTimeDialog({ order, onClose }: { order: Order; onClose: () 
   const [dauer, setDauer] = useState('');
   const [notiz, setNotiz] = useState('');
   const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const v = parseFloat(dauer.replace(',', '.'));
   const ok = kat !== '' && !isNaN(v) && v > 0 && notiz.trim().length > 0;
