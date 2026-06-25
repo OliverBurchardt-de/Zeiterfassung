@@ -51,6 +51,11 @@ wo unser App-Backend/DATEV-Adapter (M2) läuft.
 Im gehosteten DATEV-Desktop (dort ist `localhost` erreichbar). Mit dem DATEVconnect-Benutzer.
 **(Ob Browser/PowerShell auf dem ASP-Server nutzbar sind, ggf. mit DATEV klären.)**
 
+> **Fertiges Test-Skript:** `tools/datev-connect-test.ps1` führt echo → domains → orders aus
+> (nur lesen) und optional einen Rückschreibtest. Auf den ASP-Server kopieren und ausführen:
+> `powershell -ExecutionPolicy Bypass -File .\datev-connect-test.ps1`
+> (Rückschreiben: `... -TestWriteback -OrderId "<Test-Auftrag>"`).
+
 **a) Verbindung + Auth + verfügbare APIs (Diagnostics):**
 ```
 GET http://localhost:58454/datev/api/diagnostics/v1/echo      # Lebenszeichen + Auth
