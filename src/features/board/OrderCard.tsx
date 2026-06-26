@@ -1,24 +1,21 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { Info, ListChecks } from 'lucide-react';
 import type { Order } from '@/lib/types';
-import { ART, formatTimer, formatHours, erfassteStunden, hasBesonderheiten } from '@/lib/art';
+import { ART, formatTimer, formatHours, erfassteStunden } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
-import { offeneNotes, useStore, besKey } from '@/state/store';
+import { offeneNotes, useStore } from '@/state/store';
 import { hasOffeneZeiten } from '@/state/selectors';
-import { CardFlyout, type FlyoutKind } from './CardFlyout';
 
-/** Reine Darstellung einer Karte – wird sowohl im Board als auch im Drag-Overlay genutzt. */
-function CardInner({ order, onFlyout, openFlyout }: { order: Order; onFlyout?: (k: FlyoutKind) => void; openFlyout?: FlyoutKind | null }) {
+/**
+ * Reine Darstellung einer Karte – wird sowohl im Board als auch im Drag-Overlay genutzt.
+ * Checkliste und Besonderheiten gibt es bewusst NICHT auf der Karte, sondern erst im
+ * Auftrags-Detail (beim Bearbeiten) — auf dem Board wären sie überflüssig.
+ */
+function CardInner({ order }: { order: Order }) {
   const art = ART[order.artKey];
   const timerLaufend = order.timerRunning;
   const offeneZeit = !timerLaufend && hasOffeneZeiten(order);
   const reviewCount = offeneNotes(order);
-  const openBes = useStore((s) => s.openBesonderheiten);
-  const openChecklist = useStore((s) => s.openChecklist);
-  const besCount = useStore((s) => (s.besonderheiten[besKey(order.mandantNr, order.artKey)] ?? []).length);
-  const checkOffen = order.checklist.filter((c) => !c.done).length;
-  const checkGesamt = order.checklist.length;
 
   return (
     <>
@@ -66,31 +63,6 @@ function CardInner({ order, onFlyout, openFlyout }: { order: Order; onFlyout?: (
           </div>
         )}
       </div>
-
-      {(hasBesonderheiten(order.ordertype) || checkGesamt > 0) && (
-        <div className="card__foot">
-          {checkGesamt > 0 && (
-            <button
-              className="btn btn--ghost btn--sm card__bes"
-              aria-haspopup="dialog"
-              aria-expanded={onFlyout ? openFlyout === 'checkliste' : undefined}
-              onClick={(e) => { e.stopPropagation(); if (onFlyout) onFlyout('checkliste'); else openChecklist(order.id); }}
-            >
-              <ListChecks size={13} /> Checkliste ({checkGesamt - checkOffen}/{checkGesamt})
-            </button>
-          )}
-          {hasBesonderheiten(order.ordertype) && (
-            <button
-              className="btn btn--ghost btn--sm card__bes"
-              aria-haspopup="dialog"
-              aria-expanded={onFlyout ? openFlyout === 'besonderheiten' : undefined}
-              onClick={(e) => { e.stopPropagation(); if (onFlyout) onFlyout('besonderheiten'); else openBes(order); }}
-            >
-              <Info size={13} /> Besonderheiten{besCount > 0 ? ` (${besCount})` : ''}
-            </button>
-          )}
-        </div>
-      )}
     </>
   );
 }
@@ -99,20 +71,6 @@ function CardInner({ order, onFlyout, openFlyout }: { order: Order; onFlyout?: (
 export const OrderCard = memo(function OrderCard({ order }: { order: Order }) {
   const openCard = useStore((s) => s.openCard);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: order.id });
-  const cardRef = useRef<HTMLDivElement | null>(null);
-  const [flyout, setFlyout] = useState<FlyoutKind | null>(null);
-
-  // dnd-kit-Ref und eigener DOM-Ref (Anker fürs Flyout) zusammenführen
-  const setRefs = (node: HTMLDivElement | null) => {
-    cardRef.current = node;
-    setNodeRef(node);
-  };
-
-  // Beim Ziehen kein offenes Flyout
-  useEffect(() => { if (isDragging) setFlyout(null); }, [isDragging]);
-
-  const closeFlyout = useCallback(() => setFlyout(null), []);
-  const toggleFlyout = useCallback((k: FlyoutKind) => setFlyout((prev) => (prev === k ? null : k)), []);
 
   const style = {
     borderLeftColor: STATUS[order.status].color,
@@ -122,24 +80,19 @@ export const OrderCard = memo(function OrderCard({ order }: { order: Order }) {
   };
 
   return (
-    <>
-      <div
-        ref={setRefs}
-        className="card"
-        style={style}
-        onClick={() => openCard(order.id)}
-        {...attributes}
-        {...listeners}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter') openCard(order.id); }}
-      >
-        <CardInner order={order} onFlyout={toggleFlyout} openFlyout={flyout} />
-      </div>
-      {flyout && (
-        <CardFlyout anchorEl={cardRef.current} kind={flyout} order={order} onClose={closeFlyout} />
-      )}
-    </>
+    <div
+      ref={setNodeRef}
+      className="card"
+      style={style}
+      onClick={() => openCard(order.id)}
+      {...attributes}
+      {...listeners}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter') openCard(order.id); }}
+    >
+      <CardInner order={order} />
+    </div>
   );
 });
 
