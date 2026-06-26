@@ -4,6 +4,7 @@ import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besond
 import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
 import { MOCK_USERS } from '@/mock/users';
 import { monatBounds } from '@/lib/monate';
+import { hasUnterlagenProzess } from '@/lib/art';
 import { notePolicy } from '@/lib/tokens';
 
 /** Schlüssel der Besonderheiten: Mandantennummer + Auftragsart (period-unabhängig). */
@@ -188,7 +189,16 @@ export const useStore = create<AppState>()(persist((set) => ({
     },
   })),
 
-  setStatus: (orderId, status) => set((s) => ({ orders: mapOrder(s.orders, orderId, (o) => ({ ...o, status })) })),
+  // Domänen-Guard (SSOT): die in der UI durchgesetzten Kernregeln auch im Store absichern, damit
+  // kein anderer Aufruf (Tests, künftige API) einen unzulässigen Zustand erzeugt. Vollständige
+  // Übergangs-/Rollenvalidierung folgt serverseitig in M2 (Review P1.1).
+  setStatus: (orderId, status) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => {
+      if (status === 'er' && o.checklist.some((c) => !c.done)) return o; // „Erledigt" erst bei vollständiger Checkliste
+      if ((status === 'ua' || status === 'uv') && !hasUnterlagenProzess(o.ordertype)) return o; // ua/uv nur mit Unterlagen-Prozess
+      return { ...o, status };
+    }),
+  })),
 
   assignOrder: (orderId, bearbeiterId, bearbeiter) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({ ...o, bearbeiterId, bearbeiter })),
@@ -234,11 +244,16 @@ export const useStore = create<AppState>()(persist((set) => ({
       return { ...o, times: [...o.times, entry], timerRunning: false, timerSec: 0 };
     }),
   })),
-  addManualTime: (orderId, datum, dauer, notiz, aufwandsart) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => ({
-      ...o, times: [...o.times, { id: uid(), datum, dauer, status: 'erfasst', notiz: notiz?.trim() || undefined, aufwandsart }],
-    })),
-  })),
+  addManualTime: (orderId, datum, dauer, notiz, aufwandsart) => set((s) => {
+    // Guard (SSOT): ungültige Eingaben verwerfen — die UI validiert zusätzlich. Vollständige
+    // Validierung (Obergrenze, Pflicht-Notiz/Aufwandsart, Erfasser) folgt serverseitig in M2 (Review P1.5).
+    if (!(dauer > 0) || !datum) return {};
+    return {
+      orders: mapOrder(s.orders, orderId, (o) => ({
+        ...o, times: [...o.times, { id: uid(), datum, dauer, status: 'erfasst', notiz: notiz?.trim() || undefined, aufwandsart }],
+      })),
+    };
+  }),
   // V2-Hook: vor der Freigabe wird die Notiz per API an eine KI gegeben (Kategorie/Rechtschreibung/
   // Aussagekraft prüfen) — siehe src/lib/ki.ts (pruefeNotizKI). Aktuell nur technisch vorgesehen.
   releaseTime: (orderId, timeId) => set((s) => ({
