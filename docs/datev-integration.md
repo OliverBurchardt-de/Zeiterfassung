@@ -167,7 +167,8 @@ Regel read-only ab (`!fakturiert && times.length > 0`).
 
 ## Zeit-/Aufwandsbuchung über `expensepostings` — VERIFIZIERT (26.06.2026)
 Anders als zunächst angenommen gibt es **doch** einen Schreib-Endpunkt für **einzelne**
-Zeit-/Leistungsbuchungen. Live am internen Kanzleiauftrag (ordertype `9801`) geprüft.
+Zeit-/Leistungsbuchungen. **Schreibtest am 26.06.2026 erfolgreich** (`HTTP 201`, Buchung in EO
+sichtbar) am internen Kanzleiauftrag (ordertype `9801`, `order_id 9809`, suborder `38686`).
 
 **Endpunkt (einziger POST der API):** `POST /orders/{orderid}/suborders/{suborderid}/expensepostings`
 → gebucht wird **immer am Teilauftrag** (suborder), nie am Gesamtauftrag.
@@ -188,12 +189,21 @@ Zeit-/Leistungsbuchungen. Live am internen Kanzleiauftrag (ordertype `9801`) gep
 
 Für unsere Zeiterfassung relevant: **`time-costs`**.
 
-**Stolpersteine (Spec):**
+**Stolpersteine (Spec + Live-Test):**
 - **`time_units`: 1 Stunde = 1200 Einheiten** (4 h = 4800).
 - **`id` beim POST NICHT senden** → sonst „key mismatch".
-- **`entry_date` nicht buchbar** (System-Zeitstempel, von DATEV automatisch gesetzt). Maßgeblich
-  ist **`work_date`** — der Sync-Zeitpunkt ist egal (entkoppelter Batch-Sync möglich; Buchung läuft
-  immer auf das Arbeitsdatum, unabhängig davon, wann übertragen wird).
+- **Buchung = Dauer OHNE `Start_time`** (verifiziert): Wird `Start_time` (Uhrzeit) mitgesendet,
+  prüft DATEV auf Zeit-**Überschneidung** und lehnt mit **`EODC20127`** ab. B&K bucht nur Dauern
+  (keine Zeitslots) → `Start_time` weglassen, nur `time_units`. (`Start_time` mit **großem S** ist
+  die korrekte Schreibweise, falls doch benötigt.)
+- **POST ist NICHT idempotent** (verifiziert): gleicher Body zweimal → **zwei** getrennte Buchungen
+  (Server vergibt `id` neu, z. B. `…-30`/`…-31`). Der **Sync muss Dubletten verhindern**: erfolgreich
+  übertragene Einträge sofort auf Status **`uebertragen`** setzen und nie erneut posten; zusätzlich
+  einen **Idempotenz-Schlüssel** je Eintrag mitführen. **Korrektur/Löschen nur in EO Comfort** — die
+  API hat **kein DELETE** für expensepostings.
+- **`entry_date` nicht buchbar** (System-Stempel, von DATEV gesetzt; nur **tagesgenau**, `00:00:00`).
+  Maßgeblich ist **`work_date`** — der Sync-Zeitpunkt ist egal (entkoppelter Batch-Sync möglich;
+  Buchung läuft immer auf das Arbeitsdatum, unabhängig davon, wann übertragen wird).
 - `cost_amount` nicht bei `time-costs`. Optional: `comment` (≤255), `isbillable`, `fee_position`.
 - Query `automaticintegration=true` → Buchung wird direkt in den Auftrag integriert; fehlerhafte
   landen in der **ZMA-Massendatenerfassung**. Mit `deletemassdataonfailure=true` (nur zusammen mit

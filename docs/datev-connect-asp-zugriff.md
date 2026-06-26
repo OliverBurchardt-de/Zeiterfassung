@@ -30,8 +30,11 @@ Per PowerShell (SSO) verifiziert — Details/Konsequenzen in `datev-integration.
 | `…/orders/{id}/expensepostings` | **Ist-Buchungen** (Einzelposten; 1105 auf dem Auftrag) → EO-Ansicht „Zeiten" = aggregiert nach Position + Mitarbeiter |
 | `…/master-data/v1/employees?filter=contains(name,…)` | **Mitarbeiter-GUID** (`id`) für `employee_id` — Order Management hat **keine** Namensliste |
 
-**Noch offen:** der **Schreibtest** (`POST …/expensepostings`, HTTP 201) — Format/Pfad stehen
-(s. `datev-integration.md`), Ausführung am Test-Auftrag noch ausstehend.
+**Schreibtest erfolgreich (26.06.2026):** `POST …/orders/9809/suborders/38686/expensepostings`
+→ **`HTTP 201`**, Buchung in EO sichtbar (4 h, „Entwicklung Kanzlei-App"). Damit ist auch das
+**Rückschreiben** bestätigt. Gelernt: Buchung als **Dauer ohne `Start_time`** (sonst Überlapp-Fehler
+`EODC20127`); der POST ist **nicht idempotent** (zwei Läufe → zwei Buchungen) → Sync muss Dubletten
+verhindern; **kein DELETE** in der API (Korrektur nur in EO). Details in `datev-integration.md`.
 
 **Entscheidung (25.06.2026):** **Externer Zugriff ist nicht nötig** — die App soll **innerhalb der
 ASP-Umgebung** laufen. Damit ist `localhost` für die App erreichbar (Test bestanden); die Wege
