@@ -7,17 +7,17 @@ import { AlertTriangle, GripVertical } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
 import { ART, formatHours, erfassteStunden, isLaufendeArt } from '@/lib/art';
-import { arbeitstage, monthRange } from '@/lib/monate';
-import { EMPLOYEES } from '@/mock/orders';
+import { arbeitstage } from '@/lib/monate';
+import { EMPLOYEES, DEMO_KALENDER } from '@/mock/orders';
 
 /**
  * Modul „Planung": oben der Pool noch nicht geplanter Aufträge, unten ein Kalender mit der
  * Monatskapazität. Per Drag & Drop wird ein Auftrag in einen Monat gezogen — dabei werden im
  * Hintergrund Anfangs-/Enddatum gesetzt (planOrder). Zurück in den Pool hebt die Planung auf.
  *
- * Kalenderbereich: Jan 2025 .. + 15 Monate (Mock-Planungshorizont).
+ * Kalenderbereich: zentraler Demo-Horizont aus mock/orders.ts (ab Jahresbeginn von HEUTE).
  */
-const KALENDER = monthRange(2025, 0, 15);
+const KALENDER = DEMO_KALENDER;
 
 export function PlanungView() {
   const orders = useStore((s) => s.orders);

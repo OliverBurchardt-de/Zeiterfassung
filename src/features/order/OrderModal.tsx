@@ -9,8 +9,7 @@ import { TimePanel } from '@/features/time/TimePanel';
 import { QuickTimeDialog } from '@/features/time/QuickTimeDialog';
 import { NotesSection } from '@/features/notes/NotesSection';
 import { canComplete, offeneChecklist } from '@/state/selectors';
-
-const MONATE = ['Jan 2025', 'Feb 2025', 'Mär 2025', 'Apr 2025', 'Mai 2025', 'Jun 2025'];
+import { DEMO_KALENDER } from '@/mock/orders';
 
 export function OrderModal({ orderId }: { orderId: string }) {
   const order = useStore((s) => s.orders.find((o) => o.id === orderId));
@@ -25,7 +24,7 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const checklistOpen = useStore((s) => s.checklistOpenId);
   const besOpen = useStore((s) => s.besOpen);
 
-  const [zielMonat, setZielMonat] = useState('Apr 2025');
+  const [zielMonat, setZielMonat] = useState('');
   const [quickOpen, setQuickOpen] = useState(false);
 
   // Esc schließt das Detail – aber nur, wenn kein anderes Overlay darüber liegt (das schließt zuerst)
@@ -43,6 +42,8 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const erfasst = erfassteStunden(order.times);
   const pct = order.soll > 0 ? Math.min(100, Math.round((erfasst / order.soll) * 100)) : 0;
   const rest = Math.max(0, order.soll - erfasst);
+  // Vorauswahl der Umplanung: aktueller Monat, falls im Horizont, sonst erster Monat.
+  const zielWert = zielMonat || (DEMO_KALENDER.includes(order.monat) ? order.monat : DEMO_KALENDER[0]);
 
   const statusListe = STATUS_ORDER.filter((s) => {
     if ((s === 'ua' || s === 'uv') && !hasUnterlagenProzess(order.ordertype)) return false;
@@ -90,7 +91,7 @@ export function OrderModal({ orderId }: { orderId: string }) {
             <Meta label="Auftrags-Nr." value={order.auftragsNr} />
             <Meta label="Mandanten-Nr." value={order.mandantNr} />
             <Meta label="Veranlagungsjahr" value={String(order.vj)} />
-            <Meta label="Geplanter Monat" value={order.monat} />
+            <Meta label="Geplanter Monat" value={order.monat || 'ungeplant'} />
             <Meta label="Verantw. Partner" value={order.partner} />
             <Meta label="Bearbeiter" value={order.bearbeiter} />
           </div>
@@ -168,10 +169,10 @@ export function OrderModal({ orderId }: { orderId: string }) {
                   </div>
                 ) : rolePolicy.canRequestUmplanung(role) ? (
                   <div className="date-range">
-                    <select className="input" value={zielMonat} onChange={(e) => setZielMonat(e.target.value)}>
-                      {MONATE.map((m) => <option key={m}>{m}</option>)}
+                    <select className="input" value={zielWert} onChange={(e) => setZielMonat(e.target.value)}>
+                      {DEMO_KALENDER.map((m) => <option key={m}>{m}</option>)}
                     </select>
-                    <button className="btn btn--amber btn--sm" onClick={() => requestUmplanung(order.id, zielMonat)}>
+                    <button className="btn btn--amber btn--sm" onClick={() => requestUmplanung(order.id, zielWert)}>
                       Freigabe anfordern
                     </button>
                   </div>

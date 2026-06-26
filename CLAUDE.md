@@ -61,8 +61,9 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
   `auslastungPct`, `istUeberfaellig`, `istNichtAbgerechnet`); **Planung** plant Aufträge per
   Drag & Drop ein (`planOrder`/`unplanOrder` setzen `monat`+`fristStart/Ende`; Monats-/Arbeitstags-
   Logik in `src/lib/monate.ts`). „Ungeplant" = leerer `monat`. Demo-Stichtag `HEUTE` und
-  Demo-Kalenderhorizont in `src/mock/orders.ts`/`PlanungView`; in Produktion echtes Datum bzw.
-  DATEV-Kapazität (`employeecapacities`).
+  Demo-Kalenderhorizont `DEMO_KALENDER` (eine Quelle in `src/mock/orders.ts`, aus `HEUTE`
+  abgeleitet) — von Planung **und** Umplanung (`OrderModal`) gemeinsam genutzt; in Produktion
+  echtes Datum bzw. DATEV-Kapazität (`employeecapacities`).
 
 ## Fachliche Kernregeln (Details in `design_handoff_zeiterfassung/README.md`)
 - **Geplanter Monat** aus EO-Datumsfeldern (`fristStart`/`fristEnde`).

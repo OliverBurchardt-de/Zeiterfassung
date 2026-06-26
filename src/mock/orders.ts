@@ -61,6 +61,13 @@ export const CURRENT_USER: Employee = EMPLOYEES[0];
  */
 export const HEUTE = '2025-03-20';
 
+/**
+ * Demo-Kalenderhorizont: ab Jahresbeginn von HEUTE, 15 Monate. Einzige Quelle für die
+ * planbaren/umplanbaren Monate — Planung (Kalender) und Umplanung (Detail) nutzen sie gemeinsam,
+ * statt das Jahr je Stelle zu hardcoden. In Produktion aus echtem Datum bzw. DATEV-Kapazität.
+ */
+export const DEMO_KALENDER = monthRange(Number(HEUTE.slice(0, 4)), 0, 15);
+
 let seq = 1100;
 const nextNr = () => `A-2025-${++seq}`;
 

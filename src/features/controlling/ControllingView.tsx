@@ -101,7 +101,7 @@ function Row({ o, children }: { o: Order; children: React.ReactNode }) {
     <div className="ctrl-row">
       <span className="art-badge" style={{ background: art.color }}>{art.label}</span>
       <span className="ctrl-row__mandant">{o.mandant}</span>
-      <span className="muted ctrl-row__meta">{o.monat} · {o.bearbeiter}</span>
+      <span className="muted ctrl-row__meta">{o.monat || 'ungeplant'} · {o.bearbeiter}</span>
       <span className="status-pill" style={{ color: st.color, background: st.soft }}>
         <span className="dot" style={{ background: st.color }} />{st.label}
       </span>
