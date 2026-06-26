@@ -20,6 +20,19 @@ Erster Verbindungstest **auf dem ASP-Server im Browser**, ohne Skript, durchgef�
 liefert Lesedaten. Beobachtung deckt sich mit dem Datenmodell (Auftragsart kommt als **Nummer** →
 Mapping „Nummer → Typ/Farbe" nötig, siehe `datev-integration.md`).
 
+### Vertiefung — 26.06.2026: Aufwandsbuchung & Stammdaten (lesend, am internen 9801-Auftrag)
+Per PowerShell (SSO) verifiziert — Details/Konsequenzen in `datev-integration.md`:
+
+| Test (GET) | Erkenntnis |
+|---|---|
+| `…/orders?filter=ordertype eq '9801'` | String-Filter brauchen **Hochkommata**; Kanzleiauftrag (intern) gefunden |
+| `…/orders/{id}/costitems` | **buchbare Aufwandspositionen** (Plan); `accounting_allowed`, `cost_type=time-costs`, `suborder_id`; **kein** Mitarbeiter-Feld. Eigenheit: 1 Basis-Zeile + 1 Zeile je buchendem Mitarbeiter (905 „Berufsschule" ohne Buchung → genau 1 Zeile) → für Auswahlliste **nach `cost_position` deduplizieren** |
+| `…/orders/{id}/expensepostings` | **Ist-Buchungen** (Einzelposten; 1105 auf dem Auftrag) → EO-Ansicht „Zeiten" = aggregiert nach Position + Mitarbeiter |
+| `…/master-data/v1/employees?filter=contains(name,…)` | **Mitarbeiter-GUID** (`id`) für `employee_id` — Order Management hat **keine** Namensliste |
+
+**Noch offen:** der **Schreibtest** (`POST …/expensepostings`, HTTP 201) — Format/Pfad stehen
+(s. `datev-integration.md`), Ausführung am Test-Auftrag noch ausstehend.
+
 **Entscheidung (25.06.2026):** **Externer Zugriff ist nicht nötig** — die App soll **innerhalb der
 ASP-Umgebung** laufen. Damit ist `localhost` für die App erreichbar (Test bestanden); die Wege
 **B (VPN) und C (Cloud Gateway) entfallen**. Relevant bleibt nur, **wie die App im ASP-Umfeld

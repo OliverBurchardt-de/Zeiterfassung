@@ -9,11 +9,17 @@ Quelle der Auftragsdaten ist die **On-Premise-API** *Order Management 1.4.9*
 `http://localhost:58454/datev/api/order-management/v1/` mit **Basic Auth**.
 
 ## Lesen (GET)
-- `/orders`, `/orders/{id}` — Aufträge (mit Filtern: creation_year, ordertype, client_id,
-  completion_status, billing_status, …)
+- `/orders`, `/orders/{id}` — Aufträge (Filter: creation_year, ordertype, client_id,
+  completion_status, billing_status, … ; **String-Werte in Hochkommata**, z. B.
+  `filter=ordertype eq '9801'`)
 - `/ordertypes` — Auftragsarten (Grundlage der Auftragsart-Konfig inkl. `ua`/`uv`)
 - `/orders/{id}/monthlyvalues`, `/orders/{id}/orderstatework` — Ist-Werte / Stunden
-- `/employees*`, `/costcenters`, `/selfclients` — Stammdaten
+- `/orders/{id}/costitems` — **buchbare Aufwandspositionen** des Auftrags (Plan-Seite, s. u.)
+- `/orders/{id}/expensepostings` · `/orders/expensepostings` — **erfasste Aufwandsbuchungen** (Ist)
+- `/costcenters`, `/selfclients` — Stammdaten
+- **Mitarbeiter** (Namen + GUID) liegen **nicht** in Order Management (`/employeeswithgroup` lieferte
+  am Live-System 0 Datensätze), sondern in **`master-data/v1/employees`** — Feld `id` = die
+  `employee_id`, die für Buchungen benötigt wird (Filter z. B. `filter=contains(name,Burchardt)`)
 
 ## Feld-Mapping (App ← EO)
 | App-Feld | EO-Feld |
@@ -152,19 +158,84 @@ Regel read-only ab (`!fakturiert && times.length > 0`).
 
 ## Aufwandsarten (Mehraufwand / Dumm gelaufen) & KI-Prüfung
 - Auf der Mehraufwand-Karte (Modul „Laufende Buchungen") wird je Buchung eine **Aufwandsart**
-  gewählt (Mehraufwand / Dumm gelaufen). Diese mappt auf die **Aufwandsarten in EO Comfort**;
-  Rückschreibung als **Aufwandsbuchung** über `POST /orders/{id}/suborders/{sid}/expensepostings`
-  (einziger POST der API). Mapping Aufwandsart → EO-ID gegen die Live-Instanz festlegen (M2).
-- **KI-Prüfung (V2, vorgesehen):** Bei Freigabe wird die Notiz per API an eine KI/ein LLM gegeben
-  (Kategorie/Rechtschreibung/Aussagekraft). Schnittstelle: `src/lib/ki.ts` (`pruefeNotizKI`),
-  Hook an `store.approveTime`. Definition/Anbindung erst in V2.
+  gewählt (Mehraufwand / Dumm gelaufen). Diese mappt auf eine **Aufwandsposition** (`cost_position`)
+  in EO Comfort; Rückschreibung als **Aufwandsbuchung** (`expensepostings`, s. nächster Abschnitt).
+  Mapping Aufwandsart → `cost_position` gegen die Live-Instanz festlegen (M2).
+- **KI-Prüfung (V2, vorgesehen):** Bei der **Selbst-Freigabe durch den Mitarbeiter** wird die Notiz
+  per API an eine KI/ein LLM gegeben (Kategorie/Rechtschreibung/Aussagekraft). Schnittstelle:
+  `src/lib/ki.ts` (`pruefeNotizKI`), Hook an `store.releaseTime`. Definition/Anbindung erst in V2.
 
-## Offener Punkt — Zeit-Rückschreibung
-Für **einzelne** Tages-/Mitarbeiter-Zeiteinträge gibt es in dieser API keinen Schreib-Endpunkt;
-Stunden werden auf Auftrags-/Unterauftragsebene geführt (`planned_hours`, Suborder-Stunden). Die
-detaillierte Zeiterfassung inkl. Freigabe-Workflow lebt daher in der eigenen DB; **freigegebene
-Summen** werden nach DATEV zurückgespiegelt. Vor der Backend-Umsetzung gegen die Live-DATEVconnect-
-Instanz verifizieren, ob/wie eine feinere Leistungsbuchung möglich ist (sonst Export/Import-Fallback).
+## Zeit-/Aufwandsbuchung über `expensepostings` — VERIFIZIERT (26.06.2026)
+Anders als zunächst angenommen gibt es **doch** einen Schreib-Endpunkt für **einzelne**
+Zeit-/Leistungsbuchungen. Live am internen Kanzleiauftrag (ordertype `9801`) geprüft.
+
+**Endpunkt (einziger POST der API):** `POST /orders/{orderid}/suborders/{suborderid}/expensepostings`
+→ gebucht wird **immer am Teilauftrag** (suborder), nie am Gesamtauftrag.
+
+**Pflichtfelder** (`#/definitions/expense_postings`, `required`):
+- `employee_id` — DATEV-Mitarbeiter-GUID (aus `master-data/v1/employees`, Feld `id`)
+- `work_date` — **Arbeitsdatum** (Format `26.06.2026 00:00:00`)
+- `cost_position` — Aufwandsposition (Code, z. B. `906`)
+- **+ Berechnungsfeld je Aufwandsart** (s. Tabelle)
+
+**Aufwandsarten (`cost_type`) und erlaubte Felder:**
+| `cost_type` | erlaubte/erforderliche Felder |
+|---|---|
+| `time-costs` (Zeit) | `time_units` **zusammen mit** `Start_time` (Einheit Stunden); ODER `number_of_days` (Einheit Tage) |
+| `material-costs` | `number_of_units` (Menge) ODER `cost_amount` (Betrag) |
+| `expenses-costs` | `number_of_units` ODER `cost_amount` |
+| `external-costs` | `cost_amount` |
+
+Für unsere Zeiterfassung relevant: **`time-costs`**.
+
+**Stolpersteine (Spec):**
+- **`time_units`: 1 Stunde = 1200 Einheiten** (4 h = 4800).
+- **`id` beim POST NICHT senden** → sonst „key mismatch".
+- **`entry_date` nicht buchbar** (System-Zeitstempel, von DATEV automatisch gesetzt). Maßgeblich
+  ist **`work_date`** — der Sync-Zeitpunkt ist egal (entkoppelter Batch-Sync möglich; Buchung läuft
+  immer auf das Arbeitsdatum, unabhängig davon, wann übertragen wird).
+- `cost_amount` nicht bei `time-costs`. Optional: `comment` (≤255), `isbillable`, `fee_position`.
+- Query `automaticintegration=true` → Buchung wird direkt in den Auftrag integriert; fehlerhafte
+  landen in der **ZMA-Massendatenerfassung**. Mit `deletemassdataonfailure=true` (nur zusammen mit
+  `automaticintegration=true`) werden fehlerhafte Versuche automatisch verworfen.
+
+Beispiel-Body (Zeitbuchung 4 h):
+```json
+{ "employee_id": "<GUID>", "work_date": "26.06.2026 00:00:00",
+  "cost_position": "906", "time_units": 4800, "Start_time": "08:00:00",
+  "comment": "...", "isbillable": false }
+```
+
+### Buchbare Positionen — `costitems` (Plan) vs. `expensepostings` (Ist)
+`/orders/{id}/costitems` liefert die **geplanten** Aufwandspositionen des Auftrags (Plan-Seite,
+**ohne** Buchungswerte). Verifizierte Felder je Zeile: `cost_position`, `cost_position_name`,
+`cost_type`, `unit_description`, `accounting_allowed`, `suborder_id` — **kein Mitarbeiter-Feld**.
+
+**Am Live-System belegte Eigenheit:** `costitems` enthält pro Position **eine Basis-Planzeile +
+eine weitere Zeile je Mitarbeiter, der darauf gebucht hat** (Zeilen unterscheiden sich nur in `id`).
+Beispiel 9801: Position `900` → 8 Zeilen = 1 Basis + 7 buchende Mitarbeiter; Position `905` (ohne
+Buchung) → genau 1 Zeile. Der Mitarbeiter-Bezug steckt **nicht** in `costitems`, sondern in
+`expensepostings`. Die EO-Ansicht „Zeiten" zeigt entsprechend `expensepostings`, aggregiert nach
+`cost_position` + `employee_id`.
+
+**App-Logik (M2):**
+- **Auswahlliste „worauf buchbar?"** = `costitems` → `accounting_allowed = true` →
+  **dedupliziert nach `cost_position`**. `accounting_allowed` ist **dynamisch** (hängt vom
+  Auftrags-/Teilauftrags-**Status** ab) → live beim Buchen auswerten, nicht cachen.
+- **Ist-Stunden je Mitarbeiter** = `expensepostings`, gruppiert nach `cost_position` + `employee_id`.
+- **Kein zentraler Positions-Katalog** als Endpunkt: Die „Standardaufwandspositionen" aus EO sind
+  nur **auftragsbezogen** über `costitems` lesbar (auch nicht in `master-data`). Fachlich korrekt —
+  buchbar ist nur, was am jeweiligen Auftrag hinterlegt und `accounting_allowed` ist. Für einen
+  firmenweiten Überblick (Admin/Config) eignet sich der globale `GET /orders/costitems`
+  (Filter z. B. `cost_type eq ZEI`), dedupliziert nach `cost_position`.
+
+### Konsequenz für Freigabe- & Sync-Workflow
+Die detaillierte Zeiterfassung inkl. **Selbst-Freigabe durch den Mitarbeiter** lebt in der eigenen
+App-DB (Status `erfasst → freigegeben → uebertragen`, Typ `TimeStatus`). **Keine Partner-Freigabe.**
+Der Sync-Job schreibt **nur freigegebene** Einträge als `expensepostings` zurück (je Eintrag mit
+seinem `work_date`) und setzt sie danach auf `uebertragen`. Stunden auf Auftrags-/Suborder-Ebene
+(`planned_hours`, `total_hours`) bleiben die aggregierte Sicht; die Einzelbuchung erfolgt über
+`expensepostings`.
 
 ## Weitere im Repo vorhandene Specs (Kontext)
 `Client Master Data-1.7.1.json` (Mandanten/Mitarbeiter), `Accounting-*.json`,
