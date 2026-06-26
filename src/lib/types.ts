@@ -34,11 +34,20 @@ export interface Note {
 /** Aufwandsart hinter „Mehraufwand / Dumm gelaufen" — mappt auf Aufwandsarten in DATEV EO Comfort. */
 export type Aufwandsart = 'mehraufwand' | 'dumm';
 
+/**
+ * Lebenszyklus eines Zeiteintrags (keine Partner-Freigabe!):
+ *  erfasst     – vom Mitarbeiter gebucht, noch änderbar.
+ *  freigegeben – vom Mitarbeiter selbst freigegeben → gesperrt und bereit für den DATEV-Sync.
+ *  uebertragen – per Sync als Aufwandsbuchung nach DATEV EO geschrieben (M2; in M1 nur im Modell).
+ * Nur freigegebene/übertragene Zeiten gelten als gültig (abrechenbar).
+ */
+export type TimeStatus = 'erfasst' | 'freigegeben' | 'uebertragen';
+
 export interface TimeEntry {
   id: string;
-  datum: string; // ISO-Datum
+  datum: string; // ISO-Datum (entspricht DATEV work_date — Arbeitsdatum, nicht entry_date)
   dauer: number; // Stunden (dezimal)
-  freigegeben: boolean;
+  status: TimeStatus;
   notiz?: string; // optionale Notiz zur Buchung (Pflicht bei Beratung/Mehraufwand)
   aufwandsart?: Aufwandsart; // nur bei Mehraufwand/Dumm gelaufen: gewählte EO-Aufwandsart
 }

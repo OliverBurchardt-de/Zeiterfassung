@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
-import { ART, formatHours, erfassteStunden, artNeedsNotiz, isLaufendeArt, AUFWANDSARTEN, needsAufwandsart } from '@/lib/art';
+import { ART, formatHours, erfassteStunden, artNeedsNotiz, isLaufendeArt, AUFWANDSARTEN, needsAufwandsart, TIME_STATUS } from '@/lib/art';
 import type { Aufwandsart } from '@/lib/types';
 
 /**
@@ -47,7 +47,8 @@ export function LaufendeView() {
 function LaufendeOrder({ order }: { order: Order }) {
   const role = useStore((s) => s.role);
   const addManual = useStore((s) => s.addManualTime);
-  const approveTime = useStore((s) => s.approveTime);
+  const releaseTime = useStore((s) => s.releaseTime);
+  const withdrawTime = useStore((s) => s.withdrawTime);
 
   const [dauer, setDauer] = useState('');
   const [notiz, setNotiz] = useState('');
@@ -85,11 +86,12 @@ function LaufendeOrder({ order }: { order: Order }) {
             <div className="time-row">
               <span>{new Date(t.datum).toLocaleDateString('de-DE')}</span>
               <span className="tabular">{formatHours(t.dauer)}</span>
-              <span className={`badge ${t.freigegeben ? 'badge--ok' : 'badge--notok'}`}>
-                {t.freigegeben ? 'Freigegeben' : 'Nicht freigegeben'}
-              </span>
-              {!t.freigegeben && role === 'partner' && (
-                <button className="btn btn--success btn--sm" onClick={() => approveTime(order.id, t.id)}>Freigeben</button>
+              <span className={`badge ${TIME_STATUS[t.status].badge}`}>{TIME_STATUS[t.status].label}</span>
+              {role === 'mitarbeiter' && t.status === 'erfasst' && (
+                <button className="btn btn--success btn--sm" onClick={() => releaseTime(order.id, t.id)}>Freigeben</button>
+              )}
+              {role === 'mitarbeiter' && t.status === 'freigegeben' && (
+                <button className="btn btn--ghost btn--sm" onClick={() => withdrawTime(order.id, t.id)}>Zurückziehen</button>
               )}
             </div>
             {(t.notiz || t.aufwandsart) && (

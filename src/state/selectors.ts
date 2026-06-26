@@ -3,19 +3,17 @@ import { useStore, noteOffen } from './store';
 import { erfassteStunden, isLaufendeArt } from '@/lib/art';
 import { HEUTE } from '@/mock/orders';
 
-// ---- Freigaben (Partner-Cockpit) ---------------------------------------
+// ---- Zeiten & Freigaben -------------------------------------------------
 
-export interface ZeitFreigabe { order: Order; time: TimeEntry }
+export interface ZeitRow { order: Order; time: TimeEntry }
 export interface ReviewFreigabe { order: Order; note: Note }
 
-/** Alle noch nicht freigegebenen Zeitbuchungen (über alle Aufträge). */
-export function offeneZeitFreigaben(orders: Order[]): ZeitFreigabe[] {
-  const out: ZeitFreigabe[] = [];
-  for (const o of orders) for (const t of o.times) if (!t.freigegeben) out.push({ order: o, time: t });
-  return out;
+/** Gilt die Zeit als gültig (freigegeben oder bereits nach DATEV übertragen)? */
+export function istFreigegeben(t: TimeEntry): boolean {
+  return t.status !== 'erfasst';
 }
 
-/** Aufträge mit ausstehender Umplanungs-Freigabe. */
+/** Aufträge mit ausstehender Umplanungs-Freigabe (Partner-Cockpit). */
 export function offeneUmplanungen(orders: Order[]): Order[] {
   return orders.filter((o) => o.umplanung?.freigabeAusstehend);
 }
@@ -28,15 +26,15 @@ export function offeneReviewFreigaben(orders: Order[]): ReviewFreigabe[] {
 }
 
 /** Zeitbuchungen eines Bearbeiters (Modul „Meine Zeiten"). */
-export function zeitenVon(orders: Order[], autor: string): ZeitFreigabe[] {
-  const out: ZeitFreigabe[] = [];
+export function zeitenVon(orders: Order[], autor: string): ZeitRow[] {
+  const out: ZeitRow[] = [];
   for (const o of orders) if (o.bearbeiter === autor) for (const t of o.times) out.push({ order: o, time: t });
   return out;
 }
 
-/** Hat der Auftrag offene (nicht freigegebene) Zeiten? */
+/** Hat der Auftrag noch nicht freigegebene (erfasste) Zeiten? */
 export function hasOffeneZeiten(o: Order): boolean {
-  return o.times.some((t) => !t.freigegeben);
+  return o.times.some((t) => t.status === 'erfasst');
 }
 
 /** Anzahl noch offener Checklisten-Punkte */
@@ -75,8 +73,8 @@ export function istUeberfaellig(o: Order): boolean {
  * (erfasste Zeiten/Leistungen). In Produktion liefert dies ein Hintergrund-API-Pull aus DATEV.
  */
 export function istNichtAbgerechnet(o: Order): boolean {
-  // Nur freigegebene Zeiten gelten als abrechenbar — unbestätigte Buchungen sind noch kein Rückstand.
-  return !o.fakturiert && o.times.some((t) => t.freigegeben);
+  // Nur freigegebene Zeiten gelten als abrechenbar — erfasste Buchungen sind noch kein Rückstand.
+  return !o.fakturiert && o.times.some(istFreigegeben);
 }
 
 /** Auftragsliste nach den aktuellen Filtern (ohne Status — der ergibt die Spalte) */

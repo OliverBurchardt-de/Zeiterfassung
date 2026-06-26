@@ -26,7 +26,7 @@ export interface KiPruefungInput {
 
 /**
  * Platzhalter — noch nicht aktiv. Liefert `null` (keine Prüfung durchgeführt).
- * In V2: echte API-/LLM-Anbindung; Aufrufstelle ist die Zeit-Freigabe (store.approveTime).
+ * In V2: echte API-/LLM-Anbindung; Aufrufstelle ist die Zeit-Freigabe durch den Mitarbeiter (store.releaseTime).
  */
 export async function pruefeNotizKI(_input: KiPruefungInput): Promise<KiPruefung | null> {
   return null;

@@ -36,7 +36,8 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
 - **Teilaufträge** (FiBu/Lohn, `TEILAUFTRAG_ARTEN`/`hasTeilauftraege`): Monats-Suborders am Order
   (`suborders[]`), „erledigt" via `setSuborderDone` (DATEV `date_work_completed`).
 - **Freigaben** (Partner-Cockpit) und **Meine Zeiten** sind reine Sichten über `orders[]`
-  (Selektoren `offeneZeitFreigaben`/`offeneUmplanungen`/`offeneReviewFreigaben`/`zeitenVon`).
+  (Selektoren `offeneUmplanungen`/`offeneReviewFreigaben`/`zeitenVon`). Das Partner-Cockpit umfasst
+  **nur Umplanungen + Review-Notes** — **Zeiten brauchen keine Partner-Freigabe** (s. u.).
 - **Persistenz:** Store via `persist` (localStorage, Key `bk-zeiterfassung`); `version` bei
   Änderungen am Order-Datenmodell erhöhen, damit der Mock neu seedet.
 - **Mandantenbesonderheiten** am Schlüssel `besKey(mandantNr, artKey)` (period-unabhängig, nicht am
@@ -58,9 +59,13 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
     frei; Freigeben/Zurückgeben/Löschen: nur Partner.
   - Kommentieren/Bearbeiten/**Dateien anhängen**: beide. „Offen"-Zählung kind-bewusst über
     `noteOffen` (Frage zählt nur `offen`, Review bis `freigegeben`).
-- **Zeiterfassung:** Live-Timer oder manuell; übertragene Zeit ist „nicht freigegeben" bis
-  Partner-Freigabe. E-Mail-Reminder (Backend-Job, M2) für Aufträge ohne Zeit / mit nicht
-  freigegebenen Zeiten.
+- **Zeiterfassung:** Live-Timer oder manuell; jeder Eintrag hat einen **Status**
+  (`erfasst → freigegeben → uebertragen`, Typ `TimeStatus`). **Keine Partner-Freigabe** — der
+  **Mitarbeiter** gibt seine eigenen Zeiten selbst frei (`releaseTime`/`withdrawTime`, in „Meine
+  Zeiten" sowie in TimePanel/Laufende). Nur **freigegebene** Zeiten gehen in den DATEV-Sync (M2;
+  `uebertragen` setzt erst der Sync als Aufwandsbuchung `POST …/expensepostings`). Das Arbeitsdatum
+  (`datum` = DATEV `work_date`) ist maßgeblich, unabhängig vom Sync-Zeitpunkt. E-Mail-Reminder
+  (Backend-Job, M2) für Aufträge ohne Zeit / mit noch nicht freigegebenen (`erfasst`) Zeiten.
 - **Umplanung** in anderen Monat → Freigabe-Anfrage an den Partner (Badge „Freigabe ausstehend").
 
 ## Konventionen / Definition of Done

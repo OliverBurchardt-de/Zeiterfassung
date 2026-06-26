@@ -76,7 +76,7 @@ const BASE_ORDERS: Order[] = [
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
     checklist: [],
     notes: [],
-    times: [{ id: 't1', datum: '2025-03-18', dauer: 3.5, freigegeben: false }],
+    times: [{ id: 't1', datum: '2025-03-18', dauer: 3.5, status: 'erfasst' }],
     timerRunning: true, timerSec: 0,
   },
   {
@@ -86,7 +86,7 @@ const BASE_ORDERS: Order[] = [
     soll: 3, seiten: 2, kosten: 180, status: 'bb',
     bearbeiter: 'T. Berg', bearbeiterId: 'tb', partner: 'O. Burchardt',
     checklist: [], notes: [],
-    times: [{ id: 't2', datum: '2025-03-17', dauer: 4.0, freigegeben: false }],
+    times: [{ id: 't2', datum: '2025-03-17', dauer: 4.0, status: 'erfasst' }],
   },
   {
     id: 'o7', mandant: 'Gärtnerei Blum', mandantNr: 'D10233', auftragsNr: nextNr(),
@@ -95,7 +95,7 @@ const BASE_ORDERS: Order[] = [
     soll: 6, seiten: 14, kosten: 540, status: 'rf',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
     checklist: [], notes: [],
-    times: [{ id: 't3', datum: '2025-03-15', dauer: 5.5, freigegeben: true }],
+    times: [{ id: 't3', datum: '2025-03-15', dauer: 5.5, status: 'freigegeben' }],
   },
   {
     id: 'o8', mandant: 'Bäckerei Lindner', mandantNr: 'D10216', auftragsNr: nextNr(),
@@ -133,7 +133,7 @@ const BASE_ORDERS: Order[] = [
         attachments: [],
       },
     ],
-    times: [{ id: 't4', datum: '2025-03-14', dauer: 3.5, freigegeben: true }],
+    times: [{ id: 't4', datum: '2025-03-14', dauer: 3.5, status: 'freigegeben' }],
   },
   {
     id: 'o9', mandant: 'Autohaus Reuter', mandantNr: 'D10240', auftragsNr: nextNr(),
@@ -142,7 +142,7 @@ const BASE_ORDERS: Order[] = [
     soll: 4, seiten: 8, kosten: 320, status: 'fg',
     bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
     checklist: [], notes: [],
-    times: [{ id: 't5', datum: '2025-03-04', dauer: 4.0, freigegeben: true }],
+    times: [{ id: 't5', datum: '2025-03-04', dauer: 4.0, status: 'freigegeben' }],
   },
   {
     id: 'o10', mandant: 'Café Central', mandantNr: 'D10244', auftragsNr: nextNr(),
@@ -151,7 +151,7 @@ const BASE_ORDERS: Order[] = [
     soll: 2, seiten: 2, kosten: 120, status: 'am',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
     checklist: [], notes: [],
-    times: [{ id: 't6', datum: '2025-02-08', dauer: 2.0, freigegeben: true }],
+    times: [{ id: 't6', datum: '2025-02-08', dauer: 2.0, status: 'freigegeben' }],
   },
   {
     id: 'o11', mandant: 'Zahnarztpraxis Dr. Vogel', mandantNr: 'D10248', auftragsNr: nextNr(),
@@ -160,7 +160,7 @@ const BASE_ORDERS: Order[] = [
     soll: 5, seiten: 16, kosten: 600, status: 'fa',
     bearbeiter: 'T. Berg', bearbeiterId: 'tb', partner: 'O. Burchardt',
     checklist: [], notes: [],
-    times: [{ id: 't7', datum: '2025-02-20', dauer: 5.0, freigegeben: true }],
+    times: [{ id: 't7', datum: '2025-02-20', dauer: 5.0, status: 'freigegeben' }],
   },
   {
     id: 'o12', mandant: 'Maler Brandt GmbH', mandantNr: 'D10250', auftragsNr: nextNr(),
@@ -169,7 +169,7 @@ const BASE_ORDERS: Order[] = [
     soll: 20, seiten: 38, kosten: 1620, status: 'er', fakturiert: true,
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
     checklist: [], notes: [],
-    times: [{ id: 't8', datum: '2025-01-28', dauer: 19.5, freigegeben: true }],
+    times: [{ id: 't8', datum: '2025-01-28', dauer: 19.5, status: 'freigegeben' }],
   },
   {
     id: 'o13', mandant: 'Fahrschule Konrad', mandantNr: 'D10255', auftragsNr: nextNr(),
@@ -210,7 +210,7 @@ const BASE_ORDERS: Order[] = [
     soll: 0, seiten: 0, kosten: 0, status: 'bb',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
     checklist: [], notes: [],
-    times: [{ id: 't17', datum: '2025-03-12', dauer: 0.75, freigegeben: false, notiz: 'Telefonische Beratung zur geplanten Anschaffung (Investitionsabzugsbetrag).' }],
+    times: [{ id: 't17', datum: '2025-03-12', dauer: 0.75, status: 'erfasst', notiz: 'Telefonische Beratung zur geplanten Anschaffung (Investitionsabzugsbetrag).' }],
   },
   {
     id: 'o18', mandant: 'Hotel Seeblick KG', mandantNr: 'D10224', auftragsNr: nextNr(),
@@ -219,7 +219,7 @@ const BASE_ORDERS: Order[] = [
     soll: 0, seiten: 0, kosten: 0, status: 'bb',
     bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
     checklist: [], notes: [],
-    times: [{ id: 't18', datum: '2025-03-13', dauer: 1.25, freigegeben: false, aufwandsart: 'dumm', notiz: 'Nacherfassung fehlender Belege – durch Mandant verursacht.' }],
+    times: [{ id: 't18', datum: '2025-03-13', dauer: 1.25, status: 'erfasst', aufwandsart: 'dumm', notiz: 'Nacherfassung fehlender Belege – durch Mandant verursacht.' }],
   },
   {
     id: 'o19', mandant: 'Hotel Seeblick KG', mandantNr: 'D10224', auftragsNr: nextNr(),

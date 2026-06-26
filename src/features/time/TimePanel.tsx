@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
-import { formatTimer, formatHours, artNeedsNotiz } from '@/lib/art';
+import { formatTimer, formatHours, artNeedsNotiz, TIME_STATUS } from '@/lib/art';
 
 export function TimePanel({ order }: { order: Order }) {
   const role = useStore((s) => s.role);
@@ -11,7 +11,8 @@ export function TimePanel({ order }: { order: Order }) {
   const tick = useStore((s) => s.tick);
   const transfer = useStore((s) => s.transferTimer);
   const addManual = useStore((s) => s.addManualTime);
-  const approveTime = useStore((s) => s.approveTime);
+  const releaseTime = useStore((s) => s.releaseTime);
+  const withdrawTime = useStore((s) => s.withdrawTime);
 
   const [manualDauer, setManualDauer] = useState('');
   const [notiz, setNotiz] = useState('');
@@ -103,11 +104,12 @@ export function TimePanel({ order }: { order: Order }) {
             <div className="time-row">
               <span>{new Date(t.datum).toLocaleDateString('de-DE')}</span>
               <span className="tabular">{formatHours(t.dauer)}</span>
-              <span className={`badge ${t.freigegeben ? 'badge--ok' : 'badge--notok'}`}>
-                {t.freigegeben ? 'Freigegeben' : 'Nicht freigegeben'}
-              </span>
-              {!t.freigegeben && role === 'partner' && (
-                <button className="btn btn--success btn--sm" onClick={() => approveTime(order.id, t.id)}>Freigeben</button>
+              <span className={`badge ${TIME_STATUS[t.status].badge}`}>{TIME_STATUS[t.status].label}</span>
+              {role === 'mitarbeiter' && t.status === 'erfasst' && (
+                <button className="btn btn--success btn--sm" onClick={() => releaseTime(order.id, t.id)}>Freigeben</button>
+              )}
+              {role === 'mitarbeiter' && t.status === 'freigegeben' && (
+                <button className="btn btn--ghost btn--sm" onClick={() => withdrawTime(order.id, t.id)}>Zurückziehen</button>
               )}
             </div>
             {t.notiz && <div className="time-row__notiz">{t.notiz}</div>}

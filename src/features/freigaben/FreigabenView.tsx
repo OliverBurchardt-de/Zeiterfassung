@@ -1,24 +1,22 @@
-import { Clock, CalendarClock, MessageSquare } from 'lucide-react';
+import { CalendarClock, MessageSquare } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
-import { ART, formatHours, isLaufendeArt } from '@/lib/art';
-import { AUFWANDSARTEN } from '@/lib/art';
+import { ART, isLaufendeArt } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
-import { offeneZeitFreigaben, offeneUmplanungen, offeneReviewFreigaben } from '@/state/selectors';
+import { offeneUmplanungen, offeneReviewFreigaben } from '@/state/selectors';
 
 /**
- * Modul „Freigaben" — Cockpit des mandatsverantwortlichen Partners: alle offenen Freigaben an
- * einer Stelle (Zeiten, Umplanungen, Review-Notes). Die Aktionen sind dieselben wie in den
- * Detail-Dialogen (approveTime / approveUmplanung / setNoteState).
+ * Modul „Freigaben" — Cockpit des mandatsverantwortlichen Partners: offene Partner-Freigaben an
+ * einer Stelle (Umplanungen, Review-Notes). Zeiten brauchen KEINE Partner-Freigabe — die gibt der
+ * Mitarbeiter unter „Meine Zeiten" selbst frei. Aktionen wie in den Detail-Dialogen
+ * (approveUmplanung / setNoteState).
  */
 export function FreigabenView() {
   const orders = useStore((s) => s.orders);
   const role = useStore((s) => s.role);
-  const approveTime = useStore((s) => s.approveTime);
   const approveUmplanung = useStore((s) => s.approveUmplanung);
   const setNoteState = useStore((s) => s.setNoteState);
 
-  const zeiten = offeneZeitFreigaben(orders);
   const umplan = offeneUmplanungen(orders);
   const reviews = offeneReviewFreigaben(orders);
 
@@ -34,23 +32,9 @@ export function FreigabenView() {
       </p>
 
       <div className="ctrl-kpis">
-        <Kpi icon={<Clock size={18} />} tone="warn" value={zeiten.length} label="Zeiten" />
         <Kpi icon={<CalendarClock size={18} />} tone="blue" value={umplan.length} label="Umplanungen" />
         <Kpi icon={<MessageSquare size={18} />} tone="over" value={reviews.length} label="Review-Notes" />
       </div>
-
-      <Section title="Zeit-Freigaben" hint="Erfasste, noch nicht freigegebene Zeitbuchungen.">
-        {zeiten.length === 0 ? <Empty text="Keine offenen Zeiten." /> : zeiten.map(({ order, time }) => (
-          <div className="ctrl-row" key={time.id}>
-            <RowHead o={order} />
-            <span className="ctrl-row__right">
-              {time.aufwandsart && <span className="auf-tag">{AUFWANDSARTEN.find((a) => a.key === time.aufwandsart)?.label}</span>}
-              <span className="muted tabular">{new Date(time.datum).toLocaleDateString('de-DE')} · {formatHours(time.dauer)}</span>
-              <button className="btn btn--success btn--sm" disabled={nurPartner} onClick={() => approveTime(order.id, time.id)}>Freigeben</button>
-            </span>
-          </div>
-        ))}
-      </Section>
 
       <Section title="Umplanungs-Freigaben" hint="Verschiebung in einen anderen Monat — wartet auf Freigabe.">
         {umplan.length === 0 ? <Empty text="Keine offenen Umplanungen." /> : umplan.map((order) => (

@@ -1,4 +1,11 @@
-import type { ArtKey, Aufwandsart } from './types';
+import type { ArtKey, Aufwandsart, TimeStatus } from './types';
+
+/** Label + Badge-Klasse je Zeit-Status (zentral, damit alle Zeit-Ansichten gleich aussehen). */
+export const TIME_STATUS: Record<TimeStatus, { label: string; badge: string }> = {
+  erfasst: { label: 'Erfasst', badge: 'badge--notok' },
+  freigegeben: { label: 'Freigegeben', badge: 'badge--ok' },
+  uebertragen: { label: 'Übertragen', badge: 'badge--ok' },
+};
 
 /** Kürzel + Farbe je Auftragsart (vgl. design-tokens.css --bk-art-*) */
 export const ART: Record<ArtKey, { label: string; color: string }> = {

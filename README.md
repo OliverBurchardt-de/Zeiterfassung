@@ -30,7 +30,8 @@ Weitere Skripte: `npm run build`, `npm run preview`, `npm run typecheck`, `npm r
   (offene Zeiten / Freigabe ausstehend).
 - **KPIs** und rechte Übersicht (heute erfasst, offene Zeiten, Review Notes).
 - **Karten-Detail-Modal:** Stammdaten, Status-Leiste, Stunden-Fortschritt, Plandaten,
-  **Umplanung** (Freigabe-Anfrage), **Zeiterfassung** (Live-Timer + manuell + Freigabe),
+  **Umplanung** (Freigabe-Anfrage an Partner), **Zeiterfassung** (Live-Timer + manuell +
+  Status `erfasst → freigegeben → übertragen`, Selbst-Freigabe durch den Mitarbeiter),
   **Unterlagen-Checkliste**, **Review-Notes-Thread** mit Rollen-Workflow.
 - **Rollen-Umschalter** (Mitarbeiter / Partner) — schaltet Aktionen frei (Demo).
 

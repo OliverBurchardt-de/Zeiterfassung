@@ -92,7 +92,8 @@ interface AppState {
   tick: (orderId: string) => void;
   transferTimer: (orderId: string, notiz?: string) => void;
   addManualTime: (orderId: string, datum: string, dauer: number, notiz?: string, aufwandsart?: Aufwandsart) => void;
-  approveTime: (orderId: string, timeId: string) => void;
+  releaseTime: (orderId: string, timeId: string) => void; // Mitarbeiter gibt eigene Zeit frei (erfasst → freigegeben)
+  withdrawTime: (orderId: string, timeId: string) => void; // Freigabe zurückziehen (freigegeben → erfasst), solange nicht übertragen
 
   // Teilaufträge (Monate, FiBu/Lohn)
   setSuborderDone: (orderId: string, suborderId: string, done: boolean) => void;
@@ -225,20 +226,25 @@ export const useStore = create<AppState>()(persist((set) => ({
     orders: mapOrder(s.orders, orderId, (o) => {
       const dauer = Math.round(((o.timerSec ?? 0) / 3600) * 100) / 100;
       if (dauer <= 0) return { ...o, timerRunning: false };
-      const entry = { id: uid(), datum: new Date().toISOString().slice(0, 10), dauer, freigegeben: false, notiz: notiz?.trim() || undefined };
+      const entry = { id: uid(), datum: new Date().toISOString().slice(0, 10), dauer, status: 'erfasst' as const, notiz: notiz?.trim() || undefined };
       return { ...o, times: [...o.times, entry], timerRunning: false, timerSec: 0 };
     }),
   })),
   addManualTime: (orderId, datum, dauer, notiz, aufwandsart) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({
-      ...o, times: [...o.times, { id: uid(), datum, dauer, freigegeben: false, notiz: notiz?.trim() || undefined, aufwandsart }],
+      ...o, times: [...o.times, { id: uid(), datum, dauer, status: 'erfasst', notiz: notiz?.trim() || undefined, aufwandsart }],
     })),
   })),
   // V2-Hook: vor der Freigabe wird die Notiz per API an eine KI gegeben (Kategorie/Rechtschreibung/
   // Aussagekraft prüfen) — siehe src/lib/ki.ts (pruefeNotizKI). Aktuell nur technisch vorgesehen.
-  approveTime: (orderId, timeId) => set((s) => ({
+  releaseTime: (orderId, timeId) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({
-      ...o, times: o.times.map((t) => (t.id === timeId ? { ...t, freigegeben: true } : t)),
+      ...o, times: o.times.map((t) => (t.id === timeId && t.status === 'erfasst' ? { ...t, status: 'freigegeben' } : t)),
+    })),
+  })),
+  withdrawTime: (orderId, timeId) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => ({
+      ...o, times: o.times.map((t) => (t.id === timeId && t.status === 'freigegeben' ? { ...t, status: 'erfasst' } : t)),
     })),
   })),
 
@@ -300,7 +306,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   // Klick-Prototyp: Stand im Browser sichern, damit ein Reload nichts verwirft.
   // version bei Änderungen am Mock-Datenmodell erhöhen → alter Stand wird verworfen.
   name: 'bk-zeiterfassung',
-  version: 3,
+  version: 4,
   partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten }),
 }));
 
