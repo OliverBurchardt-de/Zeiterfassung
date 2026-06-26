@@ -24,9 +24,13 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
 - **Status** ändert sich auf **zwei** Wegen: Drag & Drop (`Board.tsx`) **und** Status-Leiste im
   Detail (`OrderModal.tsx`). Beide rufen `setStatus`.
 - **Rollen-Gating zentral** über `notePolicy` (in `src/lib/tokens.ts`) — nicht in der UI verstreuen.
-- **Auftragsarten** = die echten DATEV-Gruppen (`ArtKey`). Mapping `ordertype_group_id → ArtKey`
-  und die ordertype-genauen „laufend"-Container (615/616 → `mehraufwand`, 601 → `lfd_beratung`)
-  liegen in `src/lib/ordertypes.ts` (`artKeyForOrdertype`) — Keim für die M2-Admin-Konfiguration;
+- **Auftragsart-Identität = der DATEV-`ordertype`** (Kurz-Code, auch alphanumerisch wie `JAP`/`SAR`) —
+  die einzige bebuchbare Ebene; am Auftrag als `Order.ordertype` modelliert. Der voll­ständige
+  Live-Katalog liegt in `src/lib/ordertypes.ts` (`ORDERTYPES`, `ordertypeInfo`). Die `ordertype_group`
+  ist nur **Klassifizierung** → als grober Farb-/Workflow-**Bucket** (`ArtKey`) genutzt: Mapping
+  `ordertype_group_id → ArtKey` (`ORDERTYPE_GROUP_TO_ART`) plus ordertype-genaue „laufend"-Overrides
+  (615/616 → `mehraufwand`, 601 → `lfd_beratung`) via `artKeyForOrdertype` — Keim der M2-Admin-Konfig.
+  `art`/`artKey` am Auftrag sind **Projektionen** aus dem Ordertype (wie der DATEV-Import sie setzt).
   Farben als `--bk-art-*`-Tokens. Interne Gruppen (Verwaltung/Abwesenheit) sind nicht im Board.
 - **Spalten `ua`/`uv`** nur für Auftragsarten mit Unterlagen-Prozess (`hasUnterlagenProzess`
   in `src/lib/art.ts`).

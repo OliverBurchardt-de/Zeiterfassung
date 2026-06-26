@@ -4,10 +4,10 @@ import type { StatusId, NoteKind, NoteState, Role } from './tokens';
 export type { StatusId, NoteKind, NoteState, Role };
 
 /**
- * Auftragsart-Kürzel für Badge + Farbe. Bildet die DATEV-Auftragsartengruppen (Live-Katalog
- * Burchardt & Kollegen) ab; `lfd_beratung`/`mehraufwand` sind die ordertype-genauen „laufend"-
- * Container (aus den Gruppen Steuerliche Beratung bzw. FiBu/Lohn herausgelöst). Mapping in
- * `src/lib/ordertypes.ts`.
+ * Grober Farb-/Workflow-**Bucket** (Badge-Kürzel + Board-Farbe) — NICHT die Auftragsidentität (das ist
+ * der `ordertype`). Bildet die DATEV-Auftragsartengruppen (Live-Katalog Burchardt & Kollegen) ab;
+ * `lfd_beratung`/`mehraufwand` sind die ordertype-genauen „laufend"-Container (aus den Gruppen
+ * Steuerliche Beratung bzw. FiBu/Lohn herausgelöst). Ableitung aus dem Ordertype in `src/lib/ordertypes.ts`.
  */
 export type ArtKey =
   | 'fibu' | 'lohn' | 'ja' | 'est' | 'beratung'
@@ -99,8 +99,14 @@ export interface Order {
   mandant: string;
   mandantNr: string;
   auftragsNr: string;
-  art: string; // ausgeschriebene Auftragsart (z. B. "Jahresabschluss")
-  artKey: ArtKey; // Kürzel/Farbe
+  /**
+   * DATEV-Ordertype (Kurz-Code, z. B. "106", "JAP") — die **fachliche Identität** des Auftrags und
+   * die einzige bebuchbare Auftragsart-Ebene. `art`/`artKey` sind hieraus abgeleitete Projektionen
+   * (Anzeigename bzw. grober Farb-/Workflow-Bucket); siehe `src/lib/ordertypes.ts`.
+   */
+  ordertype: string;
+  art: string; // ausgeschriebener Ordertype-Name (DATEV ordertype_name, z. B. "Monatliche Finanzbuchführung")
+  artKey: ArtKey; // grober Bucket (Board-Farbe/Workflow), abgeleitet aus ordertype via artKeyForOrdertype()
   vj: number; // Veranlagungsjahr (DATEV EO: assessment_year)
   fristStart: string; // ISO
   fristEnde: string; // ISO

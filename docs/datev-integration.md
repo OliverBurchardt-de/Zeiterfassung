@@ -25,7 +25,8 @@ Quelle der Auftragsdaten ist die **On-Premise-API** *Order Management 1.4.9*
 | App-Feld | EO-Feld |
 |---|---|
 | `auftragsNr` | `order_number` (+ `creation_year`) |
-| `art` / `artKey` | `ordertype` / `ordertype_group` (kommt als **Nummer**, s. u.) |
+| `ordertype` (Identität) | `ordertype` (Kurz-Code, auch alphanumerisch) |
+| `art` / `artKey` (projiziert) | abgeleitet aus `ordertype` + `ordertype_group` (s. u.) |
 | `vj` (Veranlagungsjahr) | `assessment_year` (Integer, 4-stellig) |
 | — (optional, Wirtschaftsjahr) | `fiscal_year` (Integer, 4-stellig; **nur befüllt, wenn in der EO-Konfiguration aktiviert**) |
 | (Teilauftrags-Zeitraum) | `suborders.period_from` / `period_to` (echtes Von–Bis, z. B. USt-VA) |
@@ -49,15 +50,23 @@ Quelle der Auftragsdaten ist die **On-Premise-API** *Order Management 1.4.9*
 | `active` | inaktive Arten ausblenden |
 | `isinternal` | **interne** Arten (Verwaltung, Abwesenheit/Urlaub/Krankheit) → **nicht im Board** |
 
-**Konsequenz:** Die App braucht eine **kanzlei-spezifische Zuordnung** (Admin-Bereich, M2), die die
-DATEV-Arten auf App-Typen abbildet — am robustesten **auf Gruppen-Ebene** (`ordertype_group_id`),
-mit Ordertype-Overrides für die laufenden Arten. Jede Kanzlei hat **andere** Arten → die Liste muss
-beim Onboarding eingelesen und gemappt werden.
+**Grundsatz (wichtig):** Der **`ordertype` ist die fachliche Identität** eines Auftrags und die einzige
+**bebuchbare** Ebene. Die **`ordertype_group` ist nur eine Klassifizierung** (nicht bebuchbar). Die App
+modelliert deshalb den **Ordertype am Auftrag** (`Order.ordertype`); die Gruppe dient ausschließlich als
+**grober Farb-/Workflow-Bucket** (`ArtKey`) fürs Board und als Sammelfilter. Workflow-Regeln gehören
+konzeptionell an den **Ordertype** — Musterfall sind die „laufenden" Arten, die ihre Gruppe überschreiben.
 
-**Umgesetzt (M1):** Das fest verdrahtete Mock-Schema ist durch den **echten Live-Katalog** ersetzt.
-Das Mapping liegt typisiert in **`src/lib/ordertypes.ts`** (`ORDERTYPE_GROUPS`,
-`ORDERTYPE_GROUP_TO_ART`, `LAUFENDE_ORDERTYPES`, `artKeyForOrdertype`) und treibt `ART`/Filter
-in `src/lib/art.ts`. Verifiziert am Live-System (26.06.2026, `GET /ordertypes` → 10 Gruppen):
+**Konsequenz:** Die App braucht eine **kanzlei-spezifische Zuordnung** (Admin-Bereich, M2), die jeden
+**Ordertype** auf einen Board-Bucket + Workflow-Flags abbildet (Default je Gruppe, Override je Ordertype).
+Jede Kanzlei hat **andere** Arten → die Liste wird beim Onboarding via `GET /ordertypes` eingelesen.
+
+**Umgesetzt (M1):** Das fest verdrahtete Mock-Schema ist durch den **echten Live-Katalog** ersetzt — und
+zwar auf **Ordertype-Ebene**: `src/lib/ordertypes.ts` enthält die volle Liste der aktiven, nicht-internen
+Ordertypes (`ORDERTYPES`, mit Code/Name/Gruppe) plus den groben Bucket-Katalog (`ORDERTYPE_GROUPS`,
+`ORDERTYPE_GROUP_TO_ART`, `LAUFENDE_ORDERTYPES`, `artKeyForOrdertype`, `ordertypeInfo`). Jeder Auftrag
+trägt seinen `ordertype`-Code; `art` (Anzeigename) und `artKey` (Bucket) werden daraus **projiziert**
+(wie es der DATEV-Adapter beim Import tut). Die Bucket-Übersicht (Gruppe → Board-Farbe), verifiziert am
+Live-System (26.06.2026, `GET /ordertypes` → 10 Gruppen):
 
 | group_id | DATEV-Gruppe | App-ArtKey | Board? | Besonderheit |
 |---|---|---|---|---|
