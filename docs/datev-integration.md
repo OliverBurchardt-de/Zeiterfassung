@@ -32,16 +32,40 @@ Quelle der Auftragsdaten ist die **On-Premise-API** *Order Management 1.4.9*
 
 ## Auftragsart-Zuordnung (Nummer → Typ → Farbe) — M2-Import
 
-Die API liefert die Auftragsart als **Nummer/Schlüssel** (`ordertype` / `ordertype_group`),
-nicht als sprechenden Typ. Für die App brauchen wir eine **Zuordnungsliste**, die jede
-DATEV-Auftragsart-Nummer auf einen App-Typ (JA, USt, Lohn, ESt, FIBU …), ein Kürzel und eine
-**Farbe** abbildet. Diese Liste wird beim Import **hochgeladen/gepflegt** (kanzlei-spezifisch) und
-ersetzt das im M1-Mock fest verdrahtete 5er-Schema (`ART` in `src/lib/art.ts`).
+**Verifiziert am Live-System (25.06.2026, `GET /ordertypes`):** Ein Auftrag trägt `ordertype`
+(Kurz-Code) und `ordertype_group` (Gruppen-Code). Die Katalog-API `/ordertypes` liefert je Eintrag:
 
-- Pro Auftragsart: Nummer → `artKey` (Typ) + Label/Kürzel + Marken-Farbe.
-- `assessment_year` wird direkt als Veranlagungsjahr (`vj`) übernommen — Grundlage für den
-  Filter „Veranlagungsjahr".
+| Feld | Bedeutung |
+|---|---|
+| `ordertypeId` | **stabile Ganzzahl** (eindeutiger Schlüssel — fürs Mapping nutzen) |
+| `ordertype` | frei vergebener **Kurz-Code**, **nicht zwingend numerisch** (z. B. `106`, aber auch `PrüfStB`, `GrSt`, `TRANS`) |
+| `ordertypeGroupId` / `ordertypeGroupName` | **Gruppe** (sprechend), z. B. „Finanzbuchhaltung", „Lohnbuchführung" |
+| `active` | inaktive Arten ausblenden |
+| `isinternal` | **interne** Arten (Verwaltung, Abwesenheit/Urlaub/Krankheit) → **nicht im Board** |
+
+**Konsequenz:** Die App braucht eine **kanzlei-spezifische Zuordnung** (Admin-Bereich, M2), die die
+DATEV-Arten auf App-Typen abbildet — am robustesten **auf Gruppen-Ebene** (`ordertypeGroupId`),
+mit optionalen Einzel-Overrides je `ordertypeId`. Das ersetzt das im M1-Mock fest verdrahtete
+Schema (`ART` in `src/lib/art.ts`). Jede Kanzlei hat **andere** Arten → die Liste muss beim
+Onboarding eingelesen und gemappt werden.
+
+**Vorschlag Gruppen → App-Typ** (aus dem Live-Katalog Burchardt & Kollegen abgeleitet):
+
+| DATEV-Gruppe | App-Typ | Besonderheit |
+|---|---|---|
+| Finanzbuchhaltung | `fibu` | Teilaufträge (monatlich); „Mehraufwand FiBu" = laufend |
+| Lohnbuchführung | `lohn` | Teilaufträge (monatlich); „Mehraufwand Lohn" = laufend |
+| Jahresabschluss/ betr. Steuern | `ja` | enthält „Prüfung von Steuerbescheiden" |
+| Private Steuern | `est` | Einkommensteuer + weitere private |
+| Steuerliche Beratung | `beratung` | „Laufende Steuerberatung" = laufend |
+| Wirtschaftliche Beratung / Hausverwaltung / Vorbehaltsaufgaben | (neu/Sonstiges) | im Mock-Schema bisher nicht abgebildet |
+| Verwaltung, Abwesenheit | — | `isinternal=true` → **nicht im Board** |
+
+- `assessment_year` → Veranlagungsjahr (`vj`); Filter „Veranlagungsjahr".
 - Welche Arten den Unterlagen-Prozess (`ua`/`uv`) brauchen, ist Teil derselben Konfiguration.
+- **Hinweis:** Eine eigene Gruppe „Umsatzsteuer" gibt es bei B&K **nicht** — USt-Themen laufen
+  vermutlich innerhalb FiBu. Das Mock-Schema (mit separatem `ust`) ist also **nicht 1:1** übertragbar
+  → bestätigt den Bedarf der konfigurierbaren Zuordnung.
 
 ## Mandantenbesonderheiten & Übernahme in Folgeaufträge
 DATEV legt wiederkehrende Aufträge je Periode **neu** an (z. B. nach Abschluss JA 2025 entsteht
@@ -94,12 +118,28 @@ aktuellem Tag/Benutzer):
 und lässt sich zurückschreiben. Die genaue Zuordnung der übrigen App-Status ist noch festzulegen.
 
 ### Teilauftrag (Monat) — FIBU / Lohn
-Monatliche Arbeit läuft auf **Suborder**-Ebene. Schreibbar sind dort nur:
-`planned_hours_time_units`, `planned_start`, `planned_end` und **`date_work_completed`**
-(„Teilauftrag erledigt"-Datum). Es gibt **kein** `completion_status`-Enum auf Teilauftragsebene —
-ein Monat wird also über das Erledigt-**Datum** als fertig markiert, der Gesamtauftrag über
-`completion_status = done`. **Wichtig:** PUT überschreibt Order bzw. Suborder **komplett** → immer
-erst GET, dann das geänderte Objekt zurückschreiben.
+Monatliche Arbeit läuft auf **Suborder**-Ebene. Die Suborders kommen **eingebettet im Order-Objekt**
+(`order.suborders[]` beim `GET /orders/{id}`) — verifiziert in `Order Management-1.4.9.json`
+(definitions `order` → `suborders`). Relevante Felder je Teilauftrag:
+
+| Feld | Bedeutung |
+|---|---|
+| `suborder_number` / `suborder_name` | Kennung des Teilauftrags |
+| `period_from` / `period_to` | **Monatszeitraum** (echtes Von–Bis) |
+| `planned_hours` / `planned_hours_time_units` | **Soll** |
+| `total_hours` / `total_hours_not_invoiced` | **Ist** (gesamt / noch nicht abgerechnet) |
+| `date_work_started` / **`date_work_completed`** | begonnen / **erledigt** (= `setSuborderDone`) |
+| `date_invoiced` u. a. | Abrechnungsfelder (ergänzend `subordersstatebilling`) |
+
+Schreibbar per `PUT /orders/{orderid}/suborders/{suborderid}` sind v. a.
+`planned_hours_time_units`, `planned_start`, `planned_end` und **`date_work_completed`**. Es gibt
+**kein** `completion_status`-Enum auf Teilauftragsebene — ein Monat wird über das Erledigt-**Datum**
+fertig gemeldet, der Gesamtauftrag über `completion_status = done`. **Wichtig:** PUT überschreibt
+Order bzw. Suborder **komplett** → immer erst GET, dann das geänderte Objekt zurückschreiben.
+
+Der **Basis-Pfad** lt. Spec: `http://localhost:58454/datev/api/order-management/v1/`. Das Order-Objekt
+trägt zudem `isinternal` (interne Art → nicht ins Board) sowie `completion_status` / `billing_status`
+mit zugehörigen Datumsfeldern.
 
 ## Controlling — Abrechnungs-Pull (M2)
 Die Controlling-Liste **„noch nicht abgerechnet"** wird **nicht** in der App gepflegt, sondern

@@ -20,11 +20,15 @@ Erster Verbindungstest **auf dem ASP-Server im Browser**, ohne Skript, durchgef�
 liefert Lesedaten. Beobachtung deckt sich mit dem Datenmodell (Auftragsart kommt als **Nummer** →
 Mapping „Nummer → Typ/Farbe" nötig, siehe `datev-integration.md`).
 
+**Entscheidung (25.06.2026):** **Externer Zugriff ist nicht nötig** — die App soll **innerhalb der
+ASP-Umgebung** laufen. Damit ist `localhost` für die App erreichbar (Test bestanden); die Wege
+**B (VPN) und C (Cloud Gateway) entfallen**. Relevant bleibt nur, **wie die App im ASP-Umfeld
+gehostet** wird (Weg A, „Anbindung Drittanbieter") — das mit DATEV/ASP-Partner klären.
+
 **Noch offen (nicht dringend, technisch unkritisch für den Anwender):**
 1. **Rückschreiben (PUT)** testen — geht nicht im Browser; über `tools/datev-connect-test.ps1`
    (`-TestWriteback -OrderId …`) an einem Test-Auftrag auf dem ASP-Server.
-2. **Zugriff der späteren App** von außerhalb der ASP-Plattform (VPN/Cloud Gateway) — mit
-   DATEV/ASP-Partner klären (siehe §1).
+2. **Hosting der App im ASP-Umfeld** (Weg A) mit DATEV/ASP-Partner klären — kein Netz-/VPN-Thema mehr.
 
 ## 0. Die entscheidende ASP-Besonderheit
 
