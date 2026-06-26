@@ -5,6 +5,7 @@ import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
 import { MOCK_USERS } from '@/mock/users';
 import { monatBounds } from '@/lib/monate';
 import { hasUnterlagenProzess } from '@/lib/art';
+import { CHECKLIST_TEMPLATES_BY_ORDERTYPE } from '@/lib/checklists';
 import { notePolicy } from '@/lib/tokens';
 
 /** Schlüssel der Besonderheiten: Mandantennummer + Auftragsart (period-unabhängig). */
@@ -99,6 +100,12 @@ interface AppState {
 
   // Teilaufträge (Monate, FiBu/Lohn)
   setSuborderDone: (orderId: string, suborderId: string, done: boolean) => void;
+
+  // Checklisten-Vorlagen je Auftragsart (Ordertype) — gepflegt in der Verwaltung
+  checklistTemplates: Record<string, string[]>;
+  addChecklistTemplateItem: (ordertype: string, label: string) => void;
+  editChecklistTemplateItem: (ordertype: string, index: number, label: string) => void;
+  removeChecklistTemplateItem: (ordertype: string, index: number) => void;
 
   // Checkliste
   toggleCheck: (orderId: string, itemId: string) => void;
@@ -275,6 +282,25 @@ export const useStore = create<AppState>()(persist((set) => ({
     })),
   })),
 
+  checklistTemplates: CHECKLIST_TEMPLATES_BY_ORDERTYPE,
+  addChecklistTemplateItem: (ordertype, label) => set((s) => {
+    const t = label.trim();
+    if (!t) return {};
+    return { checklistTemplates: { ...s.checklistTemplates, [ordertype]: [...(s.checklistTemplates[ordertype] ?? []), t] } };
+  }),
+  editChecklistTemplateItem: (ordertype, index, label) => set((s) => ({
+    checklistTemplates: {
+      ...s.checklistTemplates,
+      [ordertype]: (s.checklistTemplates[ordertype] ?? []).map((x, i) => (i === index ? label : x)),
+    },
+  })),
+  removeChecklistTemplateItem: (ordertype, index) => set((s) => ({
+    checklistTemplates: {
+      ...s.checklistTemplates,
+      [ordertype]: (s.checklistTemplates[ordertype] ?? []).filter((_, i) => i !== index),
+    },
+  })),
+
   toggleCheck: (orderId, itemId) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({
       ...o, checklist: o.checklist.map((c) => (c.id === itemId ? { ...c, done: !c.done } : c)),
@@ -325,8 +351,8 @@ export const useStore = create<AppState>()(persist((set) => ({
   // Klick-Prototyp: Stand im Browser sichern, damit ein Reload nichts verwirft.
   // version bei Änderungen am Mock-Datenmodell erhöhen → alter Stand wird verworfen.
   name: 'bk-zeiterfassung',
-  version: 8,
-  partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten }),
+  version: 9,
+  partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates }),
 }));
 
 /**

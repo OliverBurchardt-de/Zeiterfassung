@@ -112,6 +112,11 @@ Aufbauend auf dem Planungs-Modul (Pool + Kalender, Drag & Drop):
   unabhängig (Mandant + Auftragsart) und überstehen Auftragswechsel ohnehin.
 
 ## Umgesetzt
+- **Checklisten-Verwaltung pro Auftragsart**: in „Verwaltung" je konkretem Ordertype pflegbar
+  (Punkte hinzufügen/bearbeiten/entfernen), persistiert im Store. M2: DATEV-Import nutzt diese
+  Vorlagen je Auftragsart. (Default erbt anfangs die Bucket-Vorlage.)
+- **Board-Karte schlank**: Checkliste/Besonderheiten nicht mehr auf der Karte, nur noch im
+  Auftrags-Detail (beim Bearbeiten); Karten-Flyout entfernt.
 - **Teilzeit-Kapazität**: Nutzer haben `tagessoll` (Std./Tag) **und** `arbeitstageProWoche`
   (pflegbar in der Verwaltung); die Planung rechnet Monatskapazität = Tagessoll × Arbeitstage
   (Mo–Fr) × (Tage/Woche ÷ 5). Feiertage/Urlaub erst M2 (DATEV `employeecapacities`).

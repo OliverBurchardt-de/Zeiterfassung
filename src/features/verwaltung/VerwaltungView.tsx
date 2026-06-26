@@ -1,5 +1,6 @@
 import { Plus, Pencil, UserCheck, UserX } from 'lucide-react';
 import { useStore } from '@/state/store';
+import { ChecklistTemplatesPanel } from './ChecklistTemplatesPanel';
 
 /**
  * Modul „Verwaltung" — Nutzerverwaltung (Mock). Sichtbar nur mit Admin-Zusatzrecht.
@@ -98,6 +99,8 @@ export function VerwaltungView() {
         Mock-Ansicht. Eigener Login, Passwort/Einladung und Persistenz folgen in Meilenstein 2;
         die DATEV-Mitarbeiter-ID verknüpft den Nutzer mit den Auftrags-Verantwortlichkeiten in DATEV EO.
       </div>
+
+      <ChecklistTemplatesPanel />
     </div>
   );
 }

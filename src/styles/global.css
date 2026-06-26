@@ -297,6 +297,8 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 .icon-btn:hover { background: var(--bk-cloud); color: var(--bk-blood-orange); }
 .add-row { display: flex; gap: 8px; margin-top: 8px; }
 .add-row .input { flex: 1; }
+.tmpl-row { display: flex; gap: 8px; margin-bottom: 6px; }
+.tmpl-row .input { flex: 1; }
 
 /* Review Notes */
 .notes-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--bk-stone); }
