@@ -84,6 +84,7 @@ interface AppState {
   unplanOrder: (orderId: string) => void; // Einplanung aufheben (zurück in den Pool)
   requestUmplanung: (orderId: string, zielMonat: string) => void;
   approveUmplanung: (orderId: string) => void;
+  rejectUmplanung: (orderId: string) => void; // Partner lehnt ab → Anfrage verwerfen, Monat bleibt
 
   // Timer / Zeiten
   startTimer: (orderId: string) => void;
@@ -216,6 +217,9 @@ export const useStore = create<AppState>()(persist((set) => ({
         ? { ...o, monat: zielMonat, fristStart: b.start, fristEnde: b.end, umplanung: null }
         : { ...o, monat: zielMonat, umplanung: null };
     }),
+  })),
+  rejectUmplanung: (orderId) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => (o.umplanung ? { ...o, umplanung: null } : o)),
   })),
 
   startTimer: (orderId) => set((s) => ({ orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerRunning: true })) })),

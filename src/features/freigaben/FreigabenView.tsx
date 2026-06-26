@@ -2,7 +2,7 @@ import { CalendarClock, MessageSquare } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
 import { ART, isLaufendeArt } from '@/lib/art';
-import { STATUS } from '@/lib/tokens';
+import { STATUS, rolePolicy, notePolicy } from '@/lib/tokens';
 import { offeneUmplanungen, offeneReviewFreigaben } from '@/state/selectors';
 
 /**
@@ -15,12 +15,15 @@ export function FreigabenView() {
   const orders = useStore((s) => s.orders);
   const role = useStore((s) => s.role);
   const approveUmplanung = useStore((s) => s.approveUmplanung);
+  const rejectUmplanung = useStore((s) => s.rejectUmplanung);
   const setNoteState = useStore((s) => s.setNoteState);
 
   const umplan = offeneUmplanungen(orders);
   const reviews = offeneReviewFreigaben(orders);
 
-  const nurPartner = role !== 'partner';
+  const darfUmplanung = rolePolicy.canApproveUmplanung(role);
+  const darfReview = notePolicy.canApprove(role, 'review');
+  const nurPartner = !darfUmplanung;
 
   return (
     <div className="placeholder">
@@ -42,7 +45,8 @@ export function FreigabenView() {
             <RowHead o={order} />
             <span className="ctrl-row__right">
               <span className="badge badge--pending">{order.monat || 'ungeplant'} → {order.umplanung?.zielMonat}</span>
-              <button className="btn btn--success btn--sm" disabled={nurPartner} onClick={() => approveUmplanung(order.id)}>Freigeben</button>
+              <button className="btn btn--ghost btn--sm" disabled={!darfUmplanung} onClick={() => rejectUmplanung(order.id)}>Ablehnen</button>
+              <button className="btn btn--success btn--sm" disabled={!darfUmplanung} onClick={() => approveUmplanung(order.id)}>Freigeben</button>
             </span>
           </div>
         ))}
@@ -54,8 +58,8 @@ export function FreigabenView() {
             <RowHead o={order} />
             <span className="ctrl-row__note">{note.text}</span>
             <span className="ctrl-row__right">
-              <button className="btn btn--ghost btn--sm" disabled={nurPartner} onClick={() => setNoteState(order.id, note.id, 'offen')}>Zurück</button>
-              <button className="btn btn--success btn--sm" disabled={nurPartner} onClick={() => setNoteState(order.id, note.id, 'freigegeben')}>Freigeben</button>
+              <button className="btn btn--ghost btn--sm" disabled={!darfReview} onClick={() => setNoteState(order.id, note.id, 'offen')}>Zurück</button>
+              <button className="btn btn--success btn--sm" disabled={!darfReview} onClick={() => setNoteState(order.id, note.id, 'freigegeben')}>Freigeben</button>
             </span>
           </div>
         ))}

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
 import { ART, formatHours, erfassteStunden, artNeedsNotiz, isLaufendeArt, AUFWANDSARTEN, needsAufwandsart, TIME_STATUS } from '@/lib/art';
+import { rolePolicy } from '@/lib/tokens';
 import type { Aufwandsart } from '@/lib/types';
 
 /**
@@ -46,6 +47,7 @@ export function LaufendeView() {
 
 function LaufendeOrder({ order }: { order: Order }) {
   const role = useStore((s) => s.role);
+  const darfFreigeben = rolePolicy.canReleaseOwnTime(role);
   const addManual = useStore((s) => s.addManualTime);
   const releaseTime = useStore((s) => s.releaseTime);
   const withdrawTime = useStore((s) => s.withdrawTime);
@@ -87,10 +89,10 @@ function LaufendeOrder({ order }: { order: Order }) {
               <span>{new Date(t.datum).toLocaleDateString('de-DE')}</span>
               <span className="tabular">{formatHours(t.dauer)}</span>
               <span className={`badge ${TIME_STATUS[t.status].badge}`}>{TIME_STATUS[t.status].label}</span>
-              {role === 'mitarbeiter' && t.status === 'erfasst' && (
+              {darfFreigeben && t.status === 'erfasst' && (
                 <button className="btn btn--success btn--sm" onClick={() => releaseTime(order.id, t.id)}>Freigeben</button>
               )}
-              {role === 'mitarbeiter' && t.status === 'freigegeben' && (
+              {darfFreigeben && t.status === 'freigegeben' && (
                 <button className="btn btn--ghost btn--sm" onClick={() => withdrawTime(order.id, t.id)}>Zurückziehen</button>
               )}
             </div>

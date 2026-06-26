@@ -84,3 +84,14 @@ export const notePolicy = {
   // Fragen entfernt der Mitarbeiter (Urheber), Review-Notes der Partner
   canDelete:     (role: Role, kind: NoteKind) => (kind === 'frage' ? role === 'mitarbeiter' : role === 'partner'),
 };
+
+// Rollen-Policy für Auftrags-/Zeit-Aktionen (zentral durchsetzen, nicht in der UI verstreuen).
+//
+// Umplanung: der Mitarbeiter fordert die Verschiebung in einen anderen Monat an, der
+//            mandatsverantwortliche Partner gibt frei oder lehnt ab.
+// Zeiten:    KEINE Partner-Freigabe — der Mitarbeiter gibt seine eigenen Zeiten selbst frei.
+export const rolePolicy = {
+  canRequestUmplanung: (role: Role) => role === 'mitarbeiter',
+  canApproveUmplanung: (role: Role) => role === 'partner',
+  canReleaseOwnTime:   (role: Role) => role === 'mitarbeiter',
+};

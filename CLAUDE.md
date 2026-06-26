@@ -23,7 +23,9 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
   (siehe `mapOrder`/`mapNote` im Store).
 - **Status** ändert sich auf **zwei** Wegen: Drag & Drop (`Board.tsx`) **und** Status-Leiste im
   Detail (`OrderModal.tsx`). Beide rufen `setStatus`.
-- **Rollen-Gating zentral** über `notePolicy` (in `src/lib/tokens.ts`) — nicht in der UI verstreuen.
+- **Rollen-Gating zentral** über `notePolicy` (Review-Notes/Fragen) **und** `rolePolicy`
+  (Umplanung anfordern/freigeben, eigene Zeiten freigeben) — beide in `src/lib/tokens.ts`,
+  nicht in der UI verstreuen.
 - **Auftragsart-Identität = der DATEV-`ordertype`** (Kurz-Code, auch alphanumerisch wie `JAP`/`SAR`) —
   die einzige bebuchbare Ebene; am Auftrag als `Order.ordertype` modelliert. Der voll­ständige
   Live-Katalog liegt in `src/lib/ordertypes.ts` (`ORDERTYPES`, `ordertypeInfo`). Die `ordertype_group`

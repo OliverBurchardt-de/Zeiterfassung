@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X, Info, ListChecks, Clock } from 'lucide-react';
 import { useStore } from '@/state/store';
-import { STATUS, STATUS_ORDER, type StatusId } from '@/lib/tokens';
+import { STATUS, STATUS_ORDER, rolePolicy, type StatusId } from '@/lib/tokens';
 import { ART, formatHours, erfassteStunden } from '@/lib/art';
 import { hasUnterlagenProzess, hasBesonderheiten, isLaufendeArt, hasTeilauftraege } from '@/lib/art';
 import type { Order } from '@/lib/types';
@@ -16,7 +16,10 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const order = useStore((s) => s.orders.find((o) => o.id === orderId));
   const closeCard = useStore((s) => s.closeCard);
   const setStatus = useStore((s) => s.setStatus);
+  const role = useStore((s) => s.role);
   const requestUmplanung = useStore((s) => s.requestUmplanung);
+  const approveUmplanung = useStore((s) => s.approveUmplanung);
+  const rejectUmplanung = useStore((s) => s.rejectUmplanung);
   const openBes = useStore((s) => s.openBesonderheiten);
   const openChecklist = useStore((s) => s.openChecklist);
   const checklistOpen = useStore((s) => s.checklistOpenId);
@@ -154,8 +157,16 @@ export function OrderModal({ orderId }: { orderId: string }) {
               <div className="field">
                 <label>Umplanung in anderen Monat</label>
                 {order.umplanung?.freigabeAusstehend ? (
-                  <span className="badge badge--pending">Freigabe ausstehend → {order.umplanung.zielMonat}</span>
-                ) : (
+                  <div className="date-range">
+                    <span className="badge badge--pending">Freigabe ausstehend → {order.umplanung.zielMonat}</span>
+                    {rolePolicy.canApproveUmplanung(role) && (
+                      <>
+                        <button className="btn btn--success btn--sm" onClick={() => approveUmplanung(order.id)}>Freigeben</button>
+                        <button className="btn btn--ghost btn--sm" onClick={() => rejectUmplanung(order.id)}>Ablehnen</button>
+                      </>
+                    )}
+                  </div>
+                ) : rolePolicy.canRequestUmplanung(role) ? (
                   <div className="date-range">
                     <select className="input" value={zielMonat} onChange={(e) => setZielMonat(e.target.value)}>
                       {MONATE.map((m) => <option key={m}>{m}</option>)}
@@ -164,8 +175,14 @@ export function OrderModal({ orderId }: { orderId: string }) {
                       Freigabe anfordern
                     </button>
                   </div>
+                ) : (
+                  <span className="muted" style={{ fontSize: 13 }}>Keine offene Umplanung.</span>
                 )}
-                <div className="hint">Umplanung erfordert die Freigabe des mandatsverantwortlichen Partners.</div>
+                <div className="hint">
+                  {rolePolicy.canApproveUmplanung(role)
+                    ? 'Als Partner gibst du die Verschiebung frei oder lehnst sie ab.'
+                    : 'Umplanung erfordert die Freigabe des mandatsverantwortlichen Partners.'}
+                </div>
               </div>
             </div>
 

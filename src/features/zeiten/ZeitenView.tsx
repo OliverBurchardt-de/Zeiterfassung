@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
 import { ART, formatHours, isLaufendeArt, AUFWANDSARTEN, TIME_STATUS } from '@/lib/art';
-import { STATUS } from '@/lib/tokens';
+import { STATUS, rolePolicy } from '@/lib/tokens';
 import { zeitenVon, ohneZeit } from '@/state/selectors';
 import { CURRENT_USER } from '@/mock/orders';
 
@@ -22,7 +22,7 @@ export function ZeitenView() {
   const frei = alle.filter((z) => z.time.status !== 'erfasst');
   const summeOffen = offen.reduce((s, z) => s + z.time.dauer, 0);
   const summeGesamt = alle.reduce((s, z) => s + z.time.dauer, 0);
-  const darfFreigeben = role === 'mitarbeiter';
+  const darfFreigeben = rolePolicy.canReleaseOwnTime(role);
 
   const ohne = orders.filter((o) => o.bearbeiter === CURRENT_USER.name && !isLaufendeArt(o.artKey) && ohneZeit(o));
 

@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
 import { formatTimer, formatHours, artNeedsNotiz, TIME_STATUS } from '@/lib/art';
+import { rolePolicy } from '@/lib/tokens';
 
 export function TimePanel({ order }: { order: Order }) {
   const role = useStore((s) => s.role);
+  const darfFreigeben = rolePolicy.canReleaseOwnTime(role);
   const start = useStore((s) => s.startTimer);
   const pause = useStore((s) => s.pauseTimer);
   const reset = useStore((s) => s.resetTimer);
@@ -105,10 +107,10 @@ export function TimePanel({ order }: { order: Order }) {
               <span>{new Date(t.datum).toLocaleDateString('de-DE')}</span>
               <span className="tabular">{formatHours(t.dauer)}</span>
               <span className={`badge ${TIME_STATUS[t.status].badge}`}>{TIME_STATUS[t.status].label}</span>
-              {role === 'mitarbeiter' && t.status === 'erfasst' && (
+              {darfFreigeben && t.status === 'erfasst' && (
                 <button className="btn btn--success btn--sm" onClick={() => releaseTime(order.id, t.id)}>Freigeben</button>
               )}
-              {role === 'mitarbeiter' && t.status === 'freigegeben' && (
+              {darfFreigeben && t.status === 'freigegeben' && (
                 <button className="btn btn--ghost btn--sm" onClick={() => withdrawTime(order.id, t.id)}>Zurückziehen</button>
               )}
             </div>
