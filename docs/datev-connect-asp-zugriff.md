@@ -6,6 +6,26 @@
 > **Mit ASP-spezifischen Punkten unbedingt den DATEV-ASP-Ansprechpartner / Systempartner
 > abstimmen** — markiert mit **(mit DATEV klären)**.
 
+## Teststatus — 25.06.2026: Verbindung erfolgreich ✅
+
+Erster Verbindungstest **auf dem ASP-Server im Browser**, ohne Skript, durchgeführt:
+
+| Test (Browser-GET) | Ergebnis |
+|---|---|
+| `…/iam/v1/Users/me` | ✅ angemeldet **per Windows-SSO ohne Passwort**; korrekt als Nutzer erkannt (Rechte: IamAdministrator) |
+| `…/diagnostics/v1/domains` | ✅ verfügbare APIs: **`order-management` v1**, `master-data` v1, `accounting` v1, `dms` v2, `lodas` v1, `hr` v3, `hr-lug` v2, `iam` v1 |
+| `…/order-management/v1/orders` | ✅ liefert **echte Auftragsdaten** (lesend) — Auftragsarten (z. B. Lohnbuchführung, Mehraufwand Lohn, Prüfung von Steuerbescheiden mit Nummern), `completion_status` (started/work partially completed/done), Abrechnungs-Kennzeichen, Plandaten |
+
+**Damit bestätigt:** DATEVconnect erreichbar, Anmeldung (SSO) funktioniert, Order-Management-API
+liefert Lesedaten. Beobachtung deckt sich mit dem Datenmodell (Auftragsart kommt als **Nummer** →
+Mapping „Nummer → Typ/Farbe" nötig, siehe `datev-integration.md`).
+
+**Noch offen (nicht dringend, technisch unkritisch für den Anwender):**
+1. **Rückschreiben (PUT)** testen — geht nicht im Browser; über `tools/datev-connect-test.ps1`
+   (`-TestWriteback -OrderId …`) an einem Test-Auftrag auf dem ASP-Server.
+2. **Zugriff der späteren App** von außerhalb der ASP-Plattform (VPN/Cloud Gateway) — mit
+   DATEV/ASP-Partner klären (siehe §1).
+
 ## 0. Die entscheidende ASP-Besonderheit
 
 DATEVconnect ist eine **lokale LAN-Schnittstelle**: Der Dienst läuft auf **genau einem Server,
