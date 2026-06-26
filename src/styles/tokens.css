@@ -64,13 +64,16 @@
   --bk-status-er: #2E7D5B;
 
   /* Auftragsart-Farben (Kürzel-Badge) */
-  --bk-art-ja:   #0080C9; /* Jahresabschluss */
-  --bk-art-ust:  #3A5791; /* Umsatzsteuer */
-  --bk-art-lohn: #E94E1B; /* Lohn */
-  --bk-art-est:  #7A5400; /* Einkommensteuer */
+  --bk-art-ja:   #0080C9; /* Jahresabschluss / betr. Steuern */
+  --bk-art-lohn: #E94E1B; /* Lohnbuchführung */
+  --bk-art-est:  #7A5400; /* Private Steuern */
   --bk-art-fibu: #2E7D5B; /* Finanzbuchhaltung */
-  --bk-art-beratung:    #F7B234; /* Laufende Steuerberatung */
-  --bk-art-mehraufwand: #333333; /* Mehraufwand / Dumm gelaufen */
+  --bk-art-beratung:       #F7B234; /* Steuerliche Beratung (Projekte) */
+  --bk-art-wirtschaft:     #3A5791; /* Wirtschaftliche Beratung */
+  --bk-art-hausverwaltung: #0E7C86; /* Hausverwaltung */
+  --bk-art-vorbehalt:      #8A5A9B; /* Vorbehaltsaufgaben (JAP/MaBV/§24 FinVermV) */
+  --bk-art-lfd-beratung:   #E5A11C; /* Laufende Steuerberatung */
+  --bk-art-mehraufwand:    #333333; /* Mehraufwand / Dumm gelaufen */
 
   /* Typografie */
   --bk-font-display: 'Petrona', 'Cambria', Georgia, serif;

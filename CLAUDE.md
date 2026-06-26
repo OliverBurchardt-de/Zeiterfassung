@@ -24,6 +24,10 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
 - **Status** ändert sich auf **zwei** Wegen: Drag & Drop (`Board.tsx`) **und** Status-Leiste im
   Detail (`OrderModal.tsx`). Beide rufen `setStatus`.
 - **Rollen-Gating zentral** über `notePolicy` (in `src/lib/tokens.ts`) — nicht in der UI verstreuen.
+- **Auftragsarten** = die echten DATEV-Gruppen (`ArtKey`). Mapping `ordertype_group_id → ArtKey`
+  und die ordertype-genauen „laufend"-Container (615/616 → `mehraufwand`, 601 → `lfd_beratung`)
+  liegen in `src/lib/ordertypes.ts` (`artKeyForOrdertype`) — Keim für die M2-Admin-Konfiguration;
+  Farben als `--bk-art-*`-Tokens. Interne Gruppen (Verwaltung/Abwesenheit) sind nicht im Board.
 - **Spalten `ua`/`uv`** nur für Auftragsarten mit Unterlagen-Prozess (`hasUnterlagenProzess`
   in `src/lib/art.ts`).
 - **Checkliste je Auftragsart** über Vorlagen (`CHECKLIST_TEMPLATES`/`checklistFor` in

@@ -15,11 +15,11 @@ export function QuickTimeDialog({ order, onClose }: { order: Order; onClose: () 
   const orders = useStore((s) => s.orders);
   const addManual = useStore((s) => s.addManualTime);
 
-  const beratung = orders.find((o) => o.mandantNr === order.mandantNr && o.artKey === 'beratung');
+  const beratung = orders.find((o) => o.mandantNr === order.mandantNr && o.artKey === 'lfd_beratung');
   const mehr = orders.find((o) => o.mandantNr === order.mandantNr && o.artKey === 'mehraufwand');
 
   const optionen: { key: Kategorie; label: string }[] = [];
-  if (beratung) optionen.push({ key: 'beratung', label: 'Steuerberatung' });
+  if (beratung) optionen.push({ key: 'beratung', label: 'Laufende Steuerberatung' });
   if (mehr) optionen.push({ key: 'mehraufwand', label: 'Mehraufwand' }, { key: 'dumm', label: 'Dumm gelaufen' });
 
   const [kat, setKat] = useState<Kategorie | ''>(optionen[0]?.key ?? '');

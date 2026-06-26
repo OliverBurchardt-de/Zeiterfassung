@@ -11,10 +11,13 @@ import type { ArtKey, ChecklistItem } from './types';
 export const CHECKLIST_TEMPLATES: Record<ArtKey, string[]> = {
   fibu: ['Personalaufwand abgestimmt', 'USt gebucht', 'AfA gebucht', 'BWA übermittelt'],
   ja: ['Summen- & Saldenliste geprüft', 'Kontennachweise vollständig', 'Anlagenverzeichnis abgestimmt'],
-  ust: [],
   lohn: [],
   est: [],
   beratung: [],
+  wirtschaft: [],
+  hausverwaltung: [],
+  vorbehalt: [],
+  lfd_beratung: [],
   mehraufwand: [],
 };
 

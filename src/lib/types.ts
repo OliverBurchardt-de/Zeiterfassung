@@ -3,8 +3,16 @@ import type { StatusId, NoteKind, NoteState, Role } from './tokens';
 
 export type { StatusId, NoteKind, NoteState, Role };
 
-/** Auftragsart-Kürzel für Badge + Farbe */
-export type ArtKey = 'ja' | 'ust' | 'lohn' | 'est' | 'fibu' | 'beratung' | 'mehraufwand';
+/**
+ * Auftragsart-Kürzel für Badge + Farbe. Bildet die DATEV-Auftragsartengruppen (Live-Katalog
+ * Burchardt & Kollegen) ab; `lfd_beratung`/`mehraufwand` sind die ordertype-genauen „laufend"-
+ * Container (aus den Gruppen Steuerliche Beratung bzw. FiBu/Lohn herausgelöst). Mapping in
+ * `src/lib/ordertypes.ts`.
+ */
+export type ArtKey =
+  | 'fibu' | 'lohn' | 'ja' | 'est' | 'beratung'
+  | 'wirtschaft' | 'hausverwaltung' | 'vorbehalt'
+  | 'mehraufwand' | 'lfd_beratung';
 
 export interface Comment {
   id: string;

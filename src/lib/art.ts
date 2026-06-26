@@ -7,15 +7,18 @@ export const TIME_STATUS: Record<TimeStatus, { label: string; badge: string }> =
   uebertragen: { label: 'Übertragen', badge: 'badge--ok' },
 };
 
-/** Kürzel + Farbe je Auftragsart (vgl. design-tokens.css --bk-art-*) */
+/** Kürzel + Farbe je Auftragsart (Farben aus tokens.css `--bk-art-*`, keine Hardcode-Hex). */
 export const ART: Record<ArtKey, { label: string; color: string }> = {
-  ja: { label: 'JA', color: '#0080C9' },
-  ust: { label: 'USt', color: '#3A5791' },
-  lohn: { label: 'LOHN', color: '#E94E1B' },
-  est: { label: 'ESt', color: '#7A5400' },
-  fibu: { label: 'FIBU', color: '#2E7D5B' },
-  beratung: { label: 'STB', color: '#F7B234' },
-  mehraufwand: { label: 'MEHR', color: '#333333' },
+  fibu: { label: 'FIBU', color: 'var(--bk-art-fibu)' },
+  lohn: { label: 'LOHN', color: 'var(--bk-art-lohn)' },
+  ja: { label: 'JA', color: 'var(--bk-art-ja)' },
+  est: { label: 'ESt', color: 'var(--bk-art-est)' },
+  beratung: { label: 'STB', color: 'var(--bk-art-beratung)' },
+  wirtschaft: { label: 'WB', color: 'var(--bk-art-wirtschaft)' },
+  hausverwaltung: { label: 'HV', color: 'var(--bk-art-hausverwaltung)' },
+  vorbehalt: { label: 'VBA', color: 'var(--bk-art-vorbehalt)' },
+  lfd_beratung: { label: 'lfd. StB', color: 'var(--bk-art-lfd-beratung)' },
+  mehraufwand: { label: 'MEHR', color: 'var(--bk-art-mehraufwand)' },
 };
 
 /** Auftragsarten mit Unterlagen-Prozess → Spalten ua/uv sichtbar */
@@ -25,8 +28,8 @@ export function hasUnterlagenProzess(artKey: ArtKey): boolean {
   return ARTEN_MIT_UNTERLAGEN.includes(artKey);
 }
 
-/** Auftragsarten, bei denen jede Zeitbuchung eine Pflicht-Notiz braucht */
-export const ARTEN_MIT_PFLICHT_NOTIZ: ArtKey[] = ['beratung', 'mehraufwand'];
+/** Auftragsarten, bei denen jede Zeitbuchung eine Pflicht-Notiz braucht (die laufenden Container) */
+export const ARTEN_MIT_PFLICHT_NOTIZ: ArtKey[] = ['lfd_beratung', 'mehraufwand'];
 
 export function artNeedsNotiz(artKey: ArtKey): boolean {
   return ARTEN_MIT_PFLICHT_NOTIZ.includes(artKey);
@@ -43,7 +46,7 @@ export function hasBesonderheiten(artKey: ArtKey): boolean {
  * „Laufende" Auftragsarten: kein Status-Flow / keine Planung, sondern dauerhafte
  * Buchungs-Container pro Mandant (Modul „Laufende Buchungen", nicht im Kanban-Board).
  */
-export const LAUFENDE_ARTEN: ArtKey[] = ['beratung', 'mehraufwand'];
+export const LAUFENDE_ARTEN: ArtKey[] = ['lfd_beratung', 'mehraufwand'];
 
 export function isLaufendeArt(artKey: ArtKey): boolean {
   return LAUFENDE_ARTEN.includes(artKey);

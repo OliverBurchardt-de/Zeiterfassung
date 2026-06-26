@@ -2,12 +2,15 @@ import { Check } from 'lucide-react';
 import { useStore } from '@/state/store';
 import { EMPLOYEES } from '@/mock/orders';
 import { ART } from '@/lib/art';
+import { ORDERTYPE_GROUPS } from '@/lib/ordertypes';
 import type { ArtKey } from '@/lib/types';
 
-const ART_FILTER: ArtKey[] = ['ja', 'ust', 'lohn', 'est', 'fibu'];
+// Board-Filter = nicht-interne DATEV-Gruppen (laufende Arten leben im Modul „Laufende Buchungen").
+const ART_FILTER: ArtKey[] = ORDERTYPE_GROUPS.filter((g) => !g.internal && g.art).map((g) => g.art as ArtKey);
 const ART_LABEL: Record<ArtKey, string> = {
-  ja: 'Jahresabschluss', ust: 'Umsatzsteuer', lohn: 'Lohn', est: 'Einkommensteuer', fibu: 'Finanzbuchhaltung',
-  beratung: 'Steuerberatung', mehraufwand: 'Mehraufwand',
+  fibu: 'Finanzbuchhaltung', lohn: 'Lohnbuchführung', ja: 'Jahresabschluss', est: 'Private Steuern',
+  beratung: 'Steuerliche Beratung', wirtschaft: 'Wirtschaftliche Beratung', hausverwaltung: 'Hausverwaltung',
+  vorbehalt: 'Vorbehaltsaufgaben', lfd_beratung: 'Laufende Steuerberatung', mehraufwand: 'Mehraufwand',
 };
 
 export function FilterSidebar() {

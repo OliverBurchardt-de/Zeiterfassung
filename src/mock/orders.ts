@@ -37,7 +37,7 @@ const nextNr = () => `A-2025-${++seq}`;
 const BASE_ORDERS: Order[] = [
   {
     id: 'o1', mandant: 'Praxis Dr. Wagner', mandantNr: 'D10217', auftragsNr: nextNr(),
-    art: 'Jahresabschluss', artKey: 'ja', vj: 2024,
+    art: 'Jahresabschluss und betriebliche StE', artKey: 'ja', vj: 2024,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 18, seiten: 42, kosten: 1840, status: 'av',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -45,7 +45,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o2', mandant: 'Müller Immobilien GmbH', mandantNr: 'D10219', auftragsNr: nextNr(),
-    art: 'Jahresabschluss', artKey: 'ja', vj: 2024,
+    art: 'Jahresabschluss und betriebliche StE', artKey: 'ja', vj: 2024,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 24, seiten: 0, kosten: 0, status: 'av',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -54,7 +54,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o3', mandant: 'TechStart UG', mandantNr: 'D10221', auftragsNr: nextNr(),
-    art: 'Finanzbuchhaltung', artKey: 'fibu', vj: 2025,
+    art: 'Monatliche Finanzbuchführung', artKey: 'fibu', vj: 2025,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 10, seiten: 12, kosten: 620, status: 'ua',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -62,7 +62,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o4', mandant: 'Hotel Seeblick KG', mandantNr: 'D10224', auftragsNr: nextNr(),
-    art: 'Finanzbuchhaltung', artKey: 'fibu', vj: 2025,
+    art: 'Monatliche Finanzbuchführung', artKey: 'fibu', vj: 2025,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 8, seiten: 6, kosten: 410, status: 'uv',
     bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
@@ -70,7 +70,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o5', mandant: 'Bäckerei Lindner', mandantNr: 'D10216', auftragsNr: nextNr(),
-    art: 'Jahresabschluss', artKey: 'ja', vj: 2023,
+    art: 'Jahresabschluss und betriebliche StE', artKey: 'ja', vj: 2023,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Jan 2025',
     soll: 16, seiten: 22, kosten: 1320, status: 'bb',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -81,7 +81,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o6', mandant: 'Schmidt & Partner', mandantNr: 'D10230', auftragsNr: nextNr(),
-    art: 'Umsatzsteuer-Voranmeldung', artKey: 'ust', vj: 2025,
+    art: 'Betriebswirtschaftliche Beratung', artKey: 'wirtschaft', vj: 2025,
     fristStart: '2025-03-01', fristEnde: '2025-03-10', monat: 'Mär 2025',
     soll: 3, seiten: 2, kosten: 180, status: 'bb',
     bearbeiter: 'T. Berg', bearbeiterId: 'tb', partner: 'O. Burchardt',
@@ -90,7 +90,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o7', mandant: 'Gärtnerei Blum', mandantNr: 'D10233', auftragsNr: nextNr(),
-    art: 'Einkommensteuer', artKey: 'est', vj: 2024,
+    art: 'Einkommensteuererklärung', artKey: 'est', vj: 2024,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 6, seiten: 14, kosten: 540, status: 'rf',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -99,7 +99,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o8', mandant: 'Bäckerei Lindner', mandantNr: 'D10216', auftragsNr: nextNr(),
-    art: 'Jahresabschluss', artKey: 'ja', vj: 2023,
+    art: 'Jahresabschluss und betriebliche StE', artKey: 'ja', vj: 2023,
     fristStart: '2025-01-01', fristEnde: '2025-01-31', monat: 'Jan 2025',
     soll: 16, seiten: 30, kosten: 980, status: 'rn',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -137,7 +137,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o9', mandant: 'Autohaus Reuter', mandantNr: 'D10240', auftragsNr: nextNr(),
-    art: 'Lohnbuchhaltung', artKey: 'lohn', vj: 2025,
+    art: 'Lohnbuchführung', artKey: 'lohn', vj: 2025,
     fristStart: '2025-03-01', fristEnde: '2025-03-05', monat: 'Mär 2025',
     soll: 4, seiten: 8, kosten: 320, status: 'fg',
     bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
@@ -146,7 +146,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o10', mandant: 'Café Central', mandantNr: 'D10244', auftragsNr: nextNr(),
-    art: 'Umsatzsteuer-Voranmeldung', artKey: 'ust', vj: 2025,
+    art: 'Erstellen von NK-Abrechnungen', artKey: 'hausverwaltung', vj: 2025,
     fristStart: '2025-02-01', fristEnde: '2025-02-10', monat: 'Feb 2025',
     soll: 2, seiten: 2, kosten: 120, status: 'am',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -155,7 +155,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o11', mandant: 'Zahnarztpraxis Dr. Vogel', mandantNr: 'D10248', auftragsNr: nextNr(),
-    art: 'Einkommensteuer', artKey: 'est', vj: 2023,
+    art: 'Einkommensteuererklärung', artKey: 'est', vj: 2023,
     fristStart: '2025-02-01', fristEnde: '2025-02-28', monat: 'Feb 2025',
     soll: 5, seiten: 16, kosten: 600, status: 'fa',
     bearbeiter: 'T. Berg', bearbeiterId: 'tb', partner: 'O. Burchardt',
@@ -164,7 +164,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o12', mandant: 'Maler Brandt GmbH', mandantNr: 'D10250', auftragsNr: nextNr(),
-    art: 'Jahresabschluss', artKey: 'ja', vj: 2023,
+    art: 'Jahresabschluss und betriebliche StE', artKey: 'ja', vj: 2023,
     fristStart: '2025-01-01', fristEnde: '2025-01-31', monat: 'Jan 2025',
     soll: 20, seiten: 38, kosten: 1620, status: 'er', fakturiert: true,
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -173,7 +173,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o13', mandant: 'Fahrschule Konrad', mandantNr: 'D10255', auftragsNr: nextNr(),
-    art: 'Lohnbuchhaltung', artKey: 'lohn', vj: 2025,
+    art: 'Lohnbuchführung', artKey: 'lohn', vj: 2025,
     fristStart: '2025-03-01', fristEnde: '2025-03-05', monat: 'Mär 2025',
     soll: 3, seiten: 0, kosten: 0, status: 'av',
     bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
@@ -181,7 +181,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o14', mandant: 'Weingut Stein', mandantNr: 'D10260', auftragsNr: nextNr(),
-    art: 'Finanzbuchhaltung', artKey: 'fibu', vj: 2025,
+    art: 'Monatliche Finanzbuchführung', artKey: 'fibu', vj: 2025,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 9, seiten: 0, kosten: 0, status: 'av',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -189,7 +189,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o15', mandant: 'IT-Systeme Faber', mandantNr: 'D10262', auftragsNr: nextNr(),
-    art: 'Umsatzsteuer-Voranmeldung', artKey: 'ust', vj: 2025,
+    art: 'Jahresabschlussprüfung', artKey: 'vorbehalt', vj: 2024,
     fristStart: '2025-03-01', fristEnde: '2025-03-10', monat: 'Mär 2025',
     soll: 2, seiten: 0, kosten: 0, status: 'av',
     bearbeiter: 'T. Berg', bearbeiterId: 'tb', partner: 'O. Burchardt',
@@ -197,15 +197,15 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o16', mandant: 'Spedition Krämer', mandantNr: 'D10266', auftragsNr: nextNr(),
-    art: 'Jahresabschluss', artKey: 'ja', vj: 2024,
+    art: 'Steuerliche Außenprüfung', artKey: 'beratung', vj: 2024,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
-    soll: 22, seiten: 4, kosten: 240, status: 'uv',
+    soll: 22, seiten: 4, kosten: 240, status: 'bb',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
     checklist: [], notes: [], times: [],
   },
   {
     id: 'o17', mandant: 'Praxis Dr. Wagner', mandantNr: 'D10217', auftragsNr: nextNr(),
-    art: 'Laufende Steuerberatung', artKey: 'beratung', vj: 2025,
+    art: 'Laufende Steuerberatung', artKey: 'lfd_beratung', vj: 2025,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 0, seiten: 0, kosten: 0, status: 'bb',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -214,7 +214,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o18', mandant: 'Hotel Seeblick KG', mandantNr: 'D10224', auftragsNr: nextNr(),
-    art: 'Mehraufwand / Dumm gelaufen', artKey: 'mehraufwand', vj: 2025,
+    art: 'Mehraufwand FiBu', artKey: 'mehraufwand', vj: 2025,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 0, seiten: 0, kosten: 0, status: 'bb',
     bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
@@ -223,7 +223,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'o19', mandant: 'Hotel Seeblick KG', mandantNr: 'D10224', auftragsNr: nextNr(),
-    art: 'Laufende Steuerberatung', artKey: 'beratung', vj: 2025,
+    art: 'Laufende Steuerberatung', artKey: 'lfd_beratung', vj: 2025,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 0, seiten: 0, kosten: 0, status: 'bb',
     bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
@@ -233,7 +233,7 @@ const BASE_ORDERS: Order[] = [
   // --- Noch nicht geplante Aufträge (Pool fürs Planungs-Modul: ohne Monat/Datum) ---
   {
     id: 'p1', mandant: 'Bauunternehmen Vogt', mandantNr: 'D10270', auftragsNr: nextNr(),
-    art: 'Jahresabschluss', artKey: 'ja', vj: 2025,
+    art: 'Jahresabschluss und betriebliche StE', artKey: 'ja', vj: 2025,
     fristStart: '', fristEnde: '', monat: '',
     soll: 20, seiten: 0, kosten: 0, status: 'av',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -241,7 +241,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'p2', mandant: 'Apotheke am Markt', mandantNr: 'D10272', auftragsNr: nextNr(),
-    art: 'Einkommensteuer', artKey: 'est', vj: 2025,
+    art: 'Einkommensteuererklärung', artKey: 'est', vj: 2025,
     fristStart: '', fristEnde: '', monat: '',
     soll: 6, seiten: 0, kosten: 0, status: 'av',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -249,7 +249,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'p3', mandant: 'Stadtwerke Beteiligung', mandantNr: 'D10275', auftragsNr: nextNr(),
-    art: 'Jahresabschluss', artKey: 'ja', vj: 2025,
+    art: 'Jahresabschluss und betriebliche StE', artKey: 'ja', vj: 2025,
     fristStart: '', fristEnde: '', monat: '',
     soll: 24, seiten: 0, kosten: 0, status: 'av',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -257,7 +257,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'p4', mandant: 'Logistik Nord GmbH', mandantNr: 'D10278', auftragsNr: nextNr(),
-    art: 'Jahresabschluss', artKey: 'ja', vj: 2025,
+    art: 'Jahresabschluss und betriebliche StE', artKey: 'ja', vj: 2025,
     fristStart: '', fristEnde: '', monat: '',
     soll: 16, seiten: 0, kosten: 0, status: 'av',
     bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
@@ -265,7 +265,7 @@ const BASE_ORDERS: Order[] = [
   },
   {
     id: 'p5', mandant: 'Praxis Dr. Sommer', mandantNr: 'D10281', auftragsNr: nextNr(),
-    art: 'Einkommensteuer', artKey: 'est', vj: 2024,
+    art: 'Einkommensteuererklärung', artKey: 'est', vj: 2024,
     fristStart: '', fristEnde: '', monat: '',
     soll: 5, seiten: 0, kosten: 0, status: 'av',
     bearbeiter: 'T. Berg', bearbeiterId: 'tb', partner: 'O. Burchardt',

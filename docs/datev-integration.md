@@ -50,22 +50,31 @@ Quelle der Auftragsdaten ist die **On-Premise-API** *Order Management 1.4.9*
 | `isinternal` | **interne** Arten (Verwaltung, Abwesenheit/Urlaub/Krankheit) → **nicht im Board** |
 
 **Konsequenz:** Die App braucht eine **kanzlei-spezifische Zuordnung** (Admin-Bereich, M2), die die
-DATEV-Arten auf App-Typen abbildet — am robustesten **auf Gruppen-Ebene** (`ordertypeGroupId`),
-mit optionalen Einzel-Overrides je `ordertypeId`. Das ersetzt das im M1-Mock fest verdrahtete
-Schema (`ART` in `src/lib/art.ts`). Jede Kanzlei hat **andere** Arten → die Liste muss beim
-Onboarding eingelesen und gemappt werden.
+DATEV-Arten auf App-Typen abbildet — am robustesten **auf Gruppen-Ebene** (`ordertype_group_id`),
+mit Ordertype-Overrides für die laufenden Arten. Jede Kanzlei hat **andere** Arten → die Liste muss
+beim Onboarding eingelesen und gemappt werden.
 
-**Vorschlag Gruppen → App-Typ** (aus dem Live-Katalog Burchardt & Kollegen abgeleitet):
+**Umgesetzt (M1):** Das fest verdrahtete Mock-Schema ist durch den **echten Live-Katalog** ersetzt.
+Das Mapping liegt typisiert in **`src/lib/ordertypes.ts`** (`ORDERTYPE_GROUPS`,
+`ORDERTYPE_GROUP_TO_ART`, `LAUFENDE_ORDERTYPES`, `artKeyForOrdertype`) und treibt `ART`/Filter
+in `src/lib/art.ts`. Verifiziert am Live-System (26.06.2026, `GET /ordertypes` → 10 Gruppen):
 
-| DATEV-Gruppe | App-Typ | Besonderheit |
-|---|---|---|
-| Finanzbuchhaltung | `fibu` | Teilaufträge (monatlich); „Mehraufwand FiBu" = laufend |
-| Lohnbuchführung | `lohn` | Teilaufträge (monatlich); „Mehraufwand Lohn" = laufend |
-| Jahresabschluss/ betr. Steuern | `ja` | enthält „Prüfung von Steuerbescheiden" |
-| Private Steuern | `est` | Einkommensteuer + weitere private |
-| Steuerliche Beratung | `beratung` | „Laufende Steuerberatung" = laufend |
-| Wirtschaftliche Beratung / Hausverwaltung / Vorbehaltsaufgaben | (neu/Sonstiges) | im Mock-Schema bisher nicht abgebildet |
-| Verwaltung, Abwesenheit | — | `isinternal=true` → **nicht im Board** |
+| group_id | DATEV-Gruppe | App-ArtKey | Board? | Besonderheit |
+|---|---|---|---|---|
+| 1 | Finanzbuchhaltung | `fibu` | ja | Teilaufträge (monatlich); 616 „Mehraufwand FiBu" → `mehraufwand` (laufend) |
+| 2 | Lohnbuchführung | `lohn` | ja | Teilaufträge (monatlich); 615 „Mehraufwand Lohn" → `mehraufwand` (laufend) |
+| 3 | Jahresabschluss/ betr. Steuern | `ja` | ja | enthält 613 „Prüfung von Steuerbescheiden" |
+| 4 | Private Steuern | `est` | ja | ESt + Feststellung/Erbschaft/Einheitsbewertung |
+| 5 | Steuerliche Beratung | `beratung` | ja | 601 „Laufende Steuerberatung" → `lfd_beratung` (laufend) |
+| 11 | Wirtschaftliche Beratung | `wirtschaft` | ja | |
+| 12 | Hausverwaltung | `hausverwaltung` | ja | 800 „Verwalterhonorar"/802 „NK-Abrechnungen" bleiben Board-Projekte |
+| 13 | Vorbehaltsaufgaben | `vorbehalt` | ja | JAP/MaBV/§24 FinVermV (Prüfungen) |
+| 9 | Verwaltung | — | nein | `isinternal=true` |
+| 10 | Abwesenheit | — | nein | `isinternal=true` |
+
+**Laufend** (Modul „Laufende Buchungen", nicht im Board, Pflicht-Notiz) ist **pro Ordertype**, nicht
+pro Gruppe: 616/615 (Mehraufwand) → `mehraufwand`, 601 (Laufende Steuerberatung) → `lfd_beratung`.
+Diese Ordertypes haben beim Mapping **Vorrang** vor ihrer Gruppe (`artKeyForOrdertype`).
 
 - `assessment_year` → Veranlagungsjahr (`vj`); Filter „Veranlagungsjahr".
 - Welche Arten den Unterlagen-Prozess (`ua`/`uv`) brauchen, ist Teil derselben Konfiguration.
