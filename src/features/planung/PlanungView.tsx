@@ -30,7 +30,12 @@ export function PlanungView() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const emp = EMPLOYEES.find((e) => e.id === empId) ?? EMPLOYEES[0];
-  const tagessoll = users.find((u) => u.initials === emp.initials)?.tagessoll ?? 8;
+  const profil = users.find((u) => u.initials === emp.initials);
+  const tagessoll = profil?.tagessoll ?? 8;
+  const tageProWoche = profil?.arbeitstageProWoche ?? 5;
+  // Monatskapazität: Tagessoll × Arbeitstage (Mo–Fr), bei Teilzeit anteilig (Tage/Woche ÷ 5).
+  // Feiertage/Urlaub sind im Mock NICHT abgezogen — kommen in M2 aus DATEV (employeecapacities).
+  const kapazitaet = (m: string) => Math.round(tagessoll * arbeitstage(m) * (tageProWoche / 5));
 
   const meine = useMemo(
     () => orders.filter((o) => o.bearbeiterId === empId && !isLaufendeArt(o.artKey)),
@@ -59,7 +64,8 @@ export function PlanungView() {
           <h1 style={{ fontSize: 'var(--bk-fs-h1)', marginBottom: 4 }}>Planung</h1>
           <p className="muted" style={{ margin: 0 }}>
             Nicht geplante Aufträge per Drag &amp; Drop in einen Monat ziehen — Anfangs- und
-            Enddatum werden automatisch gesetzt. Kapazität = Tagessoll ({tagessoll} h) × Arbeitstage.
+            Enddatum werden automatisch gesetzt. Kapazität = Tagessoll ({tagessoll} h) × Arbeitstage
+            {tageProWoche < 5 ? ` × ${tageProWoche}/5 (Teilzeit)` : ''} (Mo–Fr, ohne Feiertage).
           </p>
         </div>
         <div className="field" style={{ marginBottom: 0, minWidth: 170 }}>
@@ -76,7 +82,7 @@ export function PlanungView() {
         <div className="panel__title" style={{ marginTop: 22 }}><h4>Kalender</h4></div>
         <div className="cal-row">
           {KALENDER.map((m) => (
-            <MonthCard key={m} monat={m} orders={planedFor(m)} kapazitaet={tagessoll * arbeitstage(m)} />
+            <MonthCard key={m} monat={m} orders={planedFor(m)} kapazitaet={kapazitaet(m)} />
           ))}
         </div>
 

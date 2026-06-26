@@ -1,5 +1,5 @@
 import type { ArtKey, Aufwandsart, TimeStatus } from './types';
-import { ordertypeInfo } from './ordertypes';
+import { ordertypeInfo, ORDERTYPES, artKeyForOrdertype } from './ordertypes';
 
 /** Label + Badge-Klasse je Zeit-Status (zentral, damit alle Zeit-Ansichten gleich aussehen). */
 export const TIME_STATUS: Record<TimeStatus, { label: string; badge: string }> = {
@@ -30,6 +30,21 @@ export const ART: Record<ArtKey, { label: string; color: string }> = {
 /** Ordertype mit Unterlagen-Prozess → Spalten ua/uv sichtbar */
 export function hasUnterlagenProzess(ordertype: string): boolean {
   return ordertypeInfo(ordertype)?.unterlagen === true;
+}
+
+/**
+ * Auftragsart-Buckets (Labels), für die der Unterlagen-Prozess (ua/uv) gilt — aus dem
+ * Ordertype-Katalog abgeleitet. Dient dem Spalten-Hinweis „nur …" im Board, damit klar ist,
+ * für welche Auftragsarten die Status „Unterlagen anfordern/vollständig" überhaupt vorgesehen sind.
+ */
+export function unterlagenArtLabels(): string[] {
+  const keys = new Set<ArtKey>();
+  for (const ot of ORDERTYPES) {
+    if (!ot.unterlagen) continue;
+    const ak = artKeyForOrdertype(ot.ordertype, ot.groupId);
+    if (ak) keys.add(ak);
+  }
+  return [...keys].map((k) => ART[k].label);
 }
 
 /** Auftragsarten, bei denen jede Zeitbuchung eine Pflicht-Notiz braucht (die laufenden Container) */

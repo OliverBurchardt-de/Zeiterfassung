@@ -4,7 +4,7 @@ import { useStore, type UserDraft } from '@/state/store';
 import type { User, Role } from '@/lib/types';
 
 const EMPTY: UserDraft = {
-  name: '', initials: '', email: '', role: 'mitarbeiter', admin: false, datevId: '', tagessoll: 8,
+  name: '', initials: '', email: '', role: 'mitarbeiter', admin: false, datevId: '', tagessoll: 8, arbeitstageProWoche: 5,
 };
 
 /** Anlegen-/Bearbeiten-Dialog für einen Nutzer. */
@@ -25,7 +25,7 @@ function UserForm({ existing }: { existing?: User }) {
 
   const [d, setD] = useState<UserDraft>(
     existing
-      ? { name: existing.name, initials: existing.initials, email: existing.email, role: existing.role, admin: existing.admin, datevId: existing.datevId, tagessoll: existing.tagessoll }
+      ? { name: existing.name, initials: existing.initials, email: existing.email, role: existing.role, admin: existing.admin, datevId: existing.datevId, tagessoll: existing.tagessoll, arbeitstageProWoche: existing.arbeitstageProWoche }
       : EMPTY,
   );
 
@@ -84,7 +84,7 @@ function UserForm({ existing }: { existing?: User }) {
 
           <div className="grid-2">
             <div className="field">
-              <label>Tagessoll (Stunden)</label>
+              <label>Tagessoll (Stunden/Tag)</label>
               <input
                 className="input" type="number" min={0} max={24} step={0.5}
                 value={d.tagessoll}
@@ -92,16 +92,28 @@ function UserForm({ existing }: { existing?: User }) {
               />
             </div>
             <div className="field">
-              <label>Admin-Recht</label>
-              <label className="check-line">
-                <input type="checkbox" checked={d.admin} onChange={(e) => setD({ ...d, admin: e.target.checked })} />
-                <span>Nutzerverwaltung &amp; Konfiguration</span>
-              </label>
+              <label>Arbeitstage / Woche</label>
+              <input
+                className="input" type="number" min={1} max={5} step={0.5}
+                value={d.arbeitstageProWoche}
+                onChange={(e) => setD({ ...d, arbeitstageProWoche: Number(e.target.value) })}
+              />
+              <div className="hint">
+                Wochenstunden: {Math.round(d.tagessoll * d.arbeitstageProWoche * 10) / 10} h
+                {d.arbeitstageProWoche < 5 ? ' · Teilzeit' : ''}
+              </div>
             </div>
           </div>
 
-          <div className="hint">
-            Admin ist ein Zusatz-Recht und mit jeder Rolle kombinierbar (z. B. „Partner + Admin").
+          <div className="field">
+            <label>Admin-Recht</label>
+            <label className="check-line">
+              <input type="checkbox" checked={d.admin} onChange={(e) => setD({ ...d, admin: e.target.checked })} />
+              <span>Nutzerverwaltung &amp; Konfiguration</span>
+            </label>
+            <div className="hint">
+              Admin ist ein Zusatz-Recht und mit jeder Rolle kombinierbar (z. B. „Partner + Admin").
+            </div>
           </div>
 
           <div className="add-row" style={{ marginTop: 18, justifyContent: 'flex-end' }}>

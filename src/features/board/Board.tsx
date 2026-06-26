@@ -6,7 +6,7 @@ import {
 import { STATUS, STATUS_ORDER, type StatusId } from '@/lib/tokens';
 import { useStore } from '@/state/store';
 import { useFilteredOrders, canComplete } from '@/state/selectors';
-import { hasUnterlagenProzess } from '@/lib/art';
+import { hasUnterlagenProzess, unterlagenArtLabels } from '@/lib/art';
 import type { Order } from '@/lib/types';
 import { OrderCard, OrderCardOverlay } from './OrderCard';
 
@@ -27,6 +27,8 @@ export function Board() {
 
   const byStatus = (s: StatusId) => orders.filter((o) => o.status === s);
   const activeOrder = orders.find((o) => o.id === activeId) ?? null;
+  // Welche Auftragsarten haben überhaupt einen Unterlagen-Prozess? (für den Spalten-Hinweis ua/uv)
+  const unterlagenHint = unterlagenArtLabels().join(' / ');
 
   function onDragStart(e: DragStartEvent) {
     setActiveId(String(e.active.id));
@@ -56,7 +58,7 @@ export function Board() {
       >
         <div className="board">
           {columns.map((s) => (
-            <Column key={s} status={s} orders={byStatus(s)} />
+            <Column key={s} status={s} orders={byStatus(s)} specialHint={unterlagenHint} />
           ))}
         </div>
         <DragOverlay>{activeOrder && <OrderCardOverlay order={activeOrder} />}</DragOverlay>
@@ -65,7 +67,7 @@ export function Board() {
   );
 }
 
-function Column({ status, orders }: { status: StatusId; orders: Order[] }) {
+function Column({ status, orders, specialHint }: { status: StatusId; orders: Order[]; specialHint: string }) {
   const meta = STATUS[status];
   // Die ganze Spalte ist Drop-Ziel (nicht nur die Karten-Liste), damit auch Kopf/Leerraum zählen.
   const { setNodeRef, isOver } = useDroppable({ id: status });
@@ -78,7 +80,7 @@ function Column({ status, orders }: { status: StatusId; orders: Order[] }) {
         <span className="column__title">{meta.label}</span>
         <span className="count-pill" style={{ color: meta.color, background: meta.soft }}>{orders.length}</span>
       </div>
-      {meta.special && <div className="column__hint">nur best. Auftragsarten</div>}
+      {meta.special && <div className="column__hint">nur {specialHint}</div>}
       <div className="column__list">
         {orders.map((o) => (
           <OrderCard key={o.id} order={o} />

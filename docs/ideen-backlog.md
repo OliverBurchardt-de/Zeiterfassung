@@ -112,6 +112,11 @@ Aufbauend auf dem Planungs-Modul (Pool + Kalender, Drag & Drop):
   unabhängig (Mandant + Auftragsart) und überstehen Auftragswechsel ohnehin.
 
 ## Umgesetzt
+- **Teilzeit-Kapazität**: Nutzer haben `tagessoll` (Std./Tag) **und** `arbeitstageProWoche`
+  (pflegbar in der Verwaltung); die Planung rechnet Monatskapazität = Tagessoll × Arbeitstage
+  (Mo–Fr) × (Tage/Woche ÷ 5). Feiertage/Urlaub erst M2 (DATEV `employeecapacities`).
+- **Board-Spalten ua/uv** benennen jetzt die zutreffende Auftragsart („nur JA") statt „nur best.
+  Auftragsarten" — abgeleitet aus dem Ordertype-Katalog (`unterlagenArtLabels`).
 - **Freigaben-Cockpit** (Partner): Zeiten/Umplanungen/Review-Notes an einer Stelle freigeben.
 - **Meine Zeiten**: persönliche Zeitübersicht (offen/freigegeben/ohne Zeit).
 - **Teilaufträge FiBu & Lohn**: Monatsraster (12 Monate) im Auftrags-Detail, je Monat

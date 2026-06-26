@@ -150,5 +150,6 @@ export interface User {
   admin: boolean; // Zusatz-Recht: Nutzerverwaltung + Konfiguration
   aktiv: boolean; // deaktiviert statt gelöscht
   datevId: string; // DATEV-Mitarbeiter-ID
-  tagessoll: number; // Stunden/Tag
+  tagessoll: number; // Stunden pro Arbeitstag
+  arbeitstageProWoche: number; // Arbeitstage/Woche (Teilzeit: < 5) — Basis der Kapazität
 }

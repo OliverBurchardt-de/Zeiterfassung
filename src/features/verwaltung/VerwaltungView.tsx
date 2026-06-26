@@ -40,6 +40,7 @@ export function VerwaltungView() {
               <th>Rechte</th>
               <th>DATEV-ID</th>
               <th className="utable__num">Tagessoll</th>
+              <th className="utable__num">Tage/Wo.</th>
               <th>Status</th>
               <th className="utable__act">Aktionen</th>
             </tr>
@@ -65,6 +66,9 @@ export function VerwaltungView() {
                 </td>
                 <td className="tabular">{u.datevId}</td>
                 <td className="utable__num tabular">{u.tagessoll} h</td>
+                <td className="utable__num tabular">
+                  {u.arbeitstageProWoche}{u.arbeitstageProWoche < 5 ? ' · TZ' : ''}
+                </td>
                 <td>
                   <span className={`badge ${u.aktiv ? 'badge--ok' : 'badge--notok'}`}>
                     {u.aktiv ? 'Aktiv' : 'Deaktiviert'}
