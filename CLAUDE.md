@@ -32,8 +32,11 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
   (615/616 → `mehraufwand`, 601 → `lfd_beratung`) via `artKeyForOrdertype` — Keim der M2-Admin-Konfig.
   `art`/`artKey` am Auftrag sind **Projektionen** aus dem Ordertype (wie der DATEV-Import sie setzt).
   Farben als `--bk-art-*`-Tokens. Interne Gruppen (Verwaltung/Abwesenheit) sind nicht im Board.
-- **Spalten `ua`/`uv`** nur für Auftragsarten mit Unterlagen-Prozess (`hasUnterlagenProzess`
-  in `src/lib/art.ts`).
+- **Workflow-Flags am Ordertype** (nicht am Bucket!): `teilauftraege` (`'monat'`/`'quartal'`),
+  `unterlagen` (Spalten `ua`/`uv`), `besonderheiten` — gepflegt im Ordertype-Katalog
+  (`src/lib/ordertypes.ts`), abgefragt über `hasTeilauftraege`/`teilauftragRhythmus`/
+  `hasUnterlagenProzess`/`hasBesonderheiten` in `src/lib/art.ts` (Argument = `order.ordertype`).
+- **Spalten `ua`/`uv`** nur für Ordertypes mit Unterlagen-Prozess (`hasUnterlagenProzess`).
 - **Checkliste je Auftragsart** über Vorlagen (`CHECKLIST_TEMPLATES`/`checklistFor` in
   `src/lib/checklists.ts`); „Erledigt" ist gesperrt bis vollständig (`canComplete` in
   `src/state/selectors.ts`), durchgesetzt in `OrderModal.tsx` **und** `Board.tsx`. Bedienung in
@@ -41,15 +44,17 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
 - **Laufende Arten** (Beratung/Mehraufwand, `LAUFENDE_ARTEN`) nicht im Board, sondern im Modul
   „Laufende Buchungen" — Zeitbuchung mit Pflicht-Notiz (`artNeedsNotiz`). Schnellbuchung aus dem
   Auftrag heraus (`QuickTimeDialog`) bucht über Mandant+Art aufs passende laufende Order.
-- **Teilaufträge** (FiBu/Lohn, `TEILAUFTRAG_ARTEN`/`hasTeilauftraege`): Monats-Suborders am Order
-  (`suborders[]`), „erledigt" via `setSuborderDone` (DATEV `date_work_completed`).
+- **Teilaufträge** (ordertype-genau via `hasTeilauftraege`/`teilauftragRhythmus`): Monats- **oder**
+  Quartals-Suborders am Order (`suborders[]`), „erledigt" via `setSuborderDone`
+  (DATEV `date_work_completed`).
 - **Freigaben** (Partner-Cockpit) und **Meine Zeiten** sind reine Sichten über `orders[]`
   (Selektoren `offeneUmplanungen`/`offeneReviewFreigaben`/`zeitenVon`). Das Partner-Cockpit umfasst
   **nur Umplanungen + Review-Notes** — **Zeiten brauchen keine Partner-Freigabe** (s. u.).
 - **Persistenz:** Store via `persist` (localStorage, Key `bk-zeiterfassung`); `version` bei
   Änderungen am Order-Datenmodell erhöhen, damit der Mock neu seedet.
 - **Mandantenbesonderheiten** am Schlüssel `besKey(mandantNr, artKey)` (period-unabhängig, nicht am
-  Order-Objekt) → automatische Übernahme in Folgeaufträge. Button nur für `BESONDERHEITEN_ARTEN`.
+  Order-Objekt) → automatische Übernahme in Folgeaufträge. Button nur für Ordertypes mit
+  `besonderheiten`-Flag (`hasBesonderheiten`).
 - **Controlling** ist eine reine Sicht über `orders[]` (Logik zentral in `src/state/selectors.ts`:
   `auslastungPct`, `istUeberfaellig`, `istNichtAbgerechnet`); **Planung** plant Aufträge per
   Drag & Drop ein (`planOrder`/`unplanOrder` setzen `monat`+`fristStart/Ende`; Monats-/Arbeitstags-

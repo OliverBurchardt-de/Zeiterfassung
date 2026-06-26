@@ -35,11 +35,21 @@ export const ORDERTYPE_GROUPS: OrdertypeGroup[] = [
 export const ORDERTYPE_GROUP_TO_ART: Record<number, ArtKey | null> =
   Object.fromEntries(ORDERTYPE_GROUPS.map((g) => [g.id, g.art]));
 
-/** Ein konkreter, bebuchbarer Ordertype (Auftragsart). `ordertype` ist der DATEV-Kurz-Code (auch alphanumerisch). */
+/**
+ * Ein konkreter, bebuchbarer Ordertype (Auftragsart). `ordertype` ist der DATEV-Kurz-Code (auch
+ * alphanumerisch). Die Workflow-Flags hängen bewusst am **Ordertype** (nicht an der Gruppe) — in M2
+ * pro Kanzlei im Admin-Bereich konfigurierbar.
+ */
 export interface Ordertype {
   ordertype: string; // Kurz-Code, z. B. '106', 'JAP', 'SAR' (NICHT immer numerisch)
   name: string; // ordertype_name
   groupId: number; // ordertype_group_id (nur Klassifizierung)
+  /** Teilauftrags-Rhythmus: eine Suborder je Monat (12) bzw. Quartal (4). Fehlt = keine Teilaufträge. */
+  teilauftraege?: 'monat' | 'quartal';
+  /** Unterlagen-Prozess: Board-Spalten „Unterlagen angefordert/vollständig" (ua/uv). */
+  unterlagen?: boolean;
+  /** Mandantenbesonderheiten pflegbar (je Mandant + Ordertype, in Folgeaufträge übernommen). */
+  besonderheiten?: boolean;
 }
 
 /**
@@ -49,24 +59,24 @@ export interface Ordertype {
 export const ORDERTYPES: Ordertype[] = [
   // 1 Finanzbuchhaltung
   { ordertype: '101', name: 'Einrichtung Buchführung', groupId: 1 },
-  { ordertype: '106', name: 'Monatliche Finanzbuchführung', groupId: 1 },
-  { ordertype: '107', name: 'Vierteljährliche Buchführung', groupId: 1 },
-  { ordertype: '108', name: 'Jahresbuchführung', groupId: 1 },
-  { ordertype: '310', name: 'Erfolgsreporting', groupId: 1 },
-  { ordertype: '320', name: 'Immo-Reporting', groupId: 1 },
+  { ordertype: '106', name: 'Monatliche Finanzbuchführung', groupId: 1, teilauftraege: 'monat', besonderheiten: true },
+  { ordertype: '107', name: 'Vierteljährliche Buchführung', groupId: 1, teilauftraege: 'quartal', besonderheiten: true },
+  { ordertype: '108', name: 'Jahresbuchführung', groupId: 1, besonderheiten: true },
+  { ordertype: '310', name: 'Erfolgsreporting', groupId: 1, teilauftraege: 'monat' },
+  { ordertype: '320', name: 'Immo-Reporting', groupId: 1, teilauftraege: 'monat' },
   { ordertype: '616', name: 'Mehraufwand FiBu', groupId: 1 },
   // 2 Lohnbuchführung
   { ordertype: '201', name: 'Einrichtung Lohnbuchführung', groupId: 2 },
-  { ordertype: '202', name: 'Lohnbuchführung', groupId: 2 },
+  { ordertype: '202', name: 'Lohnbuchführung', groupId: 2, teilauftraege: 'monat', besonderheiten: true },
   { ordertype: '615', name: 'Mehraufwand Lohn', groupId: 2 },
   // 3 Jahresabschluss/ betr. Steuern
-  { ordertype: '301', name: 'Jahresabschluss/ Betriebliche Steuererklärungen', groupId: 3 },
-  { ordertype: '302', name: 'Einnahmen-Überschussrechnung', groupId: 3 },
-  { ordertype: '303', name: 'Jahresabschluss und betriebliche StE', groupId: 3 },
+  { ordertype: '301', name: 'Jahresabschluss/ Betriebliche Steuererklärungen', groupId: 3, unterlagen: true, besonderheiten: true },
+  { ordertype: '302', name: 'Einnahmen-Überschussrechnung', groupId: 3, unterlagen: true, besonderheiten: true },
+  { ordertype: '303', name: 'Jahresabschluss und betriebliche StE', groupId: 3, unterlagen: true, besonderheiten: true },
   { ordertype: '613', name: 'Prüfung von Steuerbescheiden', groupId: 3 },
   // 4 Private Steuern
-  { ordertype: '501', name: 'Einkommensteuererklärung', groupId: 4 },
-  { ordertype: '502', name: 'Feststellungserklärung', groupId: 4 },
+  { ordertype: '501', name: 'Einkommensteuererklärung', groupId: 4, besonderheiten: true },
+  { ordertype: '502', name: 'Feststellungserklärung', groupId: 4, besonderheiten: true },
   { ordertype: '504', name: 'Erbschaft-/ Schenkungsteuer', groupId: 4 },
   { ordertype: '505', name: 'Einheitsbewertung Grundbesitz', groupId: 4 },
   { ordertype: '507', name: 'Vor- und Nachlauf Private Steuern', groupId: 4 },

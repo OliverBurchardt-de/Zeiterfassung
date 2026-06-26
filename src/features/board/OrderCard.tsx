@@ -67,7 +67,7 @@ function CardInner({ order, onFlyout, openFlyout }: { order: Order; onFlyout?: (
         )}
       </div>
 
-      {(hasBesonderheiten(order.artKey) || checkGesamt > 0) && (
+      {(hasBesonderheiten(order.ordertype) || checkGesamt > 0) && (
         <div className="card__foot">
           {checkGesamt > 0 && (
             <button
@@ -79,7 +79,7 @@ function CardInner({ order, onFlyout, openFlyout }: { order: Order; onFlyout?: (
               <ListChecks size={13} /> Checkliste ({checkGesamt - checkOffen}/{checkGesamt})
             </button>
           )}
-          {hasBesonderheiten(order.artKey) && (
+          {hasBesonderheiten(order.ordertype) && (
             <button
               className="btn btn--ghost btn--sm card__bes"
               aria-haspopup="dialog"

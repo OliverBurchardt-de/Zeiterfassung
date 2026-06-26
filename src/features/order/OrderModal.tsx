@@ -42,7 +42,7 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const rest = Math.max(0, order.soll - erfasst);
 
   const statusListe = STATUS_ORDER.filter((s) => {
-    if ((s === 'ua' || s === 'uv') && !hasUnterlagenProzess(order.artKey)) return false;
+    if ((s === 'ua' || s === 'uv') && !hasUnterlagenProzess(order.ordertype)) return false;
     return true;
   });
 
@@ -71,7 +71,7 @@ export function OrderModal({ orderId }: { orderId: string }) {
                   <ListChecks size={13} /> Checkliste ({order.checklist.length - offenCheck}/{order.checklist.length})
                 </button>
               )}
-              {hasBesonderheiten(order.artKey) && (
+              {hasBesonderheiten(order.ordertype) && (
                 <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={() => openBes(order)}>
                   <Info size={13} /> Besonderheiten
                 </button>
@@ -172,7 +172,7 @@ export function OrderModal({ orderId }: { orderId: string }) {
             <TimePanel order={order} />
           </div>
 
-          {hasTeilauftraege(order.artKey) && order.suborders && <TeilauftragPanel order={order} />}
+          {hasTeilauftraege(order.ordertype) && order.suborders && <TeilauftragPanel order={order} />}
 
           <NotesSection order={order} />
         </div>
@@ -188,10 +188,11 @@ function TeilauftragPanel({ order }: { order: Order }) {
   const setDone = useStore((s) => s.setSuborderDone);
   const subs = order.suborders ?? [];
   const erledigt = subs.filter((s) => s.erledigtAm).length;
+  const rhythmusLabel = subs[0]?.monat.startsWith('Q') ? 'Quartale' : 'Monate';
 
   return (
     <div className="tl">
-      <div className="subhead">Teilaufträge (Monate) · {erledigt}/{subs.length} erledigt</div>
+      <div className="subhead">Teilaufträge ({rhythmusLabel}) · {erledigt}/{subs.length} erledigt</div>
       <div className="tl-grid">
         {subs.map((sb) => {
           const done = !!sb.erledigtAm;

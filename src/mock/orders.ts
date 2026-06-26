@@ -1,6 +1,6 @@
 import type { Order, ArtKey, Employee, Besonderheit, Suborder } from '@/lib/types';
 import { checklistFor } from '@/lib/checklists';
-import { hasTeilauftraege } from '@/lib/art';
+import { teilauftragRhythmus } from '@/lib/art';
 import { artKeyForOrdertype, ordertypeInfo } from '@/lib/ordertypes';
 import { monthRange, monatBounds } from '@/lib/monate';
 
@@ -10,18 +10,41 @@ import { monthRange, monatBounds } from '@/lib/monate';
  */
 type OrderSeed = Omit<Order, 'art' | 'artKey'>;
 
-/** 12 Monats-Teilaufträge eines Jahres (FiBu/Lohn). `erledigteMonate` Monate gelten als fertig. */
-function monthlySuborders(year: number, sollProMonat: number, erledigteMonate: number): Suborder[] {
-  return monthRange(year, 0, 12).map((monat, i) => {
-    const erledigt = i < erledigteMonate;
-    return {
-      id: `sb-${year}-${i}`,
-      monat,
-      soll: sollProMonat,
-      erfasst: erledigt ? sollProMonat : i === erledigteMonate ? Math.round(sollProMonat * 0.4 * 10) / 10 : 0,
-      erledigtAm: erledigt ? monatBounds(monat)?.end : undefined,
-    };
-  });
+/**
+ * Teilaufträge eines Jahres je Rhythmus: 12 Monate (`monat`) bzw. 4 Quartale (`quartal`).
+ * `erledigt` Perioden gelten als fertig, die Folgeperiode als angefangen (40 %).
+ */
+function periodSuborders(
+  year: number,
+  rhythmus: 'monat' | 'quartal',
+  sollProPeriode: number,
+  erledigt: number,
+): Suborder[] {
+  const angefangen = Math.round(sollProPeriode * 0.4 * 10) / 10;
+  const erfasstFor = (i: number) => (i < erledigt ? sollProPeriode : i === erledigt ? angefangen : 0);
+
+  if (rhythmus === 'quartal') {
+    return [0, 1, 2, 3].map((q) => {
+      const endMonat = q * 3 + 2; // 0-basiert: Mär/Jun/Sep/Dez
+      const letzterTag = new Date(year, endMonat + 1, 0);
+      return {
+        id: `sb-${year}-q${q + 1}`,
+        monat: `Q${q + 1} ${year}`,
+        soll: sollProPeriode,
+        erfasst: erfasstFor(q),
+        erledigtAm: q < erledigt
+          ? `${year}-${String(endMonat + 1).padStart(2, '0')}-${String(letzterTag.getDate()).padStart(2, '0')}`
+          : undefined,
+      };
+    });
+  }
+  return monthRange(year, 0, 12).map((monat, i) => ({
+    id: `sb-${year}-${i}`,
+    monat,
+    soll: sollProPeriode,
+    erfasst: erfasstFor(i),
+    erledigtAm: i < erledigt ? monatBounds(monat)?.end : undefined,
+  }));
 }
 
 export const EMPLOYEES: Employee[] = [
@@ -188,7 +211,7 @@ const BASE_ORDERS: OrderSeed[] = [
   },
   {
     id: 'o14', mandant: 'Weingut Stein', mandantNr: 'D10260', auftragsNr: nextNr(),
-    ordertype: '106', vj: 2025,
+    ordertype: '107', vj: 2025,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
     soll: 9, seiten: 0, kosten: 0, status: 'av',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
@@ -288,12 +311,15 @@ export const MOCK_ORDERS: Order[] = BASE_ORDERS.map((o) => {
   const info = ordertypeInfo(o.ordertype);
   // artKey = Bucket aus dem Ordertype ableiten (wie der DATEV-Adapter beim Import); Fallback nur defensiv.
   const artKey: ArtKey = artKeyForOrdertype(o.ordertype, info?.groupId ?? 0) ?? 'beratung';
+  const rhythmus = teilauftragRhythmus(o.ordertype);
   return {
     ...o,
     art: info?.name ?? o.ordertype,
     artKey,
     checklist: o.checklist.length ? o.checklist : checklistFor(artKey),
-    suborders: hasTeilauftraege(artKey) ? monthlySuborders(o.vj, o.soll, 2) : undefined,
+    suborders: rhythmus
+      ? periodSuborders(o.vj, rhythmus, o.soll, rhythmus === 'quartal' ? 1 : 2)
+      : undefined,
   };
 });
 

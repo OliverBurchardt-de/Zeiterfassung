@@ -19,7 +19,7 @@ export function Board() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   // Spalten ua/uv nur, wenn mind. ein sichtbarer Auftrag einen Unterlagen-Prozess hat
-  const zeigeUnterlagen = orders.some((o) => hasUnterlagenProzess(o.artKey));
+  const zeigeUnterlagen = orders.some((o) => hasUnterlagenProzess(o.ordertype));
   const columns = STATUS_ORDER.filter((s) => {
     if ((s === 'ua' || s === 'uv') && !zeigeUnterlagen) return false;
     return true;

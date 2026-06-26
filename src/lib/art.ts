@@ -1,4 +1,5 @@
 import type { ArtKey, Aufwandsart, TimeStatus } from './types';
+import { ordertypeInfo } from './ordertypes';
 
 /** Label + Badge-Klasse je Zeit-Status (zentral, damit alle Zeit-Ansichten gleich aussehen). */
 export const TIME_STATUS: Record<TimeStatus, { label: string; badge: string }> = {
@@ -21,11 +22,14 @@ export const ART: Record<ArtKey, { label: string; color: string }> = {
   mehraufwand: { label: 'MEHR', color: 'var(--bk-art-mehraufwand)' },
 };
 
-/** Auftragsarten mit Unterlagen-Prozess → Spalten ua/uv sichtbar */
-export const ARTEN_MIT_UNTERLAGEN: ArtKey[] = ['ja', 'fibu'];
+/**
+ * Workflow-Flags hängen am **Ordertype** (nicht am Bucket) — Quelle: Ordertype-Katalog in
+ * `src/lib/ordertypes.ts`. In M2 pro Kanzlei im Admin-Bereich konfigurierbar.
+ */
 
-export function hasUnterlagenProzess(artKey: ArtKey): boolean {
-  return ARTEN_MIT_UNTERLAGEN.includes(artKey);
+/** Ordertype mit Unterlagen-Prozess → Spalten ua/uv sichtbar */
+export function hasUnterlagenProzess(ordertype: string): boolean {
+  return ordertypeInfo(ordertype)?.unterlagen === true;
 }
 
 /** Auftragsarten, bei denen jede Zeitbuchung eine Pflicht-Notiz braucht (die laufenden Container) */
@@ -35,11 +39,9 @@ export function artNeedsNotiz(artKey: ArtKey): boolean {
   return ARTEN_MIT_PFLICHT_NOTIZ.includes(artKey);
 }
 
-/** Auftragsarten mit „Besonderheiten"-Button (Mandantenbesonderheiten je Art) */
-export const BESONDERHEITEN_ARTEN: ArtKey[] = ['fibu', 'lohn', 'ja', 'est'];
-
-export function hasBesonderheiten(artKey: ArtKey): boolean {
-  return BESONDERHEITEN_ARTEN.includes(artKey);
+/** Ordertype mit „Besonderheiten"-Button (Mandantenbesonderheiten je Mandant + Ordertype) */
+export function hasBesonderheiten(ordertype: string): boolean {
+  return ordertypeInfo(ordertype)?.besonderheiten === true;
 }
 
 /**
@@ -66,11 +68,14 @@ export function needsAufwandsart(artKey: ArtKey): boolean {
   return artKey === 'mehraufwand';
 }
 
-/** Auftragsarten mit Monats-Teilaufträgen (Suborder-Ebene in DATEV): FiBu & Lohn */
-export const TEILAUFTRAG_ARTEN: ArtKey[] = ['fibu', 'lohn'];
+/** Teilauftrags-Rhythmus eines Ordertypes (Suborder je Monat/Quartal) bzw. undefined = keine. */
+export function teilauftragRhythmus(ordertype: string): 'monat' | 'quartal' | undefined {
+  return ordertypeInfo(ordertype)?.teilauftraege;
+}
 
-export function hasTeilauftraege(artKey: ArtKey): boolean {
-  return TEILAUFTRAG_ARTEN.includes(artKey);
+/** Ordertype mit Monats-/Quartals-Teilaufträgen (Suborder-Ebene in DATEV) */
+export function hasTeilauftraege(ordertype: string): boolean {
+  return teilauftragRhythmus(ordertype) !== undefined;
 }
 
 /** Stunden dezimal → "X,X h" (de-DE) */

@@ -70,8 +70,8 @@ Live-System (26.06.2026, `GET /ordertypes` → 10 Gruppen):
 
 | group_id | DATEV-Gruppe | App-ArtKey | Board? | Besonderheit |
 |---|---|---|---|---|
-| 1 | Finanzbuchhaltung | `fibu` | ja | Teilaufträge (monatlich); 616 „Mehraufwand FiBu" → `mehraufwand` (laufend) |
-| 2 | Lohnbuchführung | `lohn` | ja | Teilaufträge (monatlich); 615 „Mehraufwand Lohn" → `mehraufwand` (laufend) |
+| 1 | Finanzbuchhaltung | `fibu` | ja | 616 „Mehraufwand FiBu" → `mehraufwand` (laufend) |
+| 2 | Lohnbuchführung | `lohn` | ja | 615 „Mehraufwand Lohn" → `mehraufwand` (laufend) |
 | 3 | Jahresabschluss/ betr. Steuern | `ja` | ja | enthält 613 „Prüfung von Steuerbescheiden" |
 | 4 | Private Steuern | `est` | ja | ESt + Feststellung/Erbschaft/Einheitsbewertung |
 | 5 | Steuerliche Beratung | `beratung` | ja | 601 „Laufende Steuerberatung" → `lfd_beratung` (laufend) |
@@ -85,8 +85,26 @@ Live-System (26.06.2026, `GET /ordertypes` → 10 Gruppen):
 pro Gruppe: 616/615 (Mehraufwand) → `mehraufwand`, 601 (Laufende Steuerberatung) → `lfd_beratung`.
 Diese Ordertypes haben beim Mapping **Vorrang** vor ihrer Gruppe (`artKeyForOrdertype`).
 
+**Workflow-Flags pro Ordertype** (am Ordertype-Katalog, nicht am Bucket — mit dem Auftraggeber
+abgestimmt 26.06.2026). Felder in `Ordertype`: `teilauftraege` (`'monat'`=12 / `'quartal'`=4 Suborders),
+`unterlagen` (Board-Spalten ua/uv), `besonderheiten` (Mandantenbesonderheiten-Button):
+
+| Ordertype | Teilaufträge | Unterlagen | Besonderheiten |
+|---|---|---|---|
+| 106 Monatliche Finanzbuchführung | Monat | – | ✓ |
+| 107 Vierteljährliche Buchführung | Quartal | – | ✓ |
+| 108 Jahresbuchführung | – | – | ✓ |
+| 310 Erfolgsreporting · 320 Immo-Reporting | Monat | – | – |
+| 202 Lohnbuchführung | Monat | – | ✓ |
+| 301 / 302 / 303 (Jahresabschluss/EÜR) | – | ✓ | ✓ |
+| 501 Einkommensteuer · 502 Feststellung | – | – | ✓ |
+
+Alle übrigen (Einrichtung 101/201, Beratungsverfahren 6xx, Prüfungen JAP/MaBV/FinVermV, Hausverwaltung
+800/802, 504/505/507, Wirtschaftl. Beratung) tragen **kein** Flag. **FiBu hat bewusst keinen
+Unterlagen-Prozess.** Durchgesetzt über `hasTeilauftraege`/`teilauftragRhythmus`/`hasUnterlagenProzess`/
+`hasBesonderheiten` (jetzt ordertype-basiert, in `src/lib/art.ts`).
+
 - `assessment_year` → Veranlagungsjahr (`vj`); Filter „Veranlagungsjahr".
-- Welche Arten den Unterlagen-Prozess (`ua`/`uv`) brauchen, ist Teil derselben Konfiguration.
 - **Hinweis:** Eine eigene Gruppe „Umsatzsteuer" gibt es bei B&K **nicht** — USt-Themen laufen
   vermutlich innerhalb FiBu. Das Mock-Schema (mit separatem `ust`) ist also **nicht 1:1** übertragbar
   → bestätigt den Bedarf der konfigurierbaren Zuordnung.

@@ -306,7 +306,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   // Klick-Prototyp: Stand im Browser sichern, damit ein Reload nichts verwirft.
   // version bei Änderungen am Mock-Datenmodell erhöhen → alter Stand wird verworfen.
   name: 'bk-zeiterfassung',
-  version: 6,
+  version: 7,
   partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten }),
 }));
 
