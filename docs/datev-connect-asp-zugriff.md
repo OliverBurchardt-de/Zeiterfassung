@@ -40,10 +40,13 @@ wo unser App-Backend/DATEV-Adapter (M2) läuft.
 1. **Lizenz/Installation:** DATEV **Eigenorganisation comfort / Auftragswesen** (Quelle der
    Aufträge → Order-Management-API) und **DATEVconnect** (bei euch installiert ✓).
 2. **DATEVconnect-Benutzer** in **DATEV Benutzerverwaltung** + **Rechteverwaltung** anlegen und die
-   Rechte für die benötigten Anwendungen/Domains (Auftragswesen / Order Management) freigeben.
-   Kein Admin-Recht, aber Windows-Anmeldung möglich.
-3. **Authentifizierung:** **Windows/Basic** einstellen (ab DATEVconnect v15 funktioniert reines
-   „Basic" nicht mehr).
+   Rechte freigeben — konkret **„DATEVconnect"** und **„EO comfort connect"** (siehe §6). Kein
+   Admin-Recht, aber Windows-Anmeldung möglich.
+3. **Authentifizierung:** Zwei Wege (siehe §6):
+   - **Integrierte Windows-Anmeldung (SSO)** — kein Passwort; funktioniert, wenn der Aufruf unter
+     dem angemeldeten DATEV-Windows-Benutzer läuft (z. B. Browser/PowerShell auf dem ASP-Server).
+   - **Basic Auth** (Windows/Basic) — Benutzer + Passwort; für den späteren Server-Adapter.
+   In beiden Fällen ist der Header **`Accept: application/json; charset=utf-8`** Pflicht (sonst 406).
 
 ## 3. Konkreter Test — in zwei Stufen
 
@@ -51,17 +54,21 @@ wo unser App-Backend/DATEV-Adapter (M2) läuft.
 Im gehosteten DATEV-Desktop (dort ist `localhost` erreichbar). Mit dem DATEVconnect-Benutzer.
 **(Ob Browser/PowerShell auf dem ASP-Server nutzbar sind, ggf. mit DATEV klären.)**
 
-> **Fertiges Test-Skript:** `tools/datev-connect-test.ps1` führt echo → domains → orders aus
-> (nur lesen) und optional einen Rückschreibtest. Auf den ASP-Server kopieren und ausführen:
+> **Fertiges Test-Skript:** `tools/datev-connect-test.ps1` prüft Identität (iam/Users/me) →
+> echo → domains → orders (nur lesen) und optional einen Rückschreibtest. Standard ist
+> **Windows-SSO (kein Passwort)**. Auf den ASP-Server kopieren und ausführen:
 > `powershell -ExecutionPolicy Bypass -File .\datev-connect-test.ps1`
-> (Rückschreiben: `... -TestWriteback -OrderId "<Test-Auftrag>"`).
+> (Basic statt SSO: `-Auth basic`; Rückschreiben: `-TestWriteback -OrderId "<Test-Auftrag>"`).
 
-**a) Verbindung + Auth + verfügbare APIs (Diagnostics):**
+**a) Verbindung + Auth + verfügbare APIs:**
 ```
-GET http://localhost:58454/datev/api/diagnostics/v1/echo      # Lebenszeichen + Auth
+GET http://localhost:58454/datev/api/iam/v1/Users/me          # Identität (bestätigt Auth + zeigt Anmeldenamen)
+GET http://localhost:58454/datev/api/diagnostics/v1/echo      # Lebenszeichen
 GET http://localhost:58454/datev/api/diagnostics/v1/domains   # listet installierte APIs → ist order-management dabei?
 ```
-Im Browser reicht ein GET (Basic-Auth-Dialog erscheint). Für PUT braucht es PowerShell/curl/Postman.
+Der einfachste Test: die erste URL **im Browser auf dem ASP-Server** öffnen — dank Windows-SSO
+erscheint dein Anmeldename ohne Passwort. Im Browser geht nur GET; für PUT braucht es
+PowerShell/curl/Postman.
 
 **b) Daten ziehen (Order Management):**
 ```
@@ -120,6 +127,38 @@ App-Backend/DATEV-Adapter laufen wird. Das ist der eigentliche Integrationstest 
 2. **Stufe-1-Test** auf dem ASP-Server: `echo`/`domains` → `orders` lesen → PUT an einem
    Test-Auftrag. Damit ist bestätigt, dass Lizenz, Benutzer/Rechte und Order-Management-API stehen.
 3. Ergebnis hier dokumentieren; danach DATEV-Adapter (M2) gegen den gewählten Weg bauen.
+
+## 6. Erkenntnisse aus einem funktionierenden Kollegen-Setup
+
+Quelle: „DATEVconnect – Erste Schritte" von **Eike Hagena** (StB), als HTML-Smoke-Test im Repo
+(`DATEVconnect-Erste-Schritte_von-Eike-Hagena.md`). **Achtung:** Das ist ein **eigener LAN-Server
+mit Admin-Rechten** — Rechtevergabe und Dienst-Neustart kann die Kanzlei dort selbst; **unter ASP
+laufen diese Schritte i. d. R. über DATEV bzw. den ASP-Partner.** Die Methodik ist übertragbar.
+
+### Authentifizierung in der Praxis
+- Der Test nutzt **integrierte Windows-Anmeldung** (`fetch(..., {credentials:'include'})`) — **kein
+  Passwort**. Auf dem Rechner, auf dem DATEVconnect läuft und der DATEV-Benutzer angemeldet ist,
+  „kennt" die Schnittstelle den Nutzer bereits (SSO). Für unseren Server-Adapter bleibt Basic Auth
+  die Alternative.
+- Pflicht-Header: **`Accept: application/json; charset=utf-8`** (sonst 406).
+- Identitäts-Endpunkt: **`/datev/api/iam/v1/Users/me`** (IAM-Domain) — bestätigt Auth und liefert
+  den Anmeldenamen. (Auf der ASP-Instanz via `/diagnostics/v1/domains` prüfen, ob `iam` gelistet ist.)
+
+### Fehler-Systematik (real beobachtet)
+| HTTP | Erkennungsmerkmal | Ursache | Lösung |
+|---|---|---|---|
+| **403** | leerer Body / Server-Header `Microsoft-HTTPAPI` | Windows/Kerberos-Handshake (http.sys) **vor** DATEV; meist **Verbot** in einer Gruppe | Verbot entfernen; eigene Gruppe „Schnittstellen" nur mit Erlaubnissen — **Verbot schlägt Erlaubnis** |
+| **403** | Body enthält **`DCO10400`** | Benutzer fehlt das **Bestandsrecht** | Rechte „DATEVconnect" + „EO comfort connect" erteilen |
+| **406** | — | falscher/fehlender Accept-Header | `Accept: application/json; charset=utf-8` setzen |
+| **404** | — | falscher Pfad/Port | Port prüfen (58454 HTTP / 58452 HTTPS), Pfad/Domain prüfen |
+| Netzwerkfehler | keine Antwort | Dienst aus / falscher Port / nicht auf DATEV-Rechner | auf DATEV-Arbeitsplatz ausführen, Dienst/Port prüfen |
+
+### Rechte & Aktivierung (LAN-Setup; unter ASP über DATEV/ASP-Partner)
+1. Benutzer in der Rechteverwaltung die Rechte **„DATEVconnect"** und **„EO comfort connect"** geben.
+2. Sauber über eine **eigene Gruppe „Schnittstellen"** mit *nur* den nötigen Rechten (keine Verbote,
+   da Verbote Erlaubnisse übersteuern).
+3. Aktivierungssequenz: DATEV-Arbeitsplatz unter dem Login einmal starten → Dienste
+   **`Datev.Connect.Server`** und **`Datev.ApplicationHost.Server`** neu starten.
 
 ## 5. Quellen
 - DATEV Hilfe-Center: „Einsatz von DATEVconnect unter DATEVasp" (Dok. 1049306),
