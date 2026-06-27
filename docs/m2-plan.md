@@ -73,8 +73,11 @@ ich liefere das Skript/die Checkliste und werte die Ergebnisse aus.
 - ✅ `costitems` (Plan, `accounting_allowed` dynamisch) vs. `expensepostings` (Ist).
 
 ### Im Spike noch final zu klären
-1. **Netzwerk/Deployment:** Auf welchem Host/Port läuft DATEVconnect? Erreicht der geplante
-   App-Server den Host (Firewall/Routing)? (s. `architektur.md` „Netzwerk-Ebene").
+1. **Hosting im ASP-Umfeld (festgelegt):** Die App läuft auf einem **Server innerhalb der
+   DATEVasp-Umgebung** (wie die bestehende Ingentis Kanzleisuite) → `localhost`-Zugriff, kein
+   externer Netzweg. Offen ist die **Bereitstellung/Deployment** dieses Servers für eine
+   Eigenentwicklung — mit DATEV/ASP-Partner klären (versandfertige Anfrage:
+   `docs/datev-asp-anfrage.md`; Architektur: `architektur.md`).
 2. **Technischer Benutzer & Rechte:** Welche DATEVconnect-Rechte braucht der Service-Account für
    GET **und** PUT/POST? Schreibrechte real testen.
 3. **`PUT /orders/{id}` Roundtrip:** GET → `completion_status` ändern (`started`/`done`) → PUT →

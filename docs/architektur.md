@@ -47,28 +47,31 @@ DATEV-Host, z. B. `:58454`). Wer DATEVconnect aufruft, **muss in derselben Netzw
 wie DATEV — also im Kanzlei-LAN, mit Sicht auf den DATEV-Host. Das ist die „Ebene", die sichergestellt
 werden muss.
 
+**Hier ist die Kanzlei DATEVasp** — der DATEV-Host steht im **DATEV-Rechenzentrum (Nürnberg)**, nicht
+im Büro. Folge: `localhost:58454` ist **nur auf dem ASP-Serversystem** erreichbar; eine App im
+Kanzleinetz oder in der Cloud käme **nicht** heran. Externe Wege (Site-to-Site-VPN, Cloud Gateway)
+sind **nicht der Weg** — siehe Entscheidung in `docs/datev-connect-asp-zugriff.md`.
+
+**Konsequenz (festgelegt): Die App wird auf einem Server INNERHALB der ASP-Umgebung gehostet.**
+Genau so läuft bereits die im Einsatz befindliche **Ingentis Kanzleisuite** der Kanzlei: eigener
+Server im ASP-Umfeld, Bedienung im Browser über `localhost`. Unsere App spiegelt dieses Muster.
+
 **Wer muss wo laufen?**
-- **Browser-Frontend (SPA):** beliebig — spricht nur unser App-Backend (HTTPS). Ruft **nie** direkt
-  DATEVconnect auf.
-- **DATEV-Adapter** (Teil des App-Backends): **muss on-prem im Kanzleinetz** laufen und den
-  DATEV-Host erreichen (`http://<datev-host>:<port>`; `localhost` nur, wenn Adapter und DATEV auf
-  **derselben** Maschine liegen).
+- **App-Backend (+ PostgreSQL) und DATEV-Adapter:** auf einem **Server im ASP-Umfeld**, der den
+  DATEV-Host erreicht (`localhost`/ASP-internes LAN). Kein externer Netzweg nötig.
+- **Browser-Frontend (SPA):** wird von diesem Server ausgeliefert; die Mitarbeiter öffnen die App
+  **im Browser ihres ASP-Desktops** (wie bei Ingentis). Ruft nie direkt DATEVconnect auf.
 
-**Empfohlenes Deployment (passt zur Entscheidung „On-Prem"):**
-Das gesamte App-Backend (+ PostgreSQL) läuft auf einem **Server im Kanzleinetz**, im selben
-Segment wie der DATEV-Arbeitsplatz. Der Adapter erreicht DATEVconnect über das LAN; die Mitarbeiter
-öffnen die App im Browser (intern bzw. per VPN). Einfachste Variante für die DATEVconnect-Erreichbarkeit.
-
-**Alternative, falls später Cloud-Hosting gewünscht ist:** App in der Cloud + **kleiner On-Prem-Agent**
-im Kanzleinetz, der DATEVconnect anspricht und nur **ausgehend** mit der Cloud synchronisiert (kein
-eingehender Port von außen auf DATEV → kein Loch in der Firewall). Mehr Aufwand; nur wenn nötig.
-
-**Vor der M2-Umsetzung zu klären / zu verifizieren:**
-- Auf **welcher Maschine** läuft DATEVconnect, welche **Version**, welcher **Port**? Ist die
-  Komponente überhaupt lizenziert/installiert (DATEVconnect-Freischaltung)?
-- **Netzwerkpfad:** Erreicht der geplante App-Server den DATEV-Host (Firewall/Routing im LAN)?
-- **Technischer DATEVconnect-Benutzer** (Basic Auth) mit passenden Rechten.
-- **Verfügbarkeit:** DATEV-Host muss für Sync/Polling laufen (Zeitfenster, Nacht-Sync?).
+**Offener Kernpunkt = Hosting der Eigenentwicklung im ASP-Umfeld** (mit DATEV/ASP-Partner klären,
+versandfertige Anfrage in `docs/datev-asp-anfrage.md`):
+- Wird ein **eigener Server/VM in DATEVasp** für eine **Eigenentwicklung** bereitgestellt (analog zur
+  Ingentis-Anbindung), und unter welchem Modul/Vertrag?
+- **Erlaubte Software/Laufzeit** auf dem ASP-Server: dürfen wir unseren Stack (Node.js + PostgreSQL +
+  Web-Server) installieren, oder muss er paketiert/geprüft werden?
+- **Deployment & Betrieb:** Wie spielen wir die App ein und aktualisieren sie (RDP-Zugang vs.
+  Übergabe-Paket an DATEV)? Wer patcht das Betriebssystem, wer macht Backups?
+- **DATEVconnect-Zugriff von diesem Server:** technischer Benutzer/Rechte (Basic Auth oder
+  Service-SSO) für den **unbeaufsichtigten** Server-Zugriff; Rechte „DATEVconnect" + „EO comfort connect".
 - **Sicherheit:** DATEVconnect bleibt rein intern; nur unser Backend vermittelt, mit TLS zur SPA.
 
 
