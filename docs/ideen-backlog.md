@@ -56,9 +56,9 @@ _(leer)_
 - ⏭ **P2.5 Auftragsart-Konfiguration in DB** — Mapping DATEV-Nummer → ArtKey/Label/Farbe/Checkliste/
   Flags (Unterlagen, Pflicht-Notiz, laufend, Besonderheiten) statt Hardcode in `ordertypes.ts`/
   `art.ts`. (Keim ist bereits da: `ORDERTYPES` + `artKeyForOrdertype`.)
-- 💤 **P3.2 Fonts lokal ausliefern** — Aleo wird per Google Fonts geladen (`tokens.css`); für eine
-  interne Kanzlei-App selbst hosten oder auf System-Fonts umstellen (Petrona liegt schon lokal).
-  **Asset-/Lizenz-Entscheid nötig — auf Zuruf umsetzbar.**
+- ✅ **P3.2 Fonts lokal ausliefern** — Aleo wird jetzt lokal aus `public/fonts/aleo/` geladen
+  (latin + latin-ext, variabel 400–700, kursiv 400); kein Google-Fonts-Aufruf mehr. Verifiziert:
+  bei blockierten Google-Domains rendert Aleo weiterhin. (Aleo: SIL Open Font License.)
 - 💤 **P3.3 Deployment-Trennung** — `vite host:true` ist Dev-Only; Produktiv über HTTPS/Reverse Proxy
   klar dokumentieren (`docs/architektur.md`).
 - 💤 **P3.4 Farben entdoppeln** — Hex-Werte aus Komponenten konsequent über CSS-Variablen/zentrales
