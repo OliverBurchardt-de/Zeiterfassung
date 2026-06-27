@@ -3,7 +3,7 @@ import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
 import { ART, isLaufendeArt } from '@/lib/art';
 import { STATUS, rolePolicy, notePolicy } from '@/lib/tokens';
-import { offeneUmplanungen, offeneReviewFreigaben } from '@/state/selectors';
+import { offeneUmplanungen, offeneReviewFreigaben, useVisibleOrders } from '@/state/selectors';
 
 /**
  * Modul „Freigaben" — Cockpit des mandatsverantwortlichen Partners: offene Partner-Freigaben an
@@ -12,7 +12,7 @@ import { offeneUmplanungen, offeneReviewFreigaben } from '@/state/selectors';
  * (approveUmplanung / setNoteState).
  */
 export function FreigabenView() {
-  const orders = useStore((s) => s.orders);
+  const orders = useVisibleOrders();
   const role = useStore((s) => s.role);
   const approveUmplanung = useStore((s) => s.approveUmplanung);
   const rejectUmplanung = useStore((s) => s.rejectUmplanung);

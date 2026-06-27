@@ -38,10 +38,11 @@ _(leer)_
 - ⏭ **P0.1 Backend + serverseitige Autorisierung** — eigener Login, serverseitige Rollen-/
   Rechteprüfung, Transaktionen, zentrale Persistenz, Audit-Log, DATEV-Adapter als abgeschottetes
   Modul. Keine fachlichen Daten produktiv im `localStorage`.
-- ⏭ **P0.2 Rollen/Admin nicht als UI-Schalter** — Rollen + Admin-Recht aus dem Backend laden;
-  Demo-Rollenumschalter im Prod-Build entfernen; jede sicherheitsrelevante Aktion serverseitig
-  erneut autorisieren (Zeit-/Review-Freigaben, Nutzerverwaltung, Statuswechsel, DATEV-Writeback,
-  Löschen/Archivieren).
+- ⏭ **P0.2 Rollen/Admin serverseitig** — Mock: Login setzt Rolle/Admin aus dem Nutzer und filtert
+  die Sichtbarkeit (s. „Umgesetzt"), aber das ist **nicht verbindlich**. M2: Rollen/Rechte aus dem
+  Backend, jede sicherheitsrelevante Aktion serverseitig autorisieren (Zeit-/Review-Freigaben,
+  Nutzerverwaltung, Statuswechsel, DATEV-Writeback, Löschen/Archivieren), und der Server liefert
+  von vornherein nur erlaubte Aufträge aus (nicht nur Frontend-Filter).
 - ⏭ **P0.3 Echte Persistenz statt `localStorage`** — fachliche Daten nur serverseitig (Verschlüsselung,
   Backup, Berechtigung, Audit, Migrationen); lokal nur UI-State.
 - ⏭ **P1.1/P1.5/P1.6 (vollständig) zentrale Domain-Validierung** — validierte Funktionen
@@ -112,6 +113,13 @@ Aufbauend auf dem Planungs-Modul (Pool + Kalender, Drag & Drop):
   unabhängig (Mandant + Auftragsart) und überstehen Auftragswechsel ohnehin.
 
 ## Umgesetzt
+- **Mock-Login + Auftrags-Sichtbarkeit (Preview)**: Login-Screen (E-Mail/Passwort +
+  Demo-Schnellanmeldung); Rolle/Admin-Recht kommen aus dem angemeldeten Nutzer; Logout in der
+  Top-Bar. **Sichtbarkeit „nur eigene zugewiesene"**: Mitarbeiter sehen nur Aufträge, bei denen sie
+  Bearbeiter sind (Board, KPIs, rechte Spalte, Controlling, Freigaben, Planung), Partner ihre
+  verantworteten Mandate, Admin alles (`sichtbareAuftraege`/`useVisibleOrders`). **Wichtig:** reine
+  Frontend-Preview, NICHT sicher — verbindliche Authentifizierung/Autorisierung serverseitig in M2
+  (siehe P0.1/P0.2). Verifiziert: S. Wolf 13 vs. O. Burchardt 21 Aufträge.
 - **Checklisten-Verwaltung pro Auftragsart**: in „Verwaltung" zwei Buttons —
   **Checklisten verwalten** (je Ordertype: Punkte hinzufügen/bearbeiten/entfernen, neu von Grund
   auf, „auf Vorlage zurücksetzen") und **Aus Excel/CSV importieren** (Spalte A = Auftragsart-Code,

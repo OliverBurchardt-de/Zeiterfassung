@@ -1,7 +1,30 @@
-import type { Order, Note, TimeEntry } from '@/lib/types';
+import { useMemo } from 'react';
+import type { Order, Note, TimeEntry, User } from '@/lib/types';
 import { useStore, noteOffen } from './store';
 import { erfassteStunden, isLaufendeArt } from '@/lib/art';
 import { HEUTE } from '@/mock/orders';
+
+// ---- Sichtbarkeit / Zugriff ---------------------------------------------
+
+/**
+ * Aufträge, die ein Nutzer sehen darf („nur eigene zugewiesene"):
+ * - Admin: alle. - Partner: seine verantworteten Mandate (+ eigene Bearbeitung).
+ * - Mitarbeiter: nur Aufträge, bei denen er Bearbeiter ist.
+ * HINWEIS: reine Frontend-Sicht (Mock-Preview). Verbindlich erst serverseitig in M2.
+ */
+export function sichtbareAuftraege(orders: Order[], user?: User): Order[] {
+  if (!user) return [];
+  if (user.admin) return orders;
+  if (user.role === 'partner') return orders.filter((o) => o.partner === user.name || o.bearbeiter === user.name);
+  return orders.filter((o) => o.bearbeiter === user.name);
+}
+
+/** Hook: die für den angemeldeten Nutzer sichtbaren Aufträge. */
+export function useVisibleOrders(): Order[] {
+  const orders = useStore((s) => s.orders);
+  const user = useStore((s) => s.users.find((u) => u.id === s.currentUserId));
+  return useMemo(() => sichtbareAuftraege(orders, user), [orders, user]);
+}
 
 // ---- Zeiten & Freigaben -------------------------------------------------
 
@@ -79,7 +102,7 @@ export function istNichtAbgerechnet(o: Order): boolean {
 
 /** Auftragsliste nach den aktuellen Filtern (ohne Status — der ergibt die Spalte) */
 export function useFilteredOrders(): Order[] {
-  const orders = useStore((s) => s.orders);
+  const orders = useVisibleOrders();
   const f = useStore((s) => s.filters);
 
   return orders.filter((o) => {

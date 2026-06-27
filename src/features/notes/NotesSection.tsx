@@ -1,9 +1,8 @@
 import { useRef, useState } from 'react';
 import { Trash2, Paperclip, X } from 'lucide-react';
 import type { Order, Note, Attachment } from '@/lib/types';
-import { useStore, noteOffen } from '@/state/store';
+import { useStore, noteOffen, useCurrentUser } from '@/state/store';
 import { NOTE_KIND, NOTE_STATE, notePolicy, colors } from '@/lib/tokens';
-import { CURRENT_USER } from '@/mock/orders';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -73,7 +72,8 @@ export function NotesSection({ order }: { order: Order }) {
 
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState<Attachment[]>([]);
-  const author = role === 'partner' ? order.partner : CURRENT_USER.name;
+  const me = useCurrentUser();
+  const author = me?.name ?? order.partner;
 
   const offen = order.notes.filter(noteOffen).length;
   const erledigt = order.notes.length - offen;
@@ -146,7 +146,8 @@ function NoteCard({ order, note }: { order: Order; note: Note }) {
   const removeAttachment = useStore((s) => s.removeAttachment);
 
   const [comment, setComment] = useState('');
-  const author = role === 'partner' ? order.partner : CURRENT_USER.name;
+  const me = useCurrentUser();
+  const author = me?.name ?? order.partner;
 
   const isFrage = note.kind === 'frage';
   // Nur Review-Notes werden vom Partner freigegeben und sind danach gesperrt.

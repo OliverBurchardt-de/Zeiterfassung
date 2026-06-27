@@ -5,7 +5,8 @@ import {
 } from '@dnd-kit/core';
 import { AlertTriangle, GripVertical } from 'lucide-react';
 import type { Order } from '@/lib/types';
-import { useStore } from '@/state/store';
+import { useStore, useCurrentUser } from '@/state/store';
+import { useVisibleOrders } from '@/state/selectors';
 import { ART, formatHours, erfassteStunden, isLaufendeArt } from '@/lib/art';
 import { arbeitstage } from '@/lib/monate';
 import { EMPLOYEES, DEMO_KALENDER } from '@/mock/orders';
@@ -20,12 +21,15 @@ import { EMPLOYEES, DEMO_KALENDER } from '@/mock/orders';
 const KALENDER = DEMO_KALENDER;
 
 export function PlanungView() {
-  const orders = useStore((s) => s.orders);
+  const orders = useVisibleOrders();
   const users = useStore((s) => s.users);
   const planOrder = useStore((s) => s.planOrder);
   const unplanOrder = useStore((s) => s.unplanOrder);
+  const me = useCurrentUser();
+  const istAdmin = !!me?.admin;
 
-  const [empId, setEmpId] = useState('sw');
+  // Nicht-Admins planen nur sich selbst (Sichtbarkeit greift ohnehin); Admin wählt frei.
+  const [empId, setEmpId] = useState(() => (me && !me.admin ? me.initials.toLowerCase() : 'sw'));
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -70,9 +74,13 @@ export function PlanungView() {
         </div>
         <div className="field" style={{ marginBottom: 0, minWidth: 170 }}>
           <label>Mitarbeiter</label>
-          <select className="input" value={empId} onChange={(e) => setEmpId(e.target.value)}>
-            {EMPLOYEES.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-          </select>
+          {istAdmin ? (
+            <select className="input" value={empId} onChange={(e) => setEmpId(e.target.value)}>
+              {EMPLOYEES.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          ) : (
+            <input className="input" value={me?.name ?? ''} readOnly />
+          )}
         </div>
       </div>
 

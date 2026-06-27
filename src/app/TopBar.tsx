@@ -1,7 +1,6 @@
-import { Search } from 'lucide-react';
+import { Search, LogOut } from 'lucide-react';
 import type { ModuleKey } from '@/App';
-import { useStore } from '@/state/store';
-import { CURRENT_USER } from '@/mock/orders';
+import { useStore, useCurrentUser } from '@/state/store';
 
 const logo = '/assets/logo.jpg';
 
@@ -16,17 +15,13 @@ const MODULES: { key: ModuleKey; label: string; adminOnly?: boolean }[] = [
 ];
 
 export function TopBar({ module, onModule }: { module: ModuleKey; onModule: (m: ModuleKey) => void }) {
-  const role = useStore((s) => s.role);
-  const setRole = useStore((s) => s.setRole);
   const isAdmin = useStore((s) => s.isAdmin);
-  const setAdmin = useStore((s) => s.setAdmin);
   const suche = useStore((s) => s.filters.suche);
   const setSuche = useStore((s) => s.setSuche);
+  const logout = useStore((s) => s.logout);
+  const me = useCurrentUser();
 
-  function toggleAdmin(v: boolean) {
-    setAdmin(v);
-    if (!v && module === 'verwaltung') onModule('board');
-  }
+  const rolle = me?.role === 'partner' ? 'Partner' : 'Mitarbeiter';
 
   return (
     <header className="topbar">
@@ -56,27 +51,16 @@ export function TopBar({ module, onModule }: { module: ModuleKey; onModule: (m: 
         />
       </div>
 
-      <div className="role-switch" role="group" aria-label="Rolle wählen">
-        <button className={role === 'mitarbeiter' ? 'is-active' : ''} onClick={() => setRole('mitarbeiter')}>
-          Mitarbeiter
-        </button>
-        <button className={role === 'partner' ? 'is-active' : ''} onClick={() => setRole('partner')}>
-          Partner
-        </button>
-      </div>
-
-      <label className="admin-toggle" title="Demo: Admin-Zusatzrecht">
-        <input type="checkbox" checked={isAdmin} onChange={(e) => toggleAdmin(e.target.checked)} />
-        <span>Admin</span>
-      </label>
-
       <div className="user-chip">
-        <span className="avatar avatar--34">{CURRENT_USER.initials}</span>
+        <span className="avatar avatar--34">{me?.initials}</span>
         <div>
-          <div className="user-chip__name">{CURRENT_USER.name}</div>
-          <div className="user-chip__role">{role === 'partner' ? 'Partner' : 'Mitarbeiter'}</div>
+          <div className="user-chip__name">{me?.name}</div>
+          <div className="user-chip__role">{rolle}{me?.admin ? ' · Admin' : ''}</div>
         </div>
       </div>
+      <button className="btn btn--ghost btn--sm" onClick={logout} title="Abmelden">
+        <LogOut size={15} /> Abmelden
+      </button>
     </header>
   );
 }

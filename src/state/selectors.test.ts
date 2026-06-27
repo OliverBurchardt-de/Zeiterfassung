@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { canComplete, istUeberfaellig, auslastungPct, heuteErfasst } from './selectors';
+import { canComplete, istUeberfaellig, auslastungPct, heuteErfasst, sichtbareAuftraege } from './selectors';
 import { HEUTE, MOCK_ORDERS } from '@/mock/orders';
-import type { Order } from '@/lib/types';
+import type { Order, User } from '@/lib/types';
 
 // Aus einem echten Mock-Auftrag ableiten und nur die relevanten Felder überschreiben.
 const make = (p: Partial<Order>): Order => ({ ...MOCK_ORDERS[0], ...p });
@@ -31,6 +31,28 @@ describe('istUeberfaellig', () => {
 describe('auslastungPct', () => {
   it('0 bei Soll 0 — keine Division durch null', () => {
     expect(auslastungPct(make({ soll: 0, times: [] }))).toBe(0);
+  });
+});
+
+describe('sichtbareAuftraege', () => {
+  const a = make({ id: 'a', bearbeiter: 'S. Wolf', partner: 'O. Burchardt' });
+  const b = make({ id: 'b', bearbeiter: 'M. Klein', partner: 'O. Burchardt' });
+  const user = (p: Partial<User>): User => ({
+    id: 'x', name: 'X', initials: 'X', email: 'x@x.de', role: 'mitarbeiter',
+    admin: false, aktiv: true, datevId: '', tagessoll: 8, arbeitstageProWoche: 5, ...p,
+  });
+
+  it('Mitarbeiter sieht nur eigene zugewiesene', () => {
+    expect(sichtbareAuftraege([a, b], user({ name: 'S. Wolf' })).map((o) => o.id)).toEqual(['a']);
+  });
+  it('Admin sieht alle', () => {
+    expect(sichtbareAuftraege([a, b], user({ admin: true })).length).toBe(2);
+  });
+  it('Partner sieht seine verantworteten Mandate', () => {
+    expect(sichtbareAuftraege([a, b], user({ name: 'O. Burchardt', role: 'partner' })).length).toBe(2);
+  });
+  it('ohne angemeldeten Nutzer nichts', () => {
+    expect(sichtbareAuftraege([a, b], undefined)).toEqual([]);
   });
 });
 

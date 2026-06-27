@@ -14,6 +14,7 @@ import { VerwaltungView } from '@/features/verwaltung/VerwaltungView';
 import { UserModal } from '@/features/verwaltung/UserModal';
 import { BesonderheitenModal } from '@/features/besonderheiten/BesonderheitenModal';
 import { ChecklistModal } from '@/features/checklist/ChecklistModal';
+import { LoginView } from '@/features/auth/LoginView';
 import { useStore } from '@/state/store';
 
 export type ModuleKey = 'board' | 'planung' | 'laufende' | 'controlling' | 'zeiten' | 'freigaben' | 'verwaltung';
@@ -21,6 +22,10 @@ export type ModuleKey = 'board' | 'planung' | 'laufende' | 'controlling' | 'zeit
 export function App() {
   const [module, setModule] = useState<ModuleKey>('board');
   const openCardId = useStore((s) => s.openCardId);
+  const currentUserId = useStore((s) => s.currentUserId);
+
+  // Ohne Anmeldung nur den Login-Screen zeigen (Mock-Preview der Zugriffskontrolle).
+  if (!currentUserId) return <LoginView />;
 
   return (
     <div>

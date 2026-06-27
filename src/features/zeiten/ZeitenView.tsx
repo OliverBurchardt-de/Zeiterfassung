@@ -4,7 +4,7 @@ import { useStore } from '@/state/store';
 import { ART, formatHours, isLaufendeArt, AUFWANDSARTEN, TIME_STATUS } from '@/lib/art';
 import { STATUS, rolePolicy } from '@/lib/tokens';
 import { zeitenVon, ohneZeit } from '@/state/selectors';
-import { CURRENT_USER } from '@/mock/orders';
+import { useCurrentUser } from '@/state/store';
 
 /**
  * Modul „Meine Zeiten" — persönliche Zeitübersicht des angemeldeten Mitarbeiters. Hier gibt der
@@ -14,9 +14,11 @@ import { CURRENT_USER } from '@/mock/orders';
 export function ZeitenView() {
   const orders = useStore((s) => s.orders);
   const role = useStore((s) => s.role);
+  const me = useCurrentUser();
+  const meName = me?.name ?? '';
   const releaseTime = useStore((s) => s.releaseTime);
   const withdrawTime = useStore((s) => s.withdrawTime);
-  const alle = useMemo(() => zeitenVon(orders, CURRENT_USER.name), [orders]);
+  const alle = useMemo(() => zeitenVon(orders, meName), [orders, meName]);
 
   const offen = alle.filter((z) => z.time.status === 'erfasst');
   const frei = alle.filter((z) => z.time.status !== 'erfasst');
@@ -24,14 +26,14 @@ export function ZeitenView() {
   const summeGesamt = alle.reduce((s, z) => s + z.time.dauer, 0);
   const darfFreigeben = rolePolicy.canReleaseOwnTime(role);
 
-  const ohne = orders.filter((o) => o.bearbeiter === CURRENT_USER.name && !isLaufendeArt(o.artKey) && ohneZeit(o));
+  const ohne = orders.filter((o) => o.bearbeiter === meName && !isLaufendeArt(o.artKey) && ohneZeit(o));
 
   return (
     <div className="placeholder">
       <div className="eyebrow" style={{ color: 'var(--bk-blue)' }}>Zeiterfassung</div>
       <h1 style={{ fontSize: 'var(--bk-fs-h1)', marginBottom: 4 }}>Meine Zeiten</h1>
       <p className="muted" style={{ marginBottom: 18 }}>
-        Übersicht für {CURRENT_USER.name}: <b>{formatHours(summeGesamt)}</b> erfasst, davon
+        Übersicht für {meName}: <b>{formatHours(summeGesamt)}</b> erfasst, davon
         <b> {formatHours(summeOffen)}</b> noch nicht freigegeben.
       </p>
 

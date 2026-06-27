@@ -41,8 +41,11 @@ export type UserDraft = Omit<User, 'id' | 'aktiv'>;
 
 interface AppState {
   orders: Order[];
-  role: Role;
-  isAdmin: boolean; // Demo: Admin-Zusatzrecht aktiv → Modul „Verwaltung" sichtbar
+  currentUserId: string | null; // angemeldeter Nutzer (Mock-Login); null = nicht angemeldet
+  login: (userId: string) => void;
+  logout: () => void;
+  role: Role; // wird beim Login aus dem Nutzer gesetzt
+  isAdmin: boolean; // Admin-Zusatzrecht → Modul „Verwaltung" sichtbar (beim Login aus dem Nutzer)
   filters: Filters;
   openCardId: string | null;
   checklistOpenId: string | null;
@@ -137,9 +140,17 @@ function mapNote(o: Order, noteId: string, fn: (n: Note) => Note): Order {
 
 export const useStore = create<AppState>()(persist((set) => ({
   orders: MOCK_ORDERS,
+  currentUserId: null,
+  login: (userId) => set((s) => {
+    const u = s.users.find((x) => x.id === userId && x.aktiv);
+    if (!u) return {};
+    // Rolle und Admin-Recht kommen aus dem angemeldeten Nutzer (im Mock; in M2 serverseitig).
+    return { currentUserId: u.id, role: u.role, isAdmin: u.admin };
+  }),
+  logout: () => set({ currentUserId: null }),
   role: 'mitarbeiter',
-  isAdmin: true,
-  filters: { employeeId: 'sw', monat: 'alle', vj: 'alle', arten: [], nurOffeneZeiten: false, freigabeAusstehend: false, suche: '' },
+  isAdmin: false,
+  filters: { employeeId: 'team', monat: 'alle', vj: 'alle', arten: [], nurOffeneZeiten: false, freigabeAusstehend: false, suche: '' },
   openCardId: null,
   checklistOpenId: null,
   besonderheiten: MOCK_BESONDERHEITEN,
@@ -360,7 +371,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   // version bei Änderungen am Mock-Datenmodell erhöhen → alter Stand wird verworfen.
   name: 'bk-zeiterfassung',
   version: 9,
-  partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates }),
+  partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId }),
 }));
 
 /**
@@ -375,4 +386,9 @@ export function noteOffen(n: Note): boolean {
 /** Anzahl offener Notes/Fragen (für Karten-Badge & Kopfzeile) */
 export function offeneNotes(o: Order): number {
   return o.notes.filter(noteOffen).length;
+}
+
+/** Der aktuell angemeldete Nutzer (Mock-Login) — oder undefined, wenn nicht angemeldet. */
+export function useCurrentUser(): User | undefined {
+  return useStore((s) => s.users.find((u) => u.id === s.currentUserId));
 }

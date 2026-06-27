@@ -301,6 +301,19 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 .tmpl-row .input { flex: 1; }
 .link-btn { border: none; background: transparent; color: var(--bk-blue); cursor: pointer; padding: 0; font: inherit; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px; }
 
+/* Login (Mock) */
+.login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bk-paper); padding: 24px; }
+.login__card { width: 100%; max-width: 420px; background: var(--bk-white); border: 1px solid var(--bk-stone); border-radius: var(--bk-radius); padding: 28px; box-shadow: 0 8px 30px rgba(0,0,0,0.06); }
+.login__logo { height: 34px; display: block; margin-bottom: 18px; }
+.login__title { font-size: var(--bk-fs-h1); margin: 0; }
+.login__sub { margin: 2px 0 18px; }
+.login__demo { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--bk-stone); }
+.login__users { display: grid; gap: 8px; margin: 10px 0; }
+.login__user { display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 10px; border: 1px solid var(--bk-stone); border-radius: var(--bk-radius-sm); background: var(--bk-white); cursor: pointer; }
+.login__user:hover { background: var(--bk-cloud); border-color: var(--bk-box); }
+.login__user-text { display: flex; flex-direction: column; line-height: 1.25; }
+.login__user-name { font-weight: 600; }
+
 /* Review Notes */
 .notes-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--bk-stone); }
 .notes-section__head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }

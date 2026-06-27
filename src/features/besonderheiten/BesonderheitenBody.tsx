@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { useStore, besKey } from '@/state/store';
+import { useStore, besKey, useCurrentUser } from '@/state/store';
 import type { ArtKey } from '@/lib/types';
-import { CURRENT_USER } from '@/mock/orders';
 
 /**
  * Bearbeitbarer Inhalt der Mandantenbesonderheiten — geteilt von Modal und Karten-Flyout.
@@ -14,13 +13,14 @@ export function BesonderheitenBody({ mandantNr, artKey }: { mandantNr: string; a
   const add = useStore((s) => s.addBesonderheit);
   const edit = useStore((s) => s.editBesonderheit);
   const remove = useStore((s) => s.removeBesonderheit);
+  const me = useCurrentUser();
   const [draft, setDraft] = useState('');
 
   const items = all[key] ?? [];
 
   function submit() {
     if (draft.trim()) {
-      add(key, draft.trim(), CURRENT_USER.name);
+      add(key, draft.trim(), me?.name ?? 'Unbekannt');
       setDraft('');
     }
   }

@@ -1,9 +1,8 @@
 import { AlertTriangle, Gauge, Receipt } from 'lucide-react';
 import type { Order } from '@/lib/types';
-import { useStore } from '@/state/store';
 import { ART, formatHours, erfassteStunden, isLaufendeArt } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
-import { istUeberfaellig, istNichtAbgerechnet, auslastungPct } from '@/state/selectors';
+import { istUeberfaellig, istNichtAbgerechnet, auslastungPct, useVisibleOrders } from '@/state/selectors';
 import { HEUTE } from '@/mock/orders';
 
 /**
@@ -11,7 +10,7 @@ import { HEUTE } from '@/mock/orders';
  * überfällige Aufträge, Planwert-Ausschöpfung und noch nicht abgerechnete Aufträge.
  */
 export function ControllingView() {
-  const orders = useStore((s) => s.orders.filter((o) => !isLaufendeArt(o.artKey)));
+  const orders = useVisibleOrders().filter((o) => !isLaufendeArt(o.artKey));
 
   const ueberfaellig = orders.filter(istUeberfaellig);
   const planwert = orders.filter((o) => auslastungPct(o) >= 0.8).sort((a, b) => auslastungPct(b) - auslastungPct(a));
