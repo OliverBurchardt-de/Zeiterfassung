@@ -47,6 +47,47 @@ describe('approveUmplanung / rejectUmplanung', () => {
   });
 });
 
+describe('umplanen (freie Umplanung) + VJ-Kontingent', () => {
+  it('setzt Monat + Fristdaten und zählt das Kontingent hoch', () => {
+    seed({ artKey: 'ja', monat: 'Mär 2025', umplanungenVerbraucht: 0 });
+    useStore.getState().umplanen('test-1', 'Mai 2025');
+    const o = current();
+    expect(o.monat).toBe('Mai 2025');
+    expect(o.fristStart).toBe('2025-05-01');
+    expect(o.umplanungenVerbraucht).toBe(1);
+  });
+  it('approveUmplanung zählt das Kontingent ebenfalls hoch', () => {
+    seed({ artKey: 'ja', monat: 'Mär 2025', umplanungenVerbraucht: 1, umplanung: { zielMonat: 'Jun 2025', freigabeAusstehend: true } });
+    useStore.getState().approveUmplanung('test-1');
+    expect(current().umplanungenVerbraucht).toBe(2);
+  });
+  it('unplanOrder setzt das Kontingent zurück', () => {
+    seed({ artKey: 'ja', monat: 'Mai 2025', umplanungenVerbraucht: 1 });
+    useStore.getState().unplanOrder('test-1');
+    const o = current();
+    expect(o.monat).toBe('');
+    expect(o.umplanungenVerbraucht).toBe(0);
+  });
+});
+
+describe('Auftrags-Anforderungen', () => {
+  const user = { id: 'u1', name: 'S. Wolf', initials: 'SW', email: 's@x.de', role: 'mitarbeiter' as const, admin: false, aktiv: true, datevId: '', tagessoll: 8, arbeitstageProWoche: 5 };
+  it('legt eine Anforderung an und setzt sie auf angelegt', () => {
+    useStore.setState({ anforderungen: [] });
+    useStore.getState().addAnforderung({ mandant: 'Mustermann', mandantNr: '42', ordertype: '106', art: 'Monatliche Finanzbuchführung', vj: 2025, notiz: 'fehlt' }, user);
+    const items = useStore.getState().anforderungen;
+    expect(items).toHaveLength(1);
+    expect(items[0].status).toBe('angefordert');
+    useStore.getState().setAnforderungAngelegt(items[0].id);
+    expect(useStore.getState().anforderungen[0].status).toBe('angelegt');
+  });
+  it('verwirft eine Anforderung ohne Mandant/Notiz', () => {
+    useStore.setState({ anforderungen: [] });
+    useStore.getState().addAnforderung({ mandant: '', mandantNr: '', ordertype: '106', art: 'x', vj: 2025, notiz: '' }, user);
+    expect(useStore.getState().anforderungen).toHaveLength(0);
+  });
+});
+
 describe('addManualTime (Guard)', () => {
   it('verwirft eine nicht-positive Dauer', () => {
     seed({ times: [] });

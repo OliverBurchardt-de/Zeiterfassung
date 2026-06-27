@@ -3,6 +3,7 @@ import { Plus, Pencil, UserCheck, UserX, ListChecks, Upload } from 'lucide-react
 import { useStore } from '@/state/store';
 import { ChecklistTemplatesModal } from './ChecklistTemplatesModal';
 import { ChecklistImportModal } from './ChecklistImportModal';
+import { AnforderungInbox } from '@/features/anforderung/AnforderungInbox';
 
 /**
  * Modul „Verwaltung" — Nutzerverwaltung (Mock). Sichtbar nur mit Admin-Zusatzrecht.
@@ -118,6 +119,8 @@ export function VerwaltungView() {
           </button>
         </div>
       </div>
+
+      <AnforderungInbox />
 
       {clModal === 'manage' && <ChecklistTemplatesModal onClose={() => setClModal(null)} />}
       {clModal === 'import' && <ChecklistImportModal onClose={() => setClModal(null)} />}

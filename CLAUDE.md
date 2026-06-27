@@ -82,7 +82,17 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
   `uebertragen` setzt erst der Sync als Aufwandsbuchung `POST …/expensepostings`). Das Arbeitsdatum
   (`datum` = DATEV `work_date`) ist maßgeblich, unabhängig vom Sync-Zeitpunkt. E-Mail-Reminder
   (Backend-Job, M2) für Aufträge ohne Zeit / mit noch nicht freigegebenen (`erfasst`) Zeiten.
-- **Umplanung** in anderen Monat → Freigabe-Anfrage an den Partner (Badge „Freigabe ausstehend").
+- **Umplanung** in anderen Monat → grundsätzlich Freigabe-Anfrage an den Partner (Badge „Freigabe
+  ausstehend"). **Ausnahme JA/ESt:** Erstplanung ist frei; `ja`/`est`-Aufträge dürfen **1× pro
+  Veranlagungsjahr** ohne Freigabe umgeplant werden, danach gilt wieder die Partner-Freigabe.
+  Zentral in `umplanungFreiMoeglich`/`umplanungRegelGilt` (`src/state/selectors.ts`) + Store-Action
+  `umplanen` (zählt `Order.umplanungenVerbraucht`; `unplanOrder` setzt zurück); durchgesetzt in
+  `OrderModal` und `PlanungView`.
+- **Auftrags-Anforderung** (Workflow, kein API-Write — DATEV kennt kein `POST /orders`): Knopf
+  „Auftrag anfordern" im Board-Kopf (`KpiHeader`) → `AuftragsAnforderung` im Store
+  (`angefordert → angelegt | abgelehnt`); Backoffice-Inbox in der Verwaltung (Admin). Sicht über
+  `sichtbareAnforderungen` (eigene bzw. alle für Admin). M2: „angefordert" löst E-Mail aus,
+  „angelegt" kommt per Sync.
 
 ## Konventionen / Definition of Done
 - Entspricht `design_handoff_zeiterfassung/README.md` (Farben/Typo/Abstände) und dem Prototyp.

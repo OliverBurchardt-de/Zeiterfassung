@@ -6,11 +6,8 @@
 
 ## In Umsetzung / als Nächstes
 > M2-Fahrplan: **`docs/m2-plan.md`** (abgestimmt 27.06.2026: erst Plan, dann DATEV-Spike zuerst,
-> Zeit-Sync im Spike final klären). Davor noch im Mock (Phase 0):
-- **Auftrags-Anforderung (Mock)** — Mitarbeiter-Formular + Backoffice-Inbox „als angelegt melden".
-  (Details s. Abschnitt „Auftrags-Anforderung durch Mitarbeiter".)
-- **Umplanungs-Regeln JA/ESt (Mock)** — 1× Umplanung/Jahr frei, danach Partner-Freigabe.
-  (Details s. Abschnitt „Umplanungs-Regeln für JA & Einkommensteuer".)
+> Zeit-Sync im Spike final klären). Phase 0 (Mock-Workflows) ist abgeschlossen — s. „Umgesetzt".
+> Nächster Schritt: **Phase 1 — DATEV-Spike** (on-prem; ich liefere Skript/Checkliste, werte aus).
 
 ## Offen — abgestimmt
 _(leer)_
@@ -118,6 +115,21 @@ Aufbauend auf dem Planungs-Modul (Pool + Kalender, Drag & Drop):
   unabhängig (Mandant + Auftragsart) und überstehen Auftragswechsel ohnehin.
 
 ## Umgesetzt
+- **Umplanungs-Regeln JA/ESt (Mock, Phase 0.2)**: Erstplanung (Pool → Monat) ist frei; für
+  Jahresabschluss (`ja`) und Einkommensteuer (`est`) ist **1× Umplanung pro Veranlagungsjahr** ohne
+  Freigabe möglich (Zähler `umplanungenVerbraucht` am Auftrag, zurück in den Pool setzt ihn zurück),
+  **jede weitere** erfordert die Partner-Freigabe. Alle übrigen Arten: jede Umplanung über Freigabe.
+  Durchgesetzt zentral (`umplanungFreiMoeglich` in `selectors.ts`, Store-Action `umplanen`) in
+  **OrderModal** (Button „Umplanen" vs. „Freigabe anfordern") **und** **Planung** (Drag & Drop eines
+  bereits geplanten Auftrags löst bei aufgebrauchtem Kontingent direkt die Freigabe-Anfrage aus →
+  Badge „→ Zielmonat"). Abgestimmt 27.06.2026: Kontingent pro VJ, Regel nur JA/ESt.
+- **Auftrags-Anforderung (Mock, Phase 0.1)**: Knopf „Auftrag anfordern" im Board-Kopf öffnet ein
+  Formular (Mandant, Auftragsart, VJ, Zeitraum, Notiz) + Liste „Meine Anforderungen" mit Status.
+  **Backoffice-Inbox** in der Verwaltung (Admin): offene Anforderungen „als angelegt melden" oder mit
+  Grund „ablehnen". Status `angefordert → angelegt | abgelehnt`. Mitarbeiter sieht nur eigene,
+  Admin alle (`sichtbareAnforderungen`). Hintergrund: DATEV kennt kein `POST /orders` → reiner
+  Workflow; in M2 löst „angefordert" eine E-Mail aus, „angelegt" kommt per Sync. Abgestimmt
+  27.06.2026: Knopf im Board-Kopf, Inbox in der Verwaltung.
 - **Mock-Login + Auftrags-Sichtbarkeit (Preview)**: Login-Screen (E-Mail/Passwort +
   Demo-Schnellanmeldung); Rolle/Admin-Recht kommen aus dem angemeldeten Nutzer; Logout in der
   Top-Bar. **Sichtbarkeit „nur eigene zugewiesene"**: Mitarbeiter sehen nur Aufträge, bei denen sie

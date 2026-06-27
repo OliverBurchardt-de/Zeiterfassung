@@ -80,6 +80,7 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 .pagehead { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
   padding: 18px 28px 6px; max-width: 1640px; margin: 0 auto; flex-wrap: wrap; }
 .pagehead__title h1 { font-size: var(--bk-fs-h1); margin-top: 4px; }
+.pagehead__actions { margin-left: auto; align-self: flex-end; display: flex; gap: 8px; }
 .kpis { display: flex; gap: 14px; flex-wrap: wrap; }
 .kpi {
   background: #fff; border: 1px solid var(--bk-stone); border-radius: var(--bk-radius-card);
@@ -435,6 +436,7 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
   border-radius: var(--bk-radius-sm); padding: 4px 6px; font-size: 12px; cursor: grab;
 }
 .cal-chip__mandant { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-chip__pending { font-size: 11px; padding: 1px 6px; border-radius: 999px; white-space: nowrap; }
 .cal-chip--drag { background: var(--bk-white); box-shadow: var(--bk-shadow-1); border: 1px solid var(--bk-stone); }
 
 /* Modul „Controlling" */

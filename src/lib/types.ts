@@ -125,6 +125,12 @@ export interface Order {
   notes: Note[];
   times: TimeEntry[];
   umplanung?: Umplanung | null;
+  /**
+   * Anzahl bereits verbrauchter Umplanungen im Veranlagungsjahr (nach der Erstplanung). Für JA/ESt
+   * ist die erste Umplanung pro VJ frei, jede weitere erfordert die Partner-Freigabe. Da jeder
+   * DATEV-Auftrag genau ein `vj` trägt, ist der Zähler am Auftrag zugleich der VJ-Zähler.
+   */
+  umplanungenVerbraucht?: number;
   /** läuft gerade ein Timer auf dieser Karte (Demo-State) */
   timerSec?: number;
   timerRunning?: boolean;
@@ -134,6 +140,31 @@ export interface Employee {
   id: string;
   name: string;
   initials: string;
+}
+
+/**
+ * Auftrags-Anforderung (Workflow-Mock): Da DATEV kein `POST /orders` kennt, können Aufträge nicht
+ * per API angelegt werden. Der Mitarbeiter fordert einen fehlenden Auftrag an; das Backoffice legt
+ * ihn manuell in DATEV EO an und meldet ihn hier als „angelegt" zurück (in M2 löst „angefordert"
+ * eine E-Mail aus, „angelegt" kommt per Sync). Siehe docs/m2-plan.md (Phase 0.1).
+ */
+export type AnforderungStatus = 'angefordert' | 'angelegt' | 'abgelehnt';
+
+export interface AuftragsAnforderung {
+  id: string;
+  mandant: string;
+  mandantNr: string;
+  ordertype: string; // gewählte Auftragsart (DATEV-Code)
+  art: string; // Anzeigename der Auftragsart
+  vj: number; // Veranlagungsjahr
+  zeitraum?: string; // optionaler Freitext (z. B. Monat/Quartal)
+  notiz: string;
+  erstelltVon: string; // Anzeigename des anfordernden Nutzers
+  erstelltVonId: string; // userId (für „eigene" Sicht)
+  erstelltAm: string; // ISO
+  status: AnforderungStatus;
+  grund?: string; // Begründung bei Ablehnung
+  erledigtAm?: string; // ISO (angelegt/abgelehnt)
 }
 
 /**

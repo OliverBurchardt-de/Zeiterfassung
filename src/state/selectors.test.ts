@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canComplete, istUeberfaellig, auslastungPct, heuteErfasst, sichtbareAuftraege } from './selectors';
+import { canComplete, istUeberfaellig, auslastungPct, heuteErfasst, sichtbareAuftraege, umplanungFreiMoeglich } from './selectors';
 import { HEUTE, MOCK_ORDERS } from '@/mock/orders';
 import type { Order, User } from '@/lib/types';
 
@@ -53,6 +53,19 @@ describe('sichtbareAuftraege', () => {
   });
   it('ohne angemeldeten Nutzer nichts', () => {
     expect(sichtbareAuftraege([a, b], undefined)).toEqual([]);
+  });
+});
+
+describe('umplanungFreiMoeglich (JA/ESt-Regel)', () => {
+  it('Erstplanung (ohne Monat) ist immer frei', () => {
+    expect(umplanungFreiMoeglich(make({ artKey: 'fibu', monat: '' }))).toBe(true);
+  });
+  it('JA: erste Umplanung im VJ frei, danach nicht mehr', () => {
+    expect(umplanungFreiMoeglich(make({ artKey: 'ja', monat: 'Mär 2025', umplanungenVerbraucht: 0 }))).toBe(true);
+    expect(umplanungFreiMoeglich(make({ artKey: 'ja', monat: 'Mär 2025', umplanungenVerbraucht: 1 }))).toBe(false);
+  });
+  it('andere Arten: Umplanung nie ohne Freigabe', () => {
+    expect(umplanungFreiMoeglich(make({ artKey: 'fibu', monat: 'Mär 2025', umplanungenVerbraucht: 0 }))).toBe(false);
   });
 });
 

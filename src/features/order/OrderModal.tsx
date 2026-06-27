@@ -8,7 +8,7 @@ import type { Order } from '@/lib/types';
 import { TimePanel } from '@/features/time/TimePanel';
 import { QuickTimeDialog } from '@/features/time/QuickTimeDialog';
 import { NotesSection } from '@/features/notes/NotesSection';
-import { canComplete, offeneChecklist } from '@/state/selectors';
+import { canComplete, offeneChecklist, umplanungFreiMoeglich, umplanungRegelGilt, freieUmplanungenRest } from '@/state/selectors';
 import { DEMO_KALENDER } from '@/mock/orders';
 
 export function OrderModal({ orderId }: { orderId: string }) {
@@ -16,6 +16,7 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const closeCard = useStore((s) => s.closeCard);
   const setStatus = useStore((s) => s.setStatus);
   const role = useStore((s) => s.role);
+  const umplanen = useStore((s) => s.umplanen);
   const requestUmplanung = useStore((s) => s.requestUmplanung);
   const approveUmplanung = useStore((s) => s.approveUmplanung);
   const rejectUmplanung = useStore((s) => s.rejectUmplanung);
@@ -44,6 +45,10 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const rest = Math.max(0, order.soll - erfasst);
   // Vorauswahl der Umplanung: aktueller Monat, falls im Horizont, sonst erster Monat.
   const zielWert = zielMonat || (DEMO_KALENDER.includes(order.monat) ? order.monat : DEMO_KALENDER[0]);
+  // Umplanungs-Regel JA/ESt: erste Umplanung pro VJ frei, danach Partner-Freigabe.
+  const umplanFrei = umplanungFreiMoeglich(order);
+  const umplanRegel = umplanungRegelGilt(order);
+  const umplanRest = freieUmplanungenRest(order);
 
   const statusListe = STATUS_ORDER.filter((s) => {
     if ((s === 'ua' || s === 'uv') && !hasUnterlagenProzess(order.ordertype)) return false;
@@ -172,9 +177,15 @@ export function OrderModal({ orderId }: { orderId: string }) {
                     <select className="input" value={zielWert} onChange={(e) => setZielMonat(e.target.value)}>
                       {DEMO_KALENDER.map((m) => <option key={m}>{m}</option>)}
                     </select>
-                    <button className="btn btn--amber btn--sm" onClick={() => requestUmplanung(order.id, zielWert)}>
-                      Freigabe anfordern
-                    </button>
+                    {umplanFrei ? (
+                      <button className="btn btn--success btn--sm" onClick={() => umplanen(order.id, zielWert)}>
+                        Umplanen
+                      </button>
+                    ) : (
+                      <button className="btn btn--amber btn--sm" onClick={() => requestUmplanung(order.id, zielWert)}>
+                        Freigabe anfordern
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <span className="muted" style={{ fontSize: 13 }}>Keine offene Umplanung.</span>
@@ -182,7 +193,13 @@ export function OrderModal({ orderId }: { orderId: string }) {
                 <div className="hint">
                   {rolePolicy.canApproveUmplanung(role)
                     ? 'Als Partner gibst du die Verschiebung frei oder lehnst sie ab.'
-                    : 'Umplanung erfordert die Freigabe des mandatsverantwortlichen Partners.'}
+                    : !order.monat
+                      ? 'Erstplanung — der Monat ist frei wählbar.'
+                      : umplanRegel
+                        ? (umplanFrei
+                            ? `Jahresabschluss/Einkommensteuer: ${umplanRest}× Umplanung pro Jahr ohne Freigabe — jede weitere erfordert die Partner-Freigabe.`
+                            : 'Freie Jahres-Umplanung bereits genutzt — jede weitere erfordert die Freigabe des mandatsverantwortlichen Partners.')
+                        : 'Umplanung erfordert die Freigabe des mandatsverantwortlichen Partners.'}
                 </div>
               </div>
             </div>

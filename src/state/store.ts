@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User, Aufwandsart } from '@/lib/types';
+import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User, Aufwandsart, AuftragsAnforderung } from '@/lib/types';
 import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
 import { MOCK_USERS } from '@/mock/users';
 import { monatBounds } from '@/lib/monate';
@@ -38,6 +38,9 @@ export interface Filters {
 
 /** Daten eines Nutzers im Bearbeiten-/Anlegen-Dialog (ohne id/Status). */
 export type UserDraft = Omit<User, 'id' | 'aktiv'>;
+
+/** Eingabedaten einer neuen Auftrags-Anforderung (ohne Meta/Status, die der Store setzt). */
+export type AnforderungDraft = Pick<AuftragsAnforderung, 'mandant' | 'mandantNr' | 'ordertype' | 'art' | 'vj' | 'zeitraum' | 'notiz'>;
 
 interface AppState {
   orders: Order[];
@@ -87,6 +90,7 @@ interface AppState {
   assignOrder: (orderId: string, bearbeiterId: string, bearbeiter: string) => void;
   planOrder: (orderId: string, monat: string) => void; // Auftrag in einen Monat einplanen (setzt Start/Ende)
   unplanOrder: (orderId: string) => void; // Einplanung aufheben (zurück in den Pool)
+  umplanen: (orderId: string, zielMonat: string) => void; // freie (Um-)Planung ohne Freigabe; zählt das VJ-Kontingent
   requestUmplanung: (orderId: string, zielMonat: string) => void;
   approveUmplanung: (orderId: string) => void;
   rejectUmplanung: (orderId: string) => void; // Partner lehnt ab → Anfrage verwerfen, Monat bleibt
@@ -103,6 +107,13 @@ interface AppState {
 
   // Teilaufträge (Monate, FiBu/Lohn)
   setSuborderDone: (orderId: string, suborderId: string, done: boolean) => void;
+
+  // Auftrags-Anforderungen (Workflow-Mock: Mitarbeiter → Backoffice-Inbox)
+  anforderungen: AuftragsAnforderung[];
+  addAnforderung: (draft: AnforderungDraft, user: User) => void;
+  setAnforderungAngelegt: (id: string) => void;
+  setAnforderungAbgelehnt: (id: string, grund: string) => void;
+  removeAnforderung: (id: string) => void; // Urheber zieht eine offene Anforderung zurück
 
   // Checklisten-Vorlagen je Auftragsart (Ordertype) — gepflegt in der Verwaltung
   checklistTemplates: Record<string, string[]>;
@@ -230,9 +241,21 @@ export const useStore = create<AppState>()(persist((set) => ({
     }),
   })),
   unplanOrder: (orderId) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => ({ ...o, monat: '', fristStart: '', fristEnde: '' })),
+    // Zurück in den Pool = frische Erstplanung → VJ-Umplanungskontingent zurücksetzen.
+    orders: mapOrder(s.orders, orderId, (o) => ({ ...o, monat: '', fristStart: '', fristEnde: '', umplanungenVerbraucht: 0 })),
   })),
 
+  // Freie (Um-)Planung ohne Partner-Freigabe (Erstplanung oder erste JA/ESt-Umplanung im VJ).
+  // Setzt Monat + Fristdaten konsistent (wie planOrder/approveUmplanung) und zählt das Kontingent hoch.
+  umplanen: (orderId, zielMonat) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => {
+      const b = monatBounds(zielMonat);
+      const verbraucht = (o.umplanungenVerbraucht ?? 0) + 1;
+      return b
+        ? { ...o, monat: zielMonat, fristStart: b.start, fristEnde: b.end, umplanung: null, umplanungenVerbraucht: verbraucht }
+        : { ...o, monat: zielMonat, umplanung: null, umplanungenVerbraucht: verbraucht };
+    }),
+  })),
   requestUmplanung: (orderId, zielMonat) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({ ...o, umplanung: { zielMonat, freigabeAusstehend: true } })),
   })),
@@ -241,11 +264,13 @@ export const useStore = create<AppState>()(persist((set) => ({
       if (!o.umplanung) return o;
       const zielMonat = o.umplanung.zielMonat;
       // Wie planOrder: Monat + Fristdaten konsistent setzen, sonst zeigen Detail/Filter/Controlling
-      // widersprüchliche Daten (Review-Hinweis 5.1).
+      // widersprüchliche Daten (Review-Hinweis 5.1). Eine freigegebene Umplanung zählt ebenfalls
+      // gegen das VJ-Kontingent (Nachvollziehbarkeit der Verschiebungen).
       const b = monatBounds(zielMonat);
+      const verbraucht = (o.umplanungenVerbraucht ?? 0) + 1;
       return b
-        ? { ...o, monat: zielMonat, fristStart: b.start, fristEnde: b.end, umplanung: null }
-        : { ...o, monat: zielMonat, umplanung: null };
+        ? { ...o, monat: zielMonat, fristStart: b.start, fristEnde: b.end, umplanung: null, umplanungenVerbraucht: verbraucht }
+        : { ...o, monat: zielMonat, umplanung: null, umplanungenVerbraucht: verbraucht };
     }),
   })),
   rejectUmplanung: (orderId) => set((s) => ({
@@ -294,6 +319,27 @@ export const useStore = create<AppState>()(persist((set) => ({
         sb.id === suborderId ? { ...sb, erledigtAm: done ? new Date().toISOString().slice(0, 10) : undefined } : sb),
     })),
   })),
+
+  anforderungen: [],
+  addAnforderung: (draft, user) => set((s) => {
+    if (!draft.mandant.trim() || !draft.ordertype || !draft.notiz.trim()) return {};
+    const a: AuftragsAnforderung = {
+      ...draft, id: uid(),
+      erstelltVon: user.name, erstelltVonId: user.id,
+      erstelltAm: new Date().toISOString().slice(0, 10),
+      status: 'angefordert',
+    };
+    return { anforderungen: [a, ...s.anforderungen] };
+  }),
+  setAnforderungAngelegt: (id) => set((s) => ({
+    anforderungen: s.anforderungen.map((a) =>
+      a.id === id ? { ...a, status: 'angelegt', erledigtAm: new Date().toISOString().slice(0, 10), grund: undefined } : a),
+  })),
+  setAnforderungAbgelehnt: (id, grund) => set((s) => ({
+    anforderungen: s.anforderungen.map((a) =>
+      a.id === id ? { ...a, status: 'abgelehnt', erledigtAm: new Date().toISOString().slice(0, 10), grund: grund.trim() || undefined } : a),
+  })),
+  removeAnforderung: (id) => set((s) => ({ anforderungen: s.anforderungen.filter((a) => a.id !== id) })),
 
   checklistTemplates: CHECKLIST_TEMPLATES_BY_ORDERTYPE,
   addChecklistTemplateItem: (ordertype, label) => set((s) => {
@@ -370,8 +416,8 @@ export const useStore = create<AppState>()(persist((set) => ({
   // Klick-Prototyp: Stand im Browser sichern, damit ein Reload nichts verwirft.
   // version bei Änderungen am Mock-Datenmodell erhöhen → alter Stand wird verworfen.
   name: 'bk-zeiterfassung',
-  version: 9,
-  partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId }),
+  version: 10,
+  partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId, anforderungen: s.anforderungen }),
 }));
 
 /**

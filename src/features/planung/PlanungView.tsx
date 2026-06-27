@@ -6,7 +6,7 @@ import {
 import { AlertTriangle, GripVertical } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { useStore, useCurrentUser } from '@/state/store';
-import { useVisibleOrders } from '@/state/selectors';
+import { useVisibleOrders, umplanungFreiMoeglich } from '@/state/selectors';
 import { ART, formatHours, erfassteStunden, isLaufendeArt } from '@/lib/art';
 import { arbeitstage } from '@/lib/monate';
 import { EMPLOYEES, DEMO_KALENDER } from '@/mock/orders';
@@ -25,6 +25,8 @@ export function PlanungView() {
   const users = useStore((s) => s.users);
   const planOrder = useStore((s) => s.planOrder);
   const unplanOrder = useStore((s) => s.unplanOrder);
+  const umplanen = useStore((s) => s.umplanen);
+  const requestUmplanung = useStore((s) => s.requestUmplanung);
   const me = useCurrentUser();
   const istAdmin = !!me?.admin;
 
@@ -56,8 +58,14 @@ export function PlanungView() {
     const overId = e.over?.id ? String(e.over.id) : null;
     const id = String(e.active.id);
     if (!overId) return;
-    if (overId === 'pool') unplanOrder(id);
-    else if (overId.startsWith('m:')) planOrder(id, overId.slice(2));
+    if (overId === 'pool') { unplanOrder(id); return; }
+    if (!overId.startsWith('m:')) return;
+    const ziel = overId.slice(2);
+    const o = orders.find((x) => x.id === id);
+    if (!o || o.monat === ziel) return;
+    if (!o.monat) planOrder(id, ziel); // Erstplanung aus dem Pool
+    else if (umplanungFreiMoeglich(o)) umplanen(id, ziel); // freie JA/ESt-Umplanung im VJ
+    else requestUmplanung(id, ziel); // Umplanung erfordert Partner-Freigabe → Karte bleibt, Badge erscheint
   }
 
   return (
@@ -70,6 +78,8 @@ export function PlanungView() {
             Nicht geplante Aufträge per Drag &amp; Drop in einen Monat ziehen — Anfangs- und
             Enddatum werden automatisch gesetzt. Kapazität = Tagessoll ({tagessoll} h) × Arbeitstage
             {tageProWoche < 5 ? ` × ${tageProWoche}/5 (Teilzeit)` : ''} (Mo–Fr, ohne Feiertage).
+            Erstplanung ist frei; eine spätere Umplanung erfordert die Partner-Freigabe
+            (Jahresabschluss/Einkommensteuer: 1× pro Jahr frei).
           </p>
         </div>
         <div className="field" style={{ marginBottom: 0, minWidth: 170 }}>
@@ -162,11 +172,15 @@ function MonthCard({ monat, orders, kapazitaet }: { monat: string; orders: Order
 function PlannedChip({ o }: { o: Order }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: o.id });
   const art = ART[o.artKey];
+  const pending = o.umplanung?.freigabeAusstehend;
   return (
-    <div ref={setNodeRef} className="cal-chip" style={{ opacity: isDragging ? 0.4 : undefined }} {...attributes} {...listeners}>
+    <div ref={setNodeRef} className="cal-chip" style={{ opacity: isDragging ? 0.4 : undefined }} {...attributes} {...listeners}
+      title={pending ? `Umplanung nach ${o.umplanung?.zielMonat} wartet auf Partner-Freigabe` : undefined}>
       <span className="art-badge" style={{ background: art.color }}>{art.label}</span>
       <span className="cal-chip__mandant">{o.mandant}</span>
-      <span className="muted tabular">{o.soll}h</span>
+      {pending
+        ? <span className="badge badge--pending cal-chip__pending">→ {o.umplanung?.zielMonat}</span>
+        : <span className="muted tabular">{o.soll}h</span>}
     </div>
   );
 }
