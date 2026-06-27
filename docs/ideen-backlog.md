@@ -5,7 +5,12 @@
 > Einordnung: **M1** = klickbarer Mock (Look & Feel, Mock-Daten) · **M2** = echtes Backend/DATEV.
 
 ## In Umsetzung / als Nächstes
-_(leer — wird beim Start eines Punktes hierher verschoben)_
+> M2-Fahrplan: **`docs/m2-plan.md`** (abgestimmt 27.06.2026: erst Plan, dann DATEV-Spike zuerst,
+> Zeit-Sync im Spike final klären). Davor noch im Mock (Phase 0):
+- **Auftrags-Anforderung (Mock)** — Mitarbeiter-Formular + Backoffice-Inbox „als angelegt melden".
+  (Details s. Abschnitt „Auftrags-Anforderung durch Mitarbeiter".)
+- **Umplanungs-Regeln JA/ESt (Mock)** — 1× Umplanung/Jahr frei, danach Partner-Freigabe.
+  (Details s. Abschnitt „Umplanungs-Regeln für JA & Einkommensteuer".)
 
 ## Offen — abgestimmt
 _(leer)_
