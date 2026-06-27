@@ -112,9 +112,12 @@ Aufbauend auf dem Planungs-Modul (Pool + Kalender, Drag & Drop):
   unabhängig (Mandant + Auftragsart) und überstehen Auftragswechsel ohnehin.
 
 ## Umgesetzt
-- **Checklisten-Verwaltung pro Auftragsart**: in „Verwaltung" je konkretem Ordertype pflegbar
-  (Punkte hinzufügen/bearbeiten/entfernen), persistiert im Store. M2: DATEV-Import nutzt diese
-  Vorlagen je Auftragsart. (Default erbt anfangs die Bucket-Vorlage.)
+- **Checklisten-Verwaltung pro Auftragsart**: in „Verwaltung" zwei Buttons —
+  **Checklisten verwalten** (je Ordertype: Punkte hinzufügen/bearbeiten/entfernen, neu von Grund
+  auf, „auf Vorlage zurücksetzen") und **Aus Excel/CSV importieren** (Spalte A = Auftragsart-Code,
+  Spalte B = Punkt; Modus ersetzen/ergänzen, Vorschau, unbekannte Codes übersprungen, Beispiel-
+  Vorlage als Download). Parser (SheetJS) wird per Dynamic-Import nur bei Bedarf geladen.
+  Persistiert im Store. M2: DATEV-Import nutzt diese Vorlagen je Auftragsart.
 - **Board-Karte schlank**: Checkliste/Besonderheiten nicht mehr auf der Karte, nur noch im
   Auftrags-Detail (beim Bearbeiten); Karten-Flyout entfernt.
 - **Teilzeit-Kapazität**: Nutzer haben `tagessoll` (Std./Tag) **und** `arbeitstageProWoche`

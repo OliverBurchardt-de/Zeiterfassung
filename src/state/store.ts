@@ -106,6 +106,8 @@ interface AppState {
   addChecklistTemplateItem: (ordertype: string, label: string) => void;
   editChecklistTemplateItem: (ordertype: string, index: number, label: string) => void;
   removeChecklistTemplateItem: (ordertype: string, index: number) => void;
+  setChecklistTemplate: (ordertype: string, items: string[]) => void; // ganze Liste ersetzen (z. B. Import)
+  resetChecklistTemplate: (ordertype: string) => void; // zurück auf die voreingestellte Vorlage
 
   // Checkliste
   toggleCheck: (orderId: string, itemId: string) => void;
@@ -299,6 +301,12 @@ export const useStore = create<AppState>()(persist((set) => ({
       ...s.checklistTemplates,
       [ordertype]: (s.checklistTemplates[ordertype] ?? []).filter((_, i) => i !== index),
     },
+  })),
+  setChecklistTemplate: (ordertype, items) => set((s) => ({
+    checklistTemplates: { ...s.checklistTemplates, [ordertype]: items.map((x) => x.trim()).filter(Boolean) },
+  })),
+  resetChecklistTemplate: (ordertype) => set((s) => ({
+    checklistTemplates: { ...s.checklistTemplates, [ordertype]: [...(CHECKLIST_TEMPLATES_BY_ORDERTYPE[ordertype] ?? [])] },
   })),
 
   toggleCheck: (orderId, itemId) => set((s) => ({
