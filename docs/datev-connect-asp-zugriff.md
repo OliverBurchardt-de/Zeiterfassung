@@ -51,8 +51,12 @@ Auf dem ASP-Server per **eingefügten** PowerShell-Befehlen (keine Installation,
   („Invalid field 'billingstatus' … required field"). Grund: `GET` lässt leere Felder weg, `PUT`
   verlangt **alle Pflichtfelder** (u. a. `billing_status`), die interne Aufträge nicht führen.
   Read-Modify-Write muss Pflichtfelder ergänzen. Details + Enums: `datev-integration.md`,
-  `datev-connect-handoff.md` §4. Schreiben selbst ist bereits über `expensepostings` (`HTTP 201`,
-  26.06.) bewiesen; sauberer PUT-Roundtrip an einem geeigneten Auftrag steht noch aus.
+  `datev-connect-handoff.md` §4.
+- ✅ **PUT-Roundtrip live bestätigt (29.06.2026):** An einem eigens in EO angelegten Test-Auftrag
+  (`API-Test`, vollständige Pflichtfelder) `planned_hours` **10 → 11 → 10** und
+  `planned_hours_time_units` **12000 → 13200 → 12000** — Schreiben **und** sauberes Zurücksetzen
+  funktionieren. Damit ist die komplette Mechanik bestätigt: **Lesen + `expensepostings` (HTTP 201)
+  + `PUT` (Roundtrip)**.
 
 **Entscheidung (25.06.2026):** **Externer Zugriff ist nicht nötig** — die App soll **innerhalb der
 ASP-Umgebung** laufen. Damit ist `localhost` für die App erreichbar (Test bestanden); die Wege

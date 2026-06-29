@@ -206,6 +206,9 @@ Feld (z. B. `billingstatus`). **Pflichtfelder (Spec):** `id`, `order_id`, `creat
   `work completed` · `done`
 - `order_structure`: `total-order` · `consecutive-number` · `calendar-structure`
 
+> ✅ **Live bestätigt (Juni 2026):** vollständiger PUT-Roundtrip (Wert ändern → prüfen → zurücksetzen)
+> an einem Test-Auftrag erfolgreich — `planned_hours` 10→11→10.
+
 **Schreibbare Felder am Auftrag (`PUT /orders/{id}`):**
 - `completion_status` — Auftragsstatus (Werte s. u.)
 - `planned_start` / `planned_end` — Plandaten / Umplanung

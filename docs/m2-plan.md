@@ -80,8 +80,10 @@ ich liefere das Skript/die Checkliste und werte die Ergebnisse aus.
    `docs/datev-asp-anfrage.md`; Architektur: `architektur.md`).
 2. **Technischer Benutzer & Rechte:** Welche DATEVconnect-Rechte braucht der Service-Account für
    GET **und** PUT/POST? Schreibrechte real testen.
-3. **`PUT /orders/{id}` Roundtrip:** GET → `completion_status` ändern (`started`/`done`) → PUT →
-   GET. **PUT überschreibt vollständig** → Read-Modify-Write-Muster bestätigen (keine Feldverluste).
+3. ✅ **`PUT /orders/{id}` Roundtrip — bestätigt (29.06.2026):** Read-Modify-Write an einem
+   Test-Auftrag erfolgreich (planned_hours 10→11→10). **Wichtig:** PUT verlangt das **vollständige
+   Objekt mit allen Pflichtfeldern** (u. a. `billing_status`); GET lässt leere Felder weg → der
+   Adapter muss Pflichtfelder garantieren (sonst `EODC10009`). Enums s. `datev-integration.md`.
 4. **`planned_start/end` Writeback** (Umplanung) + **Suborder `date_work_completed`** (Teilauftrag
    erledigt) testen.
 5. **`completion_status`-Übergänge:** vollständige Zuordnung der 10 App-Status → welche lösen

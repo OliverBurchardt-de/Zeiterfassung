@@ -155,6 +155,9 @@ kein `billing_status`/`planned_hours`); `PUT` verlangt aber **alle Pflichtfelder
   - `order_structure`: `total-order` · `consecutive-number` · `calendar-structure`
 - **Bonus-Befund:** Neben `*_predecessor` gibt es auch **`creation_year_successor` /
   `order_number_successor`** — die Folgeauftrags-Kette ist also **in beide Richtungen** verlinkt.
+- ✅ **PUT-Roundtrip live bestätigt (29.06.2026)** an einem eigens angelegten Test-Auftrag (vollständige
+  Pflichtfelder): `planned_hours` 10→11→10, `planned_hours_time_units` 12000→13200→12000 — Schreiben
+  **und** sauberes Zurücksetzen funktionieren.
 
 ## Aufträge anlegen/löschen — nicht über die API (führend: DATEV)
 Die API kennt nur **GET/POST/PUT, kein DELETE**. Es gibt **kein `POST /orders`** und **kein
