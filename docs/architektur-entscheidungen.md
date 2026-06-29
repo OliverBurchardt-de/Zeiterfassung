@@ -177,19 +177,27 @@ wiederholbare Synchronisation.
 **Klartext:** Eigener Login mit Benutzer/Passwort; nach dem Login hält ein sicheres Browser-Cookie
 die Anmeldung. Kein Microsoft-/DATEV-Login nötig.
 
-**Entscheidung:** Eigene Benutzerverwaltung; Passwörter als **argon2-Hash** (nie im Klartext);
-Anmeldung über **serverseitige Session** mit **httpOnly-, Secure-Cookie**. Rollen
-`mitarbeiter | partner` + Admin-Flag. Jede schreibende Anfrage wird serverseitig autorisiert (ADR-02).
+**Entscheidung:** Eigene Benutzerverwaltung; Passwörter als **bcrypt-Hash über eine reine-JS-
+Bibliothek (`bcryptjs`)** (nie im Klartext); Anmeldung über **serverseitige Session** mit
+**httpOnly-, Secure-Cookie**. Rollen `mitarbeiter | partner` + Admin-Flag. Jede schreibende Anfrage
+wird serverseitig autorisiert (ADR-02).
 
 **Warum:** Für eine interne App auf **einem** Server sind Server-Sessions einfacher und sicherer als
 selbstverwaltete Tokens (kein Token-Diebstahl im Browser-Speicher, einfacher Logout/Invalidieren).
-argon2 ist heutiger Standard für Passwort-Hashing.
+**Passwort-Hash bewusst in reinem JavaScript** (`bcryptjs`), nicht `argon2`: argon2 erfordert eine
+**native Kompilierung** (Build-Werkzeuge auf dem Zielserver) — auf dem **gesperrten ASP-Server**
+ohne Installationsrechte unpraktikabel. bcrypt ist ein etablierter, sicherer Hash; reine-JS-Variante
+läuft überall ohne Build-Schritt.
+
+**Geändert (29.06.2026):** ursprünglich war argon2 vorgesehen; beim Backend-Start auf `bcryptjs`
+umgestellt (ASP-Build-Beschränkung, s. o.). Falls auf dem Zielserver doch native Builds möglich sind,
+ist ein Wechsel auf argon2 später ohne Architekturänderung möglich (eine Stelle: `auth/passwords.ts`).
 
 **Konsequenz:** Sessions liegen serverseitig (in der DB oder im Speicher). Die App läuft über
 **HTTPS** (Cookie-Pflicht), in Produktion über einen schlanken Reverse-Proxy.
 
 **Verworfen:** JWT im Browser-Speicher (mehr Fallstricke bei Logout/Diebstahl); Microsoft-365-SSO
-(vom Auftraggeber ausgeschlossen).
+(vom Auftraggeber ausgeschlossen); argon2 (native Kompilierung, s. o.).
 
 ---
 
