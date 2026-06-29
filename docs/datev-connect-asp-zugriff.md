@@ -46,7 +46,13 @@ Auf dem ASP-Server per **eingefügten** PowerShell-Befehlen (keine Installation,
   Feldnamen passen 1:1 zum dokumentierten Mapping; **`order_*_predecessor`** verlinkt den Vorgänger
   explizit; `planned_hours_time_units` = 1 h × 1200; `billing_status` befüllt.
 - **Wichtig:** Rückschreibe-Test (`PUT`) nur an einem **internen** (`isinternal=true`) Auftrag, nicht
-  an echten Mandanten-Aufträgen. Auswahl läuft noch.
+  an echten Mandanten-Aufträgen.
+- ⚠️ **PUT-Befund (29.06.2026):** Versuch an internem Auftrag (Kanzleiverwaltung) → **`EODC10009`**
+  („Invalid field 'billingstatus' … required field"). Grund: `GET` lässt leere Felder weg, `PUT`
+  verlangt **alle Pflichtfelder** (u. a. `billing_status`), die interne Aufträge nicht führen.
+  Read-Modify-Write muss Pflichtfelder ergänzen. Details + Enums: `datev-integration.md`,
+  `datev-connect-handoff.md` §4. Schreiben selbst ist bereits über `expensepostings` (`HTTP 201`,
+  26.06.) bewiesen; sauberer PUT-Roundtrip an einem geeigneten Auftrag steht noch aus.
 
 **Entscheidung (25.06.2026):** **Externer Zugriff ist nicht nötig** — die App soll **innerhalb der
 ASP-Umgebung** laufen. Damit ist `localhost` für die App erreichbar (Test bestanden); die Wege

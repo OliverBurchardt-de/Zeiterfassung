@@ -138,6 +138,7 @@ GET {base}/master-data/v1/employees?filter=contains(name,'Nachname')   # Feld id
 | `creation_year` | int | Anlagejahr (z. B. `2026`) |
 | `order_number_predecessor` | int | **Auftragsnummer des Vorgängers** (z. B. `321`) |
 | `creation_year_predecessor` | int | **Anlagejahr des Vorgängers** (z. B. `2025`) |
+| `order_number_successor` / `creation_year_successor` | int | **Nachfolger-Auftrag** (Kette auch vorwärts) |
 | `order_name` | string | Bezeichnung (z. B. „Lohnbuchführung") |
 | `ordertype` | string | Auftragsart-Kurzcode (z. B. `202`) |
 | `ordertype_group` | int | Gruppen-Code (z. B. `2`) |
@@ -189,6 +190,21 @@ Felder verloren. Immer:
 2. nur die gewünschten Felder im Objekt ändern
 3. PUT  {base}/order-management/v1/orders/{orderId}   -> geändertes Gesamtobjekt zurückschreiben
 ```
+
+**⚠️ PUT verlangt ein VOLLSTÄNDIGES Objekt mit allen Pflichtfeldern (live verifiziert):**
+`GET` liefert leere/nicht zutreffende Felder **nicht** mit; `PUT` verlangt aber alle Pflichtfelder.
+Echo'st du ein sparsames GET-Objekt zurück, lehnt DATEV mit **`EODC10009`** ab und nennt das fehlende
+Feld (z. B. `billingstatus`). **Pflichtfelder (Spec):** `id`, `order_id`, `creation_year`,
+`order_number`, `order_name`, `ordertype`, `assessment_year`, `fiscal_year`, `organization_id`,
+`establishment_id`, `functional_area_id`, `order_responsible1_id`, `client_id`, `completion_status`,
+`billing_status`. → Read-Modify-Write muss **fehlende Pflichtfelder ergänzen** (aus Default/Sync).
+
+**Gültige Werte (Enums, Spec):**
+- `billing_status`: `open` · `partially invoiced` · `advance payment partially invoiced` ·
+  `advance invoiced` · `invoiced`
+- `completion_status`: `created/planned` · `started` · `interrupted` · `work partially completed` ·
+  `work completed` · `done`
+- `order_structure`: `total-order` · `consecutive-number` · `calendar-structure`
 
 **Schreibbare Felder am Auftrag (`PUT /orders/{id}`):**
 - `completion_status` — Auftragsstatus (Werte s. u.)

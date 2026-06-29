@@ -135,6 +135,27 @@ erweitert werden (sonst gelten die Besonderheiten für alle Perioden des Auftrag
 - **`PUT /orders/{orderid}/suborders/{suborderid}`** (Body `suborders`): Stunden/Plandaten/Kosten
   auf Unterauftragsebene.
 
+**Live-Erkenntnis (29.06.2026) — PUT verlangt ein vollständiges Objekt mit allen Pflichtfeldern:**
+Ein PUT-Versuch an einem **internen** Auftrag (Kanzleiverwaltung) schlug mit **`EODC10009`**
+(„Invalid field 'billingstatus' … either it is a required field or has the wrong format") fehl.
+Ursache: `GET` liefert **leere/nicht zutreffende Felder gar nicht** mit (interne Aufträge haben z. B.
+kein `billing_status`/`planned_hours`); `PUT` verlangt aber **alle Pflichtfelder**. Naives
+„GET → ändern → ganzes Objekt zurück" scheitert daher bei sparsamen Aufträgen.
+- **Pflichtfelder (PUT `order`, lt. Spec):** `id`, `order_id`, `creation_year`, `order_number`,
+  `order_name`, `ordertype`, `assessment_year`, `fiscal_year`, `organization_id`, `establishment_id`,
+  `functional_area_id`, `order_responsible1_id`, `client_id`, `completion_status`, **`billing_status`**.
+- **Konsequenz für den Adapter:** Read-Modify-Write muss **alle Pflichtfelder garantieren** (fehlende
+  aus Default/Sync ergänzen), bevor zurückgeschrieben wird. DATEV nennt im Fehler das beanstandete
+  Feld (z. B. `billingstatus`).
+- **Gültige Werte (Enums lt. Spec):**
+  - `billing_status`: `open` · `partially invoiced` · `advance payment partially invoiced` ·
+    `advance invoiced` · `invoiced`
+  - `completion_status`: `created/planned` · `started` · `interrupted` · `work partially completed` ·
+    `work completed` · `done`
+  - `order_structure`: `total-order` · `consecutive-number` · `calendar-structure`
+- **Bonus-Befund:** Neben `*_predecessor` gibt es auch **`creation_year_successor` /
+  `order_number_successor`** — die Folgeauftrags-Kette ist also **in beide Richtungen** verlinkt.
+
 ## Aufträge anlegen/löschen — nicht über die API (führend: DATEV)
 Die API kennt nur **GET/POST/PUT, kein DELETE**. Es gibt **kein `POST /orders`** und **kein
 DELETE** — der einzige POST ist `…/expensepostings`. Aufträge werden also **ausschließlich in
