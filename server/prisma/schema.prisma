@@ -1,0 +1,129 @@
+// Datenmodell der eigenen App-Persistenz (alles, was DATEV nicht abbildet).
+// Datenbank: bestehende MS-SQL-Server-Instanz, eigene Datenbank (siehe ADR-04).
+// Hinweis: In diesem ersten M2-Schritt laeuft der Server noch gegen In-Memory-Repos.
+// Dieses Schema ist das fertige Design; die Aktivierung (prisma generate/migrate) erfolgt,
+// sobald eine (Test-)Datenbank bereitsteht.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id
+  username        String   @unique
+  name            String
+  role            String // 'mitarbeiter' | 'partner'
+  admin           Boolean  @default(false)
+  passwordHash    String
+  datevEmployeeId String?
+  tagessoll       Decimal? @db.Decimal(5, 2)
+  tageProWoche    Int?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+// App-Zusatzdaten je DATEV-Auftrag (DATEV-Stammdaten NICHT duplizieren — nur Overlay + Cache).
+model OrderOverlay {
+  orderId               String   @id
+  boardStatus           String? // 10er-Kanban-Status (av/ua/uv/bb/rf/rn/fg/am/fa/er)
+  boardPosition         Int?
+  umplanungenVerbraucht Int      @default(0)
+  updatedAt             DateTime @updatedAt
+}
+
+model TimeEntry {
+  id             String   @id @default(uuid())
+  userId         String
+  orderId        String
+  suborderId     String?
+  workDate       DateTime
+  hours          Decimal  @db.Decimal(9, 2)
+  note           String?
+  status         String // 'erfasst' | 'freigegeben' | 'uebertragen'
+  datevPostingId String?
+  idempotencyKey String   @unique
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+  @@index([orderId])
+}
+
+model Note {
+  id         String        @id @default(uuid())
+  orderId    String
+  kind       String // 'frage' | 'review'
+  noteState  String // 'offen' | 'erledigt' | 'freigegeben'
+  text       String
+  authorId   String
+  createdAt  DateTime      @default(now())
+  comments   NoteComment[]
+
+  @@index([orderId])
+}
+
+model NoteComment {
+  id        String   @id @default(uuid())
+  noteId    String
+  authorId  String
+  text      String
+  createdAt DateTime @default(now())
+  note      Note     @relation(fields: [noteId], references: [id])
+
+  @@index([noteId])
+}
+
+model StatusHistory {
+  id         String   @id @default(uuid())
+  orderId    String
+  fromStatus String?
+  toStatus   String
+  actorId    String
+  createdAt  DateTime @default(now())
+
+  @@index([orderId])
+}
+
+// Ausstehende Rueckschreibungen nach DATEV (Status/Plandaten/Zeitbuchungen).
+// Idempotenz-Schluessel verhindert Dubletten beim nicht-idempotenten expensepostings-POST.
+model Outbox {
+  id             String    @id @default(uuid())
+  kind           String // 'order-put' | 'suborder-put' | 'expense-posting'
+  payload        String // JSON
+  idempotencyKey String    @unique
+  status         String    @default("offen") // 'offen' | 'uebertragen' | 'fehler'
+  attempts       Int       @default(0)
+  lastError      String?
+  createdAt      DateTime  @default(now())
+  processedAt    DateTime?
+}
+
+model Anforderung {
+  id          String    @id @default(uuid())
+  mandant     String
+  mandantNr   String
+  ordertype   String
+  vj          Int
+  zeitraum    String?
+  notiz       String
+  erstelltVon String
+  status      String    @default("angefordert") // 'angefordert' | 'angelegt' | 'abgelehnt'
+  grund       String?
+  createdAt   DateTime  @default(now())
+  erledigtAm  DateTime?
+}
+
+// Mandantenbesonderheiten, period-unabhaengig am Schluessel client_id + ordertype.
+model Besonderheit {
+  id        String   @id @default(uuid())
+  clientId  String
+  ordertype String
+  text      String
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, ordertype])
+}

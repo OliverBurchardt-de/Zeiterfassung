@@ -46,9 +46,13 @@ src/
   state/          Zustand-Store + Selektoren
   lib/            Typen, Design-Tokens, Helfer (Auftragsart/Formatierung)
   mock/           Beispieldaten (ersetzbar durch DATEV-EO/API)
+server/           Backend (M2, begonnen): Fastify-API, Login, Domain, DATEV-Adapter (siehe server/README.md)
 docs/             Architektur, DATEV-Integration, Lastenheft
 design_handoff_zeiterfassung/   verbindliche Design-Referenz (Prototyp, Screenshots, Tokens)
 ```
+
+> **Backend (M2):** Erstes Gerüst liegt in `server/` (läuft in-memory + Schein-DATEV, Tests grün).
+> Details: `server/README.md`, Architektur: `docs/architektur-entscheidungen.md`.
 
 ## Dokumentation
 

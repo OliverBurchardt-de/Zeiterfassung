@@ -104,6 +104,14 @@ bestätigten Annahmen, offenen Risiken und dem finalen Status-Mapping. Erst dana
 > Architektur-Grundlage (Schichten, Regeln serverseitig, Adapter, Sync, Login, Deployment):
 > **`docs/architektur-entscheidungen.md`** (ADR-Stil).
 
+> ✅ **Begonnen (29.06.2026):** `server/` angelegt (Fastify, 3 Schichten). Lauffähig **in-memory** +
+> **Schein-DATEV-Adapter** (nichts hängt an DB/DATEV). Vorhanden: eigener **Login** (bcryptjs +
+> Server-Session, httpOnly-Cookie), serverseitiges **Rollen-Gating**, **DATEV-Port** (austauschbar),
+> **Sichtbarkeits-Filter**, Endpunkte `/api/health`, `/api/auth/*`, `/api/orders`, **Prisma-Schema**
+> (MS SQL) als Design. **18 Tests grün**, typecheck sauber, Server bootet. **Nächste Schritte:**
+> Prisma/MS-SQL aktivieren (Repos statt In-Memory), echten HTTP-DATEV-Adapter, Frontend anschließen,
+> Domain-Aktionen (Status/Zeit/Note) serverseitig.
+
 - **Stack:** Node.js + TypeScript, **Fastify** (leichtgewichtig, gutes Schema/Validation), REST-API
   für die SPA. **MS SQL Server** (bestehende Instanz im ASP-Umfeld, eigene DB + eigener Benutzer) +
   Migrationen über **Prisma** (unterstützt MS SQL).
