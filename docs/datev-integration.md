@@ -11,7 +11,9 @@ Quelle der Auftragsdaten ist die **On-Premise-API** *Order Management 1.4.9*
 ## Lesen (GET)
 - `/orders`, `/orders/{id}` — Aufträge (Filter: creation_year, ordertype, client_id,
   completion_status, billing_status, … ; **String-Werte in Hochkommata**, z. B.
-  `filter=ordertype eq '9801'`)
+  `filter=ordertype eq '9801'`). **Datenmenge (live, Juni 2026): ~7.500 Aufträge** an einer echten
+  Kanzlei in **einer** Antwort → in Produktion **filtern** (Jahr/Status/Mandant) bzw. Paging prüfen,
+  statt jedes Mal den Gesamtbestand zu ziehen.
 - `/ordertypes` — Auftragsarten (Grundlage der Auftragsart-Konfig inkl. `ua`/`uv`)
 - `/orders/{id}/monthlyvalues`, `/orders/{id}/orderstatework` — Ist-Werte / Stunden
 - `/orders/{id}/costitems` — **buchbare Aufwandspositionen** des Auftrags (Plan-Seite, s. u.)
@@ -36,6 +38,7 @@ Quelle der Auftragsdaten ist die **On-Premise-API** *Order Management 1.4.9*
 | `partner` | `order_partner_id` |
 | `bearbeiter` | `order_responsible1_id` |
 | `status` | `completion_status` (nur Teilmenge, s. u.) |
+| (Vorgänger-Auftrag) | `order_number_predecessor` + `creation_year_predecessor` (Folgeauftrags-Kette) |
 
 ## Auftragsart-Zuordnung (Nummer → Typ → Farbe) — M2-Import
 
@@ -112,7 +115,11 @@ Unterlagen-Prozess.** Durchgesetzt über `hasTeilauftraege`/`teilauftragRhythmus
 ## Mandantenbesonderheiten & Übernahme in Folgeaufträge
 DATEV legt wiederkehrende Aufträge je Periode **neu** an (z. B. nach Abschluss JA 2025 entsteht
 JA 2026). Konstant bleiben **`client_id`/Mandantennummer** und **Auftragsart** (`ordertype`),
-es ändern sich Auftragsnummer sowie `assessment_year`/`fiscal_year`. Mandantenbesonderheiten
+es ändern sich Auftragsnummer sowie `assessment_year`/`fiscal_year`.
+**Live-verifiziert (Juni 2026):** DATEV verlinkt den Vorgänger sogar **explizit** über
+`order_number_predecessor` + `creation_year_predecessor` — die Folgeauftrags-Kette ist also direkt
+auslesbar (keine Heuristik nötig). Das erlaubt eine **sichere** Übernahme periodenübergreifender
+Daten (Besonderheiten, Checklisten-Anpassungen) vom unmittelbaren Vorgänger. Mandantenbesonderheiten
 werden daher in der **eigenen App-DB** unter dem Schlüssel **`client_id + ordertype`**
 (period-unabhängig) gespeichert. Jeder neu eingelesene Folgeauftrag mit gleichem Schlüssel löst
 automatisch dieselben Besonderheiten auf — ein „Kopieren" beim Abschluss ist nicht nötig. Für
@@ -188,7 +195,8 @@ Die Controlling-Liste **„noch nicht abgerechnet"** wird **nicht** in der App g
 **im Hintergrund per DATEV-Pull** ermittelt: Ein periodischer Job liest die Aufträge und meldet
 diejenigen, die **nicht** den Abrechnungs-/Fakturierungs-Status („Fakturiert") tragen, auf denen
 aber bereits **Buchungen** (erfasste Zeiten/Leistungen) liegen. Quelle des Status ist DATEV
-(`billing_status` bzw. das entsprechende Faktura-Feld — gegen die Live-Instanz verifizieren); die
+(`billing_status` + `date_billing_status`; **live-verifiziert Juni 2026: befüllt, beobachtet
+`partially invoiced`**); die
 Buchungen kommen aus der eigenen Zeiterfassung. Im M1-Mock bildet `istNichtAbgerechnet` diese
 Regel read-only ab (`!fakturiert && times.length > 0`).
 

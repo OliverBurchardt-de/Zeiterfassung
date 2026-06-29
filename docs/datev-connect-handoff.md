@@ -125,6 +125,60 @@ GET {base}/master-data/v1/employees?filter=contains(name,'Nachname')   # Feld id
 
 ---
 
+## 3b. Verifizierte Feld-Referenz — Order-Objekt (Live, Juni 2026)
+
+> Felder eines **echten** Auftrags aus `GET /orders` an einer produktiven Kanzlei-Instanz. Werte hier
+> **generisch/anonymisiert** — sensible Kennungen (`client_id`, `*_responsible*_id`, `organization_id`
+> …) sind GUIDs und gehören **nie** ins Repo.
+
+| Feld | Typ | Bedeutung / Beispiel |
+|---|---|---|
+| `id` / `order_id` | int | Auftrags-ID (beide Felder identisch, z. B. `9993`) |
+| `order_number` | int | Auftragsnummer (z. B. `354`) |
+| `creation_year` | int | Anlagejahr (z. B. `2026`) |
+| `order_number_predecessor` | int | **Auftragsnummer des Vorgängers** (z. B. `321`) |
+| `creation_year_predecessor` | int | **Anlagejahr des Vorgängers** (z. B. `2025`) |
+| `order_name` | string | Bezeichnung (z. B. „Lohnbuchführung") |
+| `ordertype` | string | Auftragsart-Kurzcode (z. B. `202`) |
+| `ordertype_group` | int | Gruppen-Code (z. B. `2`) |
+| `assessment_year` | int | Veranlagungsjahr |
+| `fiscal_year` | int | Wirtschaftsjahr (nur befüllt, wenn in EO aktiviert) |
+| `isinternal` | bool | interne Auftragsart → **nicht** ins Board |
+| `organization_id` | guid | Organisation |
+| `establishment_id` | guid | Niederlassung/Betrieb |
+| `functional_area_id` | guid | Funktionsbereich |
+| `order_responsible1_id` | guid | verantwortlicher Mitarbeiter (GUID → `master-data/employees`) |
+| `client_id` | guid | **Mandant** (→ Client Master Data) |
+| `completion_status` | string | Bearbeitungsstatus (z. B. „work partially completed") |
+| `date_completion_status` | date | Datum des Bearbeitungsstatus |
+| `billing_status` | string | **Abrechnungsstatus** (z. B. „partially invoiced") → Controlling |
+| `date_billing_status` | date | Datum des Abrechnungsstatus |
+| `order_structure` | string | z. B. „calendar-structure" |
+| `planned_turnover` | decimal | geplanter Umsatz |
+| `planned_hours` | decimal | **Planstunden** (z. B. `18,0`) |
+| `planned_hours_time_units` | int | Planstunden in Einheiten (**1 h = 1200**; 18 h → `21600`) |
+| `planned_time_costs` | decimal | geplante Zeitkosten |
+| `planned_expenses_costs` / `planned_material_costs` / `planned_external_costs` | decimal | geplante Aufwands-/Material-/Fremdkosten |
+| `automatic_fee_active` | bool | automatische Gebühr aktiv |
+| `automatic_fee_level` | int | Gebührenstufe |
+| `invoice_type` | string | Rechnungstyp (z. B. „EIN") |
+
+Teilaufträge kommen **eingebettet** im selben Objekt als `suborders[]` (siehe §4).
+
+**Bestätigte Schlüsselbefunde (für jede künftige App relevant):**
+- **Vorgänger-Verkettung ist explizit.** `order_number_predecessor` + `creation_year_predecessor`
+  zeigen direkt auf den Vorjahres-/Vorperioden-Auftrag. Die Kette wiederkehrender Aufträge
+  (Folgeauftrag) ist damit **ohne Heuristik** nachverfolgbar — Gold wert für jede App, die
+  periodenübergreifende Daten übernehmen will (z. B. mandantenbezogene Einstellungen).
+- **`planned_hours_time_units`: 1 h = 1200 Einheiten** — gilt auf **Plan-** und **Buchungsseite**.
+- **`billing_status` ist befüllt** (beobachtet: „partially invoiced") → Abrechnungs-/Controlling-
+  Auswertungen sind direkt aus dem Order-Objekt möglich.
+- **Datenmenge beachten:** `GET /orders` lieferte an einer echten Kanzlei **~7.500 Aufträge** in
+  **einer** Antwort. Für Produktion **filtern** (`creation_year`, `completion_status`, `client_id` …)
+  oder Paging prüfen, statt jedes Mal den Gesamtbestand zu ziehen.
+
+---
+
 ## 4. Zurückschreiben (PUT) — read-modify-write
 
 **Regel:** `PUT` ersetzt das **komplette** Objekt. Niemals ein Teilobjekt senden — sonst gehen

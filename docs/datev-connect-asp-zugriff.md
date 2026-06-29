@@ -36,6 +36,18 @@ Per PowerShell (SSO) verifiziert — Details/Konsequenzen in `datev-integration.
 `EODC20127`); der POST ist **nicht idempotent** (zwei Läufe → zwei Buchungen) → Sync muss Dubletten
 verhindern; **kein DELETE** in der API (Korrektur nur in EO). Details in `datev-integration.md`.
 
+### Vertiefung — 29.06.2026: Order-Feldstruktur & Datenmenge (PowerShell, SSO, nur lesend)
+Auf dem ASP-Server per **eingefügten** PowerShell-Befehlen (keine Installation, keine Skriptdatei):
+- ✅ `iam/v1/Users/me` → Anmeldung per **Windows-SSO** bestätigt (Nutzer + `IamAdministrator`).
+- ✅ `diagnostics/v1/domains` → `order-management v1`, `master-data v1`, `accounting v1`, `dms v2`,
+  `lodas v1`, `hr v3`, `hr-lug v2`, `iam v1`.
+- ✅ `order-management/v1/orders` → **~7.500 Aufträge** in einer Antwort. Feldstruktur eines echten
+  Auftrags vollständig erfasst → **Feld-Referenz in `datev-connect-handoff.md` §3b**. Bestätigt:
+  Feldnamen passen 1:1 zum dokumentierten Mapping; **`order_*_predecessor`** verlinkt den Vorgänger
+  explizit; `planned_hours_time_units` = 1 h × 1200; `billing_status` befüllt.
+- **Wichtig:** Rückschreibe-Test (`PUT`) nur an einem **internen** (`isinternal=true`) Auftrag, nicht
+  an echten Mandanten-Aufträgen. Auswahl läuft noch.
+
 **Entscheidung (25.06.2026):** **Externer Zugriff ist nicht nötig** — die App soll **innerhalb der
 ASP-Umgebung** laufen. Damit ist `localhost` für die App erreichbar (Test bestanden); die Wege
 **B (VPN) und C (Cloud Gateway) entfallen**. Relevant bleibt nur, **wie die App im ASP-Umfeld
