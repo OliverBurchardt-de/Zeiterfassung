@@ -99,14 +99,20 @@ bestätigten Annahmen, offenen Risiken und dem finalen Status-Mapping. Erst dana
 ---
 
 ## Phase 2 — Backend-Gerüst
+> Architektur-Grundlage (Schichten, Regeln serverseitig, Adapter, Sync, Login, Deployment):
+> **`docs/architektur-entscheidungen.md`** (ADR-Stil).
+
 - **Stack:** Node.js + TypeScript, **Fastify** (leichtgewichtig, gutes Schema/Validation), REST-API
-  für die SPA. **PostgreSQL** + Migrationen (z. B. `drizzle`/`prisma` — im Spike-Nachgang fixieren).
+  für die SPA. **MS SQL Server** (bestehende Instanz im ASP-Umfeld, eigene DB + eigener Benutzer) +
+  Migrationen über **Prisma** (unterstützt MS SQL).
 - **Auth:** eigener Login (Session-Cookie **oder** JWT), Passwort-Hash (argon2/bcrypt), Rollen
   `mitarbeiter | partner` + Admin-Flag. **Jede sicherheitsrelevante Aktion serverseitig autorisiert.**
 - **Persistenz-Schema (erste Skizze — im Bau verfeinern):**
   - `users` (Login, Rolle, Admin, `tagessoll`, `arbeitstage_pro_woche`, DATEV-`employee_id`).
   - `order_overlay` (App-Zusatzdaten je DATEV-Auftrag: 10er-Board-Status, Board-Position,
     Umplanungs-Kontingent). DATEV-Stammdaten **nicht** duplizieren — nur Overlay + Cache.
+  - `outbox` (ausstehende Rückschreibungen mit Idempotenz-Schlüssel + Status `offen|uebertragen`;
+    siehe ADR-06 in `architektur-entscheidungen.md`).
   - `time_entries` (Zeiten + `status erfasst|freigegeben|uebertragen`, `work_date`, Idempotenz-Key,
     DATEV-Buchungs-`id` nach Sync).
   - `notes` + `note_comments` + `attachments` (Storage-Key, MIME, Größe, Quarantäne-Status).
