@@ -2,7 +2,8 @@ import type { ArtKey } from './types';
 
 /**
  * DATEV-Auftragsarten (Ordertypes) — Live-Katalog Burchardt & Kollegen (GET /ordertypes,
- * Stand 26.06.2026). **Der Ordertype ist die fachliche Identität eines Auftrags** und die einzige
+ * Stand 26.06.2026; am 02.07.2026 gegen einen erneuten Live-Abruf 1:1 bestätigt — alle 40 aktiven,
+ * nicht-internen Arten deckungsgleich). **Der Ordertype ist die fachliche Identität eines Auftrags** und die einzige
  * Ebene, auf die in DATEV gebucht wird. Die `ordertype_group` ist dagegen nur eine **Klassifizierung**
  * (nicht bebuchbar) — sie dient hier ausschließlich der groben Board-Farbe und einem Sammelfilter.
  *
