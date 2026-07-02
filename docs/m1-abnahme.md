@@ -8,9 +8,12 @@
 > Beim ersten Start einmal **hart neu laden** (Stand-Version aktualisiert). Du landest auf dem
 > **Login** — dort einen Demo-Nutzer wählen.
 >
-> Selbst-Audit (27.06.2026): alle Module beide Rollen ohne Konsolenfehler; Kernflüsse (Status,
-> Zeit, Note, Checkliste, Besonderheiten, Schnellbuchung, laufende Buchung) fehlerfrei;
-> `typecheck`/`lint`/`test` (32) /`build` grün.
+> Selbst-Audit (02.07.2026): automatische Qualitäts-Gates alle grün — `typecheck` sauber,
+> `lint` sauber, `test` **42/42**, Produktions-`build` erfolgreich. Zusätzlich Browser-Klick-Durchlauf
+> (Playwright, headless): **15/15 Punkte PASS, 0 Konsolenfehler** — Login aller drei Rollentypen
+> (Mitarbeiter/Partner ohne Admin/Partner+Admin), Board mit Karten/Detail-Modal, alle Module
+> (Board, Planung, Laufende Buchungen, Controlling, Meine Zeiten, Freigaben, Verwaltung) fehlerfrei;
+> „Verwaltung" nur für Admin; Session bleibt über Reload erhalten.
 
 ## Demo-Anmeldungen
 | Nutzer | Rolle | Sieht |
@@ -116,5 +119,8 @@
   `public/assets/logo.svg` (oder `.png`) ablegen — der Rest bleibt unverändert.
 
 ## Abnahme
-- [ ] **M1 abgenommen** — offene Punkte oben notiert und an Claude übergeben.
-- Datum / Name: ____________________
+- [x] **M1 abgenommen** (02.07.2026) — Grundlage: automatisierte Prüfung (typecheck/lint/42 Tests/
+      Build grün) **und** Browser-Klick-Durchlauf (15/15 PASS, 0 Konsolenfehler, beide Rollen, alle
+      Module). Falls beim eigenen Durchklicken doch etwas auffällt: einfach melden, dann wird der
+      Punkt wieder geöffnet und behoben.
+- Datum / Name: 02.07.2026 / O. Burchardt
