@@ -3,9 +3,10 @@
 Server der App: REST-API, eigener Login, eigene Persistenz, DATEV-Adapter. Architektur-Grundlage:
 `../docs/architektur-entscheidungen.md` (ADRs), Fahrplan: `../docs/m2-plan.md`.
 
-> **Stand:** Erstes Gerüst. Läuft gegen **In-Memory**-Daten und einen **Schein-DATEV-Adapter**,
-> damit alles ohne Datenbank und ohne DATEV-Zugang lauffähig und testbar ist. Die echte MS-SQL-
-> Anbindung (Prisma) und der HTTP-DATEV-Adapter folgen als nächste Schritte — `buildApp` bleibt gleich.
+> **Stand:** Gerüst + echte Adapter. Default läuft gegen **In-Memory**-Daten und einen
+> **Schein-DATEV-Adapter** (ohne Datenbank/DATEV lauffähig und testbar). Zuschaltbar sind der
+> **echte DATEVconnect-Adapter** (`DATEV_MODE=http`) und die **MS-SQL-Persistenz**
+> (`DB_MODE=mssql`, Nutzer-Repository; übrige Fach-Repos folgen) — `buildApp` bleibt gleich.
 
 ## Schnellstart
 ```bash
@@ -15,9 +16,27 @@ npm test           # Vitest
 npm run typecheck  # TypeScript ohne Emit
 ```
 
-Demo-Login (NUR Entwicklung), Passwort für alle: `demo`
+Demo-Login (NUR Entwicklung, In-Memory-Modus), Passwort für alle: `demo`
 - `wolf`, `klein`, `berg` — Mitarbeiter
 - `burchardt` — Partner + Admin
+
+## Datenbank einrichten (MS SQL)
+Voraussetzung: eigene Datenbank + SQL-Benutzer auf der bestehenden MS-SQL-Instanz
+(siehe „Was ihr vom ASP-Anbieter braucht" unten).
+
+1. `.env` anlegen (Vorlage `.env.example`): `DB_MODE=mssql`, `DB_HOST`, `DB_NAME`,
+   `DB_USER`, `DB_PASSWORD`; für den ersten Admin zusätzlich `SETUP_ADMIN_USER`,
+   `SETUP_ADMIN_EMAIL`, `SETUP_ADMIN_PASSWORD`.
+2. `npm run db:setup` — legt alle Tabellen an (idempotent, kann mehrfach laufen)
+   und den ersten Admin, falls noch kein Nutzer existiert.
+3. `npm run dev` — der Server nutzt jetzt die echten Nutzer aus der Datenbank.
+
+Schema versioniert in `db/schema.sql` (reines T-SQL; Änderungen als weitere idempotente Blöcke).
+
+**Was ihr vom ASP-Anbieter braucht (einmalig):**
+- eine **eigene Datenbank** (z. B. `Zeiterfassung`) auf der bestehenden MS-SQL-Instanz,
+- einen **eigenen SQL-Benutzer** (SQL-Authentifizierung) mit `db_owner` **nur** auf dieser DB,
+- **Hostname/Instanz + Port** (Standard 1433) und von wo aus die DB erreichbar ist.
 
 ## Endpunkte
 | Methode | Pfad | Zweck |
@@ -35,13 +54,17 @@ src/
   routes/      API-Schicht (HTTP, Validierung)
   domain/      Fachregeln, Policies, Sichtbarkeit, Ports (kennen keine DB/DATEV)
   auth/        Passwörter (bcryptjs), Sessions
-  infra/       austauschbare Adapter (aktuell In-Memory)
-  datev/       DATEV-Adapter (aktuell Schein-DATEV nach verifizierter Feld-Referenz)
+  infra/       austauschbare Adapter (memory/ In-Memory, mssql/ echte DB)
+  datev/       DATEV-Adapter (mockAdapter Schein / httpAdapter echt, Fabrik in index.ts)
   plugins/     Fastify-Auth-Verdrahtung
   app.ts       baut die App per Dependency Injection (testbar)
-  server.ts    Einstieg für die Entwicklung
+  server.ts    Einstieg — wählt Adapter per DB_MODE/DATEV_MODE
+db/
+  schema.sql   Datenbank-Schema (MS SQL, idempotent) — MASSGEBLICH
+scripts/
+  db-setup.ts  wendet schema.sql an + legt ersten Admin an (npm run db:setup)
 prisma/
-  schema.prisma  Datenmodell (MS SQL) — Design, Aktivierung folgt
+  schema.prisma  frühere Design-Referenz (Prisma ersetzt durch mssql, s. ADR-04)
 ```
 
 ## Konfiguration

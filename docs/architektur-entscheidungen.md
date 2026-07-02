@@ -106,28 +106,37 @@ Deployment). TypeScript wird vor dem Deployment zu fertigem JavaScript „gebaut
 
 ---
 
-## ADR-04 — Datenbank: bestehendes Microsoft SQL Server, eigene Datenbank, Zugriff über Prisma
+## ADR-04 — Datenbank: bestehendes Microsoft SQL Server, eigene Datenbank, Zugriff über `mssql`
 
 **Klartext:** Wir nutzen das **schon vorhandene MS-SQL** auf dem Server — in einer **eigenen, neuen
 Datenbank** nur für diese App. Damit entfällt eine Zusatz-Installation.
 
 **Entscheidung:** Persistenz auf der bestehenden **Microsoft-SQL-Server-Instanz**, in einer
 **dedizierten Datenbank** (z. B. `Zeiterfassung`) mit **eigenem DB-Benutzer**, der **nur** darauf
-Rechte hat. Datenzugriff und Schema-Verwaltung über **Prisma** (typsicherer DB-Zugriff +
-versionierte Migrationen; unterstützt MS SQL Server).
+Rechte hat. Datenzugriff über das **`mssql`-Paket** (Microsofts Node-Treiber `tedious` — reines
+JavaScript). Das Schema liegt versioniert als **idempotentes SQL-Skript** im Repo
+(`server/db/schema.sql`, angewendet über `npm run db:setup`).
 
 **Warum:** MS SQL ist bereits in Betrieb (Backup/Monitoring durch den ASP-Dienstleister vorhanden) →
 **eine Genehmigungs-/Installationshürde weniger** als ein zusätzliches PostgreSQL. Eine **separate
-Datenbank** trennt unsere Daten sauber von Fremddaten. Prisma gibt uns ein **deklaratives Schema**,
-**automatische Migrationen** und **typsicheren Zugriff** — das reduziert Fehler und ist gut
-wartbar.
+Datenbank** trennt unsere Daten sauber von Fremddaten. `mssql`/`tedious` besteht aus reinem
+JavaScript — **keine nativen Binärdateien, kein Kompilieren** (gleiche Begründung wie bcryptjs in
+ADR-07: auf dem abgeriegelten ASP-Server dürfen wir nichts nachinstallieren).
 
 **Konsequenz:** Der DB-Zugriff wird von Anfang an auf MS SQL ausgerichtet (Verbindungsdaten kommen
-aus der Umgebung, nie ins Repo). Falls MS SQL später doch nicht gewünscht ist, ist nur die
-Infrastruktur-Schicht betroffen (ADR-01), nicht die Fachlogik.
+aus der Umgebung, nie ins Repo). Schema-Änderungen laufen als weitere idempotente Blöcke in
+`schema.sql` (jeder Block prüft selbst, ob er nötig ist). Falls MS SQL später doch nicht gewünscht
+ist, ist nur die Infrastruktur-Schicht betroffen (ADR-01), nicht die Fachlogik.
 
 **Verworfen:** Eigenes PostgreSQL installieren (zusätzliche Komponente, mehr Abstimmung mit DATEV/ASP);
 Daten in eine **bestehende** Fremd-Datenbank schreiben (Vermischung — abgelehnt).
+
+> **Änderung 02.07.2026 — Prisma → `mssql`:** Ursprünglich war **Prisma** vorgesehen (deklaratives
+> Schema + Migrationen). Prisma lädt jedoch bei der Installation plattformspezifische
+> **Engine-Binärdateien** nach — das scheiterte wiederholt in der Entwicklungs-Umgebung und wäre
+> auch auf dem abgeriegelten ASP-Server ein Betriebsrisiko. `mssql`/`tedious` ist reines JavaScript
+> und Microsofts empfohlener Node-Treiber. Das frühere `prisma/schema.prisma` bleibt als
+> Design-Referenz erhalten; maßgeblich ist jetzt `server/db/schema.sql`.
 
 ---
 

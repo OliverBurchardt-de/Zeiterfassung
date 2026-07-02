@@ -107,14 +107,20 @@ bestätigten Annahmen, offenen Risiken und dem finalen Status-Mapping. Erst dana
 > ✅ **Begonnen (29.06.2026):** `server/` angelegt (Fastify, 3 Schichten). Lauffähig **in-memory** +
 > **Schein-DATEV-Adapter** (nichts hängt an DB/DATEV). Vorhanden: eigener **Login** (bcryptjs +
 > Server-Session, httpOnly-Cookie), serverseitiges **Rollen-Gating**, **DATEV-Port** (austauschbar),
-> **Sichtbarkeits-Filter**, Endpunkte `/api/health`, `/api/auth/*`, `/api/orders`, **Prisma-Schema**
-> (MS SQL) als Design. **18 Tests grün**, typecheck sauber, Server bootet. **Nächste Schritte:**
-> Prisma/MS-SQL aktivieren (Repos statt In-Memory), echten HTTP-DATEV-Adapter, Frontend anschließen,
-> Domain-Aktionen (Status/Zeit/Note) serverseitig.
+> **Sichtbarkeits-Filter**, Endpunkte `/api/health`, `/api/auth/*`, `/api/orders`.
+>
+> ✅ **Fortschritt (02.07.2026):** **Echter DATEVconnect-Adapter** (`DATEV_MODE=http`; Basic Auth,
+> verifiziertes Feld-Mapping, getestet) und **MS-SQL-Grundlage** (`DB_MODE=mssql`): vollständiges
+> Schema `server/db/schema.sql` (10 Tabellen, idempotent), Einricht-Skript `npm run db:setup`
+> (Tabellen + erster Admin), Nutzer-Repository gegen MS SQL. **Prisma → `mssql`/tedious** (reines JS,
+> keine Engine-Binärdateien; ADR-04-Änderungsvermerk). **29 Tests grün.** **Nächste Schritte:**
+> übrige Fach-Repos (Zeiten/Notes/Overlay/Outbox) auf MS SQL, Frontend anschließen, Domain-Aktionen
+> (Status/Zeit/Note) serverseitig.
 
 - **Stack:** Node.js + TypeScript, **Fastify** (leichtgewichtig, gutes Schema/Validation), REST-API
-  für die SPA. **MS SQL Server** (bestehende Instanz im ASP-Umfeld, eigene DB + eigener Benutzer) +
-  Migrationen über **Prisma** (unterstützt MS SQL).
+  für die SPA. **MS SQL Server** (bestehende Instanz im ASP-Umfeld, eigene DB + eigener Benutzer);
+  Zugriff über **`mssql`/tedious** (reines JS), Schema versioniert als idempotentes SQL
+  (`server/db/schema.sql`, `npm run db:setup`).
 - **Auth:** eigener Login (Session-Cookie **oder** JWT), Passwort-Hash (argon2/bcrypt), Rollen
   `mitarbeiter | partner` + Admin-Flag. **Jede sicherheitsrelevante Aktion serverseitig autorisiert.**
 - **Persistenz-Schema (erste Skizze — im Bau verfeinern):**

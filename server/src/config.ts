@@ -1,3 +1,5 @@
+import 'dotenv/config'; // laedt .env (lokale Zugangsdaten; nicht im Repo)
+
 /** DATEVconnect-Zugang. `mode: 'mock'` = Schein-Adapter (ohne Netz); `'http'` = echter Adapter. */
 export interface DatevConfig {
   mode: 'mock' | 'http';
@@ -11,6 +13,19 @@ export interface DatevConfig {
   ordersFilter: string;
 }
 
+/** MS-SQL-Zugang. `mode: 'memory'` = In-Memory-Repos (ohne DB); `'mssql'` = echte Datenbank. */
+export interface DbConfig {
+  mode: 'memory' | 'mssql';
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+  /** Transportverschluesselung (bei Server im gleichen Netz oft mit selbstsigniertem Zertifikat). */
+  encrypt: boolean;
+  trustServerCertificate: boolean;
+}
+
 export interface Config {
   port: number;
   host: string;
@@ -19,6 +34,7 @@ export interface Config {
   /** Session-Lebensdauer in ms (Default 8 h — ein Arbeitstag). */
   sessionTtlMs: number;
   datev: DatevConfig;
+  db: DbConfig;
 }
 
 const DEV_SECRET = 'dev-insecure-secret-change-me';
@@ -44,6 +60,14 @@ export function loadConfig(): Config {
     throw new Error('DATEV_MODE=http mit Basic Auth verlangt DATEV_USER und DATEV_PASSWORD (siehe .env.example).');
   }
 
+  const dbMode = (process.env.DB_MODE ?? 'memory') === 'mssql' ? 'mssql' : 'memory';
+  const dbUser = process.env.DB_USER ?? '';
+  const dbPassword = process.env.DB_PASSWORD ?? '';
+  // Fail-Fast: echte DB ohne Zugangsdaten wuerde nur Login-Fehler produzieren.
+  if (dbMode === 'mssql' && (!process.env.DB_HOST || !dbUser || !dbPassword)) {
+    throw new Error('DB_MODE=mssql verlangt DB_HOST, DB_USER und DB_PASSWORD (siehe .env.example).');
+  }
+
   return {
     port: Number(process.env.PORT ?? 3001),
     host: process.env.HOST ?? '0.0.0.0',
@@ -57,6 +81,16 @@ export function loadConfig(): Config {
       user: datevUser,
       password: datevPassword,
       ordersFilter: process.env.DATEV_ORDERS_FILTER ?? '',
+    },
+    db: {
+      mode: dbMode,
+      host: process.env.DB_HOST ?? 'localhost',
+      port: Number(process.env.DB_PORT ?? 1433),
+      database: process.env.DB_NAME ?? 'Zeiterfassung',
+      user: dbUser,
+      password: dbPassword,
+      encrypt: (process.env.DB_ENCRYPT ?? 'true') !== 'false',
+      trustServerCertificate: (process.env.DB_TRUST_CERT ?? 'true') !== 'false',
     },
   };
 }

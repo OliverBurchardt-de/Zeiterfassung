@@ -107,8 +107,11 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
 ## Roadmap
 Meilenstein 1 (umgesetzt): klickbares Frontend mit Mock-Daten (`src/mock/orders.ts`).
 Meilenstein 2 (begonnen): App-Backend in **`server/`** (Node+TS, Fastify) + **MS SQL Server**
-(bestehende Instanz, eigene DB, Prisma) + eigener Login, DATEV-Adapter (DATEVconnect, Basic Auth)
-für Lesen + Rückschreibung, eigene Persistenz, E-Mail-Reminder. Architektur-Entscheidungen:
-`docs/architektur-entscheidungen.md`; Fahrplan: `docs/m2-plan.md`. DATEV-Mechanik (lesen, buchen,
-PUT) am Echtsystem verifiziert (`docs/datev-connect-handoff.md`). Erstes Gerüst läuft in-memory +
-Schein-DATEV (Tests grün); MS-SQL- und HTTP-DATEV-Anbindung folgen.
+(bestehende Instanz, eigene DB; Zugriff über **`mssql`/tedious** — reines JS, kein Prisma; Schema
+versioniert in `server/db/schema.sql`, angewendet via `npm run db:setup`) + eigener Login,
+DATEV-Adapter (DATEVconnect, Basic Auth) für Lesen + Rückschreibung, eigene Persistenz,
+E-Mail-Reminder. Architektur-Entscheidungen: `docs/architektur-entscheidungen.md`; Fahrplan:
+`docs/m2-plan.md`. DATEV-Mechanik (lesen, buchen, PUT) am Echtsystem verifiziert — auch **von
+außerhalb des ASP** (`docs/datev-connect-handoff.md`, §12). Stand: echter HTTP-DATEV-Adapter
+(`DATEV_MODE=http`) und MS-SQL-User-Repository (`DB_MODE=mssql`) vorhanden; Default bleibt
+in-memory + Schein-DATEV (Tests grün). Übrige Fach-Repos (Zeiten/Notes/…) folgen.

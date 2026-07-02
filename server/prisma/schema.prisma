@@ -1,11 +1,14 @@
 // Datenmodell der eigenen App-Persistenz (alles, was DATEV nicht abbildet).
 // Datenbank: bestehende MS-SQL-Server-Instanz, eigene Datenbank (siehe ADR-04).
 //
-// STATUS: Teil-Design — waechst mit den M2-Schritten. Noch offen (siehe docs/m2-plan.md):
-// attachments (Datei-Ablage/Storage-Konzept P2.4), umplanungen (Freigabe-Workflow inkl.
-// zielMonat), checklist_templates, ordertype_config, reminder_log.
-// Aktivierung (prisma generate/migrate) erfolgt, sobald eine (Test-)Datenbank bereitsteht;
-// bis dahin laeuft der Server gegen In-Memory-Repos.
+// STATUS: NUR NOCH DESIGN-REFERENZ (02.07.2026). Prisma wurde durch das reine
+// JavaScript-Paket `mssql` ersetzt (Engine-Binaerdateien nicht installierbar, s.
+// ADR-04-Aenderungsvermerk). MASSGEBLICH ist jetzt server/db/schema.sql
+// (idempotentes DDL, angewendet via `npm run db:setup`). Diese Datei bleibt als
+// kommentierte Modell-Uebersicht erhalten; Aenderungen zuerst in schema.sql.
+//
+// Noch offen (siehe docs/m2-plan.md): attachments (Datei-Ablage P2.4), umplanungen
+// (Freigabe-Workflow inkl. zielMonat), checklist_templates, ordertype_config, reminder_log.
 //
 // Hinweis MS SQL: Prisma unterstuetzt beim sqlserver-Provider keine nativen Enums —
 // Status-/Rollenwerte sind bewusst String-Spalten mit dokumentierten Wertebereichen.
