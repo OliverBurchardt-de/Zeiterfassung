@@ -111,7 +111,9 @@
 - **Keine DATEV-Verbindung** (Daten aus Mock); Rückschreiben/Sync = M2.
 - **E-Mail-Reminder**, **Datei-Anhänge dauerhaft speichern**, **Auftragsart-Konfig in DB**,
   **Feiertage/Urlaub in der Kapazität**: M2.
-- **Logo-Asset** noch Platzhalter.
+- **Logo**: als SVG-Wortmarke umgesetzt (`public/assets/logo.svg`). Falls ihr statt der
+  nachgebauten Wortmarke die **exakte Original-Datei** einsetzen wollt, einfach als
+  `public/assets/logo.svg` (oder `.png`) ablegen — der Rest bleibt unverändert.
 
 ## Abnahme
 - [ ] **M1 abgenommen** — offene Punkte oben notiert und an Claude übergeben.

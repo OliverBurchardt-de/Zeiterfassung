@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { LogIn } from 'lucide-react';
 import { useStore } from '@/state/store';
 
-const logo = '/assets/logo.jpg';
+const logo = '/assets/logo.svg';
 
 /**
  * Mock-Login. Meldet den Nutzer an, wodurch Rolle/Admin-Recht und die Sichtbarkeit der Aufträge

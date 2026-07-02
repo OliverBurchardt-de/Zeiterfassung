@@ -105,7 +105,8 @@ begonnen · `rf` Reviewfähig · `rn` Review Notes · `fg` Freigegeben · `am` A
   Nummer→Typ→Kürzel→**Farbe** (ersetzt das feste 5er-Schema `ART`). Siehe `docs/datev-integration.md`.
   Veranlagungsjahr kommt aus `assessment_year`.
 - Soll Umplanung zusätzlich per Drag & Drop möglich sein? (aktuell bewusst freigabebasiert)
-- Offizielles Logo-Asset (SVG/transparentes PNG) statt `assets/logo.jpg`.
+- ~~Offizielles Logo-Asset (SVG/transparentes PNG) statt `assets/logo.jpg`.~~ ✅ erledigt:
+  `public/assets/logo.svg` (Wortmarke in Markenfarben), in TopBar + Login eingebunden.
 - Teilaufträge (FiBu/Lohn): Zeitbuchung **je Monat** (aktuell nur „erledigt"-Status + Anzeige);
   Suborder-Rückschreibung via DATEV (`date_work_completed`, Suborder-Stunden) — M2.
 

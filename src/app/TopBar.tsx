@@ -2,7 +2,7 @@ import { Search, LogOut } from 'lucide-react';
 import type { ModuleKey } from '@/App';
 import { useStore, useCurrentUser } from '@/state/store';
 
-const logo = '/assets/logo.jpg';
+const logo = '/assets/logo.svg';
 
 const MODULES: { key: ModuleKey; label: string; adminOnly?: boolean }[] = [
   { key: 'board', label: 'Board' },

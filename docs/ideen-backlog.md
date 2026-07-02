@@ -129,7 +129,10 @@ Aufbauend auf dem Planungs-Modul (Pool + Kalender, Drag & Drop):
     „Partner sieht nur seine verantworteten Mandate" in der Demo prüfbar.
   - Bewusst NICHT vorgezogen (M2, unverändert): Zeitbuchung je Teilauftrags-Monat, Karten-
     Sortierung in der Spalte (`boardPosition`), In-App-Benachrichtigungen (mit E-Mail-Job),
-    Status-Historie; Logo wartet auf das Asset.
+    Status-Historie.
+  - **Logo**: offizielle Wortmarke „Burchardt & Kollegen" als **SVG** (`public/assets/logo.svg`,
+    Markenfarben Blau/Gold/Navy, skalierbar/transparent) — ersetzt den JPG-Platzhalter; in TopBar
+    und Login eingebunden.
 - **Umplanungs-Regeln JA/ESt (Mock, Phase 0.2)**: Erstplanung (Pool → Monat) ist frei; für
   Jahresabschluss (`ja`) und Einkommensteuer (`est`) ist **1× Umplanung pro Veranlagungsjahr** ohne
   Freigabe möglich (Zähler `umplanungenVerbraucht` am Auftrag, zurück in den Pool setzt ihn zurück),
@@ -170,7 +173,7 @@ Aufbauend auf dem Planungs-Modul (Pool + Kalender, Drag & Drop):
 - **Teilaufträge FiBu & Lohn**: Monatsraster (12 Monate) im Auftrags-Detail, je Monat
   Soll/Ist + „erledigt" (DATEV `date_work_completed`). Zeitbuchung je Monat = M2.
 - **Kleinpolituren**: Browser-Persistenz (localStorage) + funktionierende Top-Bar-Suche.
-  (Logo-Asset bleibt offen.)
+  (Logo als SVG umgesetzt, s. o.)
 - **Planungstool** — Modul „Planung": oben Pool **noch nicht geplanter** Aufträge, unten
   **Kalender** mit Monatskapazität (Tagessoll × Arbeitstage); per **Drag & Drop** Auftrag in einen
   Monat ziehen → setzt Anfangs-/Enddatum (`planOrder`), zurück in den Pool hebt die Planung auf.
