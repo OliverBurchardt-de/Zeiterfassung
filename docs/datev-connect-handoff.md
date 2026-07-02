@@ -388,9 +388,67 @@ Umgebung betrieben werden soll. Endpunkte/Scopes dann im eingeloggten Portal ver
 - [x] Schreiben: PUT read-modify-write (Order + Suborder), `completion_status`, Plandaten, Stunden.
 - [x] Buchen: POST expensepostings (1 h = 1200 units, ohne `Start_time`, nicht idempotent, kein DELETE).
 - [x] Mitarbeiter-GUID kommt aus `master-data/v1/employees`.
+- [x] **Zugriff von ausserhalb des ASP** möglich (per NTLM, s. §12) — verifiziert.
 - [ ] **Pro Kanzlei neu:** ordertype-Katalog einlesen, cost_position-Mapping, Hosting im ASP-Umfeld,
       Zugangsdaten/technischer Benutzer einrichten.
-```
 
-> Stand: Juni 2026, verifiziert an einer DATEVasp-Instanz. Bei API-Versionssprüngen Felder gegen
-> die mitgelieferte OpenAPI-Spec gegenprüfen.
+---
+
+## 12. Zugriff von AUSSERHALB des ASP (remote) — LIVE VERIFIZIERT (Juli 2026)
+
+> Ausgangslage: Standardmäßig ist DATEVconnect nur **auf dem ASP-Server** über `localhost`
+> erreichbar (siehe §0). Auf **Anfrage** kann der ASP-/DATEV-Partner den Zugriff jedoch **aus dem
+> Kanzleinetz / von außerhalb der ASP-Umgebung** freischalten (Port-Freigabe auf dem ASP-Host).
+> Das wurde an einer produktiven DATEVasp-Instanz erfolgreich getestet.
+
+**Ergebnis:** Von einem PC **außerhalb** des ASP (im Kanzleinetz, über die VPN-Verbindung, mit der
+auch die RDP-Sitzung läuft) ist DATEVconnect voll erreichbar — inkl. Anmeldung und echter API-Antwort
+(`GET /iam/v1/Users/me` → `HTTP 200` mit vollständigem Benutzerobjekt; Order Management analog).
+
+### Voraussetzungen für den Remote-Zugriff
+- **Port-Freigabe** des DATEVconnect-Ports (HTTPS `58452`, ggf. HTTP `58454`) auf dem ASP-Host —
+  **muss der ASP-Partner aktiv freischalten** (RDP-Port 3389 offen ≠ 58452 offen).
+- **Netz-Erreichbarkeit**: der Client muss die (i. d. R. **interne**) Server-Adresse routen können —
+  praktisch heißt das: **dieselbe VPN-Verbindung wie für RDP** muss aktiv sein.
+- **Adresse ist eine interne IP/Hostname des ASP-Servers**, **nicht** `localhost`
+  (z. B. `https://<interne-IP>:58452/datev/api`). Die konkrete Adresse nennt der ASP-Partner;
+  praktisch ist es der Host aus der `.rdp`-Datei (`full address:s:<host>`).
+
+### TLS-Besonderheit bei Zugriff über IP-Adresse
+- Das Server-Zertifikat ist auf einen **Hostnamen** ausgestellt, nicht auf die IP → Zugriff per IP
+  scheitert an der Zertifikatsprüfung. Zusätzlich: **SNI wird bei IP-Adressen nicht genutzt**
+  (`schannel: using IP address, SNI is not supported`).
+- **Zum Testen:** Zertifikatsprüfung abschalten (`curl -k`, PowerShell-Callback). **In Produktion**
+  den **DNS-Hostnamen** verwenden (nicht die IP) und/oder das ASP-Zertifikat als vertrauenswürdig
+  hinterlegen — nicht die Prüfung generell deaktivieren.
+
+### Authentifizierung von außen — was geht und was nicht (verifiziert)
+Der Server bietet extern `WWW-Authenticate: Negotiate, NTLM, Basic` an.
+
+| Verfahren | Zugangsdaten | Ergebnis |
+|---|---|---|
+| **Basic** mit **E-Mail** (SmartLogin-Identität) | `mail@…` + SmartLogin-Passwort | **401** „Benutzername oder Passwort nicht korrekt" — SmartLogin ist **kein** Basic-Auth-Passwort |
+| **NTLM** mit **Windows-Domänenkonto** | `DOMAIN\benutzer` + Windows-Passwort | **200 OK** ✅ (dieselbe Identität, die auf dem Server per SSO Rechte hat) |
+| **Basic** mit **DATEV-Techniknutzer** | technischer Benutzer + festes Kennwort (ohne 2FA) | empfohlen für die **produktive, unbeaufsichtigte** App (vom ASP-Partner anzulegen) |
+
+**Merksatz:** Wo Anwender per **SmartLogin/2FA** angemeldet sind, funktioniert **Basic Auth mit
+E-Mail nicht**. Für interaktive Tests nimmt man **NTLM mit dem Windows-Login**; für den **Dauerbetrieb**
+einen **eigenen technischen Benutzer** (Domänen-Servicekonto für NTLM **oder** DATEV-Techniknutzer).
+
+### Verifizierter Test-Befehl (curl, in Windows eingebaut)
+```powershell
+# NTLM mit Windows-Domänenkonto (interaktiver Test):
+curl.exe -k -v --ntlm -u "DOMAIN\benutzer" "https://<interne-IP>:58452/datev/api/iam/v1/Users/me"
+# -> Passwort (Windows) wird abgefragt; Erfolg = HTTP 200 mit JSON-Benutzerobjekt.
+```
+> **Hinweis PowerShell:** `Invoke-RestMethod` machte beim Zugriff **über die IP** mit manuell
+> gesetztem Basic-Header schannel-Probleme („Unerwarteter Fehler beim Senden"). **`curl.exe --ntlm`**
+> lief zuverlässig. In Produktion übernimmt das der Backend-Adapter (Node/…): Zugriff über
+> **Hostnamen** + technischer Benutzer, dann sind diese IP/TLS-Eigenheiten kein Thema.
+
+Testskript im Repo: `docs/datev-extern-test.ps1` (read-only, parametrisiert).
+
+---
+
+> Stand: Juli 2026, verifiziert an einer DATEVasp-Instanz (inkl. Remote-Zugriff, §12). Bei
+> API-Versionssprüngen Felder gegen die mitgelieferte OpenAPI-Spec gegenprüfen.

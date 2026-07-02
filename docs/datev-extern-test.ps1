@@ -13,9 +13,13 @@
        aussen erreichbar ist. Beispiel:
          https://10.100.230.11:58452/datev/api
        (NICHT "localhost" - das galt nur auf dem ASP-Server selbst.)
-    2. Ob die Anmeldung ueber Windows-Login (SSO) oder ueber
-       Benutzer+Passwort (Basic Auth) laeuft. Von aussen ist meist Basic Auth
-       noetig - frag im Zweifel nach einem "technischen Benutzer".
+    2. Welche Anmeldung von aussen gilt:
+         -Auth ntlm   Windows-Domaenenkonto "DOMAIN\benutzer" + Windows-Passwort
+                      (VERIFIZIERT als der funktionierende Weg von aussen, wenn
+                      Anwender per SmartLogin/2FA angemeldet sind)
+         -Auth basic  DATEV-Techniknutzer + festes Kennwort (fuer Dauerbetrieb;
+                      Basic mit E-Mail/SmartLogin funktioniert NICHT)
+         -Auth sso    integrierte Windows-Anmeldung (nur auf dem ASP-Server sinnvoll)
     3. Ob HTTPS mit gueltigem Zertifikat laeuft (dann ohne -Insecure) oder
        mit selbstsigniertem/IP-Adresse (dann mit -Insecure zum Testen).
 
@@ -32,8 +36,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$BaseUrl,
 
-  [ValidateSet("sso", "basic")]
-  [string]$Auth = "basic",
+  [ValidateSet("ntlm", "basic", "sso")]
+  [string]$Auth = "ntlm",
 
   [string]$User,
   [string]$Pass,
@@ -55,17 +59,28 @@ try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::
 $headers = @{ "Accept" = "application/json; charset=utf-8" }
 $common  = @{ Headers = $headers }
 
-if ($Auth -eq "basic") {
-  if (-not $User) { $User = Read-Host "DATEVconnect-Benutzer" }
+if ($Auth -eq "sso") {
+  $common["UseDefaultCredentials"] = $true
+} else {
+  # ntlm oder basic: Benutzer + Passwort einsammeln
+  if (-not $User) {
+    $hint = if ($Auth -eq "ntlm") { 'Windows-Benutzer (z.B. DOMAIN\benutzer)' } else { 'DATEVconnect-Benutzer' }
+    $User = Read-Host $hint
+  }
   if (-not $Pass) {
     $sec  = Read-Host "Passwort" -AsSecureString
     $Pass = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
               [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
   }
-  $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("${User}:${Pass}"))
-  $headers["Authorization"] = "Basic $b64"
-} else {
-  $common["UseDefaultCredentials"] = $true
+  if ($Auth -eq "ntlm") {
+    # NTLM: Aushandlung ueber -Credential (Server antwortet mit 401 + NTLM-Challenge)
+    $secpw = ConvertTo-SecureString $Pass -AsPlainText -Force
+    $common["Credential"] = New-Object System.Management.Automation.PSCredential($User, $secpw)
+  } else {
+    # Basic: Header preemptiv setzen
+    $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("${User}:${Pass}"))
+    $headers["Authorization"] = "Basic $b64"
+  }
 }
 
 # --- Zertifikatspruefung optional abschalten (nur bei -Insecure) ---
