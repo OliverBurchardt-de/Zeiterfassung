@@ -17,6 +17,7 @@
 |---|---|---|
 | **S. Wolf** | Mitarbeiter | nur eigene zugewiesene Aufträge |
 | **M. Klein / T. Berg** | Mitarbeiter | nur eigene |
+| **A. Peters** | Partner (ohne Admin) | nur **seine** Mandate (3 Aufträge, T. Berg) — keine Verwaltung |
 | **O. Burchardt** | Partner + **Admin** | alles + Modul „Verwaltung" |
 
 > Hinweis: Login/Sichtbarkeit sind eine **Vorschau**, noch nicht verbindlich (echte Sicherheit = M2).
@@ -28,6 +29,8 @@
 - [ ] Oben rechts steht der angemeldete Nutzer + Rolle; „Abmelden" führt zurück zum Login.
 - [ ] Als **S. Wolf** sind weniger Aufträge sichtbar als als **O. Burchardt**.
 - [ ] „Verwaltung" ist nur bei **O. Burchardt** (Admin) in der Navigation.
+- [ ] Als **A. Peters** (Partner ohne Admin): nur seine 3 Mandate sichtbar, **keine** Verwaltung.
+- [ ] Nach einem **Reload** bleiben Rolle/Admin-Rechte erhalten (Partner kann weiter freigeben).
 
 ## 2. Board (Auftragsabwicklung)
 - [ ] 10 Status-Spalten; Karten tragen Auftragsart-Badge, Mandant, Monat, Soll/Ist-Chips.
@@ -44,7 +47,11 @@
 - [ ] Status-Leiste ändert den Status; „Erledigt" gesperrt bei offener Checkliste (mit Hinweistext).
 - [ ] Stunden-Balken (erfasst/Soll/Rest) stimmt.
 - [ ] **Zeit erfassen**: Timer (Start/Reset/Übertragen) **und** manuell (Stunden + optional Notiz).
+- [ ] **Timer läuft weiter**, auch wenn das Detail geschlossen wird; Start eines Timers auf einer
+      anderen Karte **pausiert** den ersten (nur ein Timer gleichzeitig).
 - [ ] Erfasste Zeiten erscheinen in der Liste mit Status „Erfasst"; **Freigeben** schaltet auf „Freigegeben".
+- [ ] Ein erfasster (noch nicht freigegebener) Eintrag lässt sich über das **Papierkorb-Symbol löschen**.
+- [ ] Als **Partner/Admin**: der **Bearbeiter** ist im Meta-Bereich per Auswahlfeld **zuweisbar**.
 - [ ] **Checkliste** (Button im Kopf): Punkte abhaken/hinzufügen/entfernen.
 - [ ] **Besonderheiten** (nur bei passender Auftragsart): Eintrag anlegen/bearbeiten.
 - [ ] **Laufende Zeit buchen** (Schnellbuchung): bucht auf den passenden laufenden Auftrag.
@@ -73,9 +80,12 @@
 
 ## 7. Meine Zeiten
 - [ ] Persönliche Zeitübersicht (offen / freigegeben / ohne Zeit); eigene Zeiten selbst freigeben/zurückziehen.
+- [ ] Bei mehreren offenen Zeiten erscheint **„Alle n freigeben"** (Sammel-Freigabe).
 
 ## 8. Freigaben (Partner)
 - [ ] Als **O. Burchardt**: offene Umplanungen freigeben/ablehnen; Review-Notes freigeben/zurück.
+- [ ] Nach einer **Ablehnung** sieht der Mitarbeiter am Auftrag den Hinweis
+      „Anfrage → Monat vom Partner abgelehnt" (mit „Verstanden" wegklickbar).
 - [ ] (Hinweis: Zeiten brauchen **keine** Partner-Freigabe — das ist gewollt.)
 
 ## 9. Controlling

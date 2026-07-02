@@ -94,4 +94,6 @@ export const rolePolicy = {
   canRequestUmplanung: (role: Role) => role === 'mitarbeiter',
   canApproveUmplanung: (role: Role) => role === 'partner',
   canReleaseOwnTime:   (role: Role) => role === 'mitarbeiter',
+  // Bearbeiter zuweisen/ändern: der (mandatsverantwortliche) Partner; Admin zusätzlich via isAdmin.
+  canAssignOrder:      (role: Role) => role === 'partner',
 };

@@ -38,12 +38,14 @@ describe('approveUmplanung / rejectUmplanung', () => {
     expect(o.fristEnde).toBe('2025-05-31');
     expect(o.umplanung).toBeNull();
   });
-  it('reject verwirft die Anfrage, Monat bleibt unverändert', () => {
+  it('reject lässt den Monat und hinterlässt einen sichtbaren Ablehnungs-Hinweis', () => {
     seed({ monat: 'Mär 2025', umplanung: { zielMonat: 'Mai 2025', freigabeAusstehend: true } });
     useStore.getState().rejectUmplanung('test-1');
     const o = current();
     expect(o.monat).toBe('Mär 2025');
-    expect(o.umplanung).toBeNull();
+    expect(o.umplanung).toEqual({ zielMonat: 'Mai 2025', freigabeAusstehend: false, abgelehnt: true });
+    useStore.getState().dismissUmplanungAblehnung('test-1');
+    expect(current().umplanung).toBeNull();
   });
 });
 
@@ -135,6 +137,33 @@ describe('Timer (Zeitstempel-basiert)', () => {
     expect(o.times[0].dauer).toBe(1);
     expect(o.times[0].datum).toBe('2025-03-20');
     expect(o.timerSec).toBe(0);
+  });
+});
+
+describe('deleteTime (Guard)', () => {
+  it('löscht nur Einträge im Status erfasst', () => {
+    seed({ times: [
+      { id: 'z1', datum: '2025-03-20', dauer: 1, status: 'erfasst' },
+      { id: 'z2', datum: '2025-03-20', dauer: 2, status: 'freigegeben' },
+    ] });
+    useStore.getState().deleteTime('test-1', 'z1');
+    useStore.getState().deleteTime('test-1', 'z2'); // darf nichts tun
+    const times = current().times;
+    expect(times).toHaveLength(1);
+    expect(times[0].id).toBe('z2');
+  });
+});
+
+describe('startTimer: nur ein Timer gleichzeitig', () => {
+  it('pausiert andere laufende Timer (Stand bleibt erhalten)', () => {
+    const a = { ...MOCK_ORDERS[0], id: 'a', timerRunning: true, timerStartedAt: Date.now() - 60_000, timerSec: 0 };
+    const b = { ...MOCK_ORDERS[0], id: 'b', timerRunning: false, timerSec: 0 };
+    useStore.setState({ orders: [a, b] });
+    useStore.getState().startTimer('b');
+    const [oa, ob] = useStore.getState().orders;
+    expect(ob.timerRunning).toBe(true);
+    expect(oa.timerRunning).toBe(false);
+    expect(oa.timerSec).toBeGreaterThanOrEqual(59); // die Minute ist eingefroren, nicht verloren
   });
 });
 

@@ -115,6 +115,21 @@ Aufbauend auf dem Planungs-Modul (Pool + Kalender, Drag & Drop):
   unabhängig (Mandant + Auftragsart) und überstehen Auftragswechsel ohnehin.
 
 ## Umgesetzt
+- **M1-Lückenschluss (29.06.2026, nach Gesamtreview):**
+  - **Bearbeiter zuweisen**: Partner/Admin ändern den Bearbeiter direkt im Auftrags-Detail
+    (Select im Meta-Bereich; `rolePolicy.canAssignOrder`, Store-Action `assignOrder`).
+  - **Nur ein Timer gleichzeitig**: `startTimer` pausiert andere laufende Timer (Stand wird
+    eingefroren, nichts geht verloren) — keine doppelt gezählte Arbeitszeit.
+  - **Fehlbuchung löschen**: Zeiteinträge sind löschbar, solange `erfasst` (Guard im Store;
+    freigegeben erst zurückziehen; `uebertragen` unantastbar — DATEV kennt kein DELETE).
+  - **Abgelehnte Umplanung sichtbar**: Partner-Ablehnung bleibt als Hinweis am Auftrag
+    („Anfrage → Monat abgelehnt" + „Verstanden"), statt stumm zu verschwinden.
+  - **Sammel-Freigabe**: „Alle n freigeben" in „Meine Zeiten".
+  - **Zweiter Partner im Mock (A. Peters, ohne Admin)** mit 3 eigenen Mandaten — macht die Regel
+    „Partner sieht nur seine verantworteten Mandate" in der Demo prüfbar.
+  - Bewusst NICHT vorgezogen (M2, unverändert): Zeitbuchung je Teilauftrags-Monat, Karten-
+    Sortierung in der Spalte (`boardPosition`), In-App-Benachrichtigungen (mit E-Mail-Job),
+    Status-Historie; Logo wartet auf das Asset.
 - **Umplanungs-Regeln JA/ESt (Mock, Phase 0.2)**: Erstplanung (Pool → Monat) ist frei; für
   Jahresabschluss (`ja`) und Einkommensteuer (`est`) ist **1× Umplanung pro Veranlagungsjahr** ohne
   Freigabe möglich (Zähler `umplanungenVerbraucht` am Auftrag, zurück in den Pool setzt ihn zurück),

@@ -9,17 +9,20 @@ import { TimePanel } from '@/features/time/TimePanel';
 import { QuickTimeDialog } from '@/features/time/QuickTimeDialog';
 import { NotesSection } from '@/features/notes/NotesSection';
 import { canComplete, offeneChecklist, umplanungFreiMoeglich, umplanungRegelGilt, freieUmplanungenRest } from '@/state/selectors';
-import { DEMO_KALENDER } from '@/mock/orders';
+import { DEMO_KALENDER, EMPLOYEES } from '@/mock/orders';
 
 export function OrderModal({ orderId }: { orderId: string }) {
   const order = useStore((s) => s.orders.find((o) => o.id === orderId));
   const closeCard = useStore((s) => s.closeCard);
   const setStatus = useStore((s) => s.setStatus);
   const role = useStore((s) => s.role);
+  const isAdmin = useStore((s) => s.isAdmin);
+  const assignOrder = useStore((s) => s.assignOrder);
   const umplanen = useStore((s) => s.umplanen);
   const requestUmplanung = useStore((s) => s.requestUmplanung);
   const approveUmplanung = useStore((s) => s.approveUmplanung);
   const rejectUmplanung = useStore((s) => s.rejectUmplanung);
+  const dismissAblehnung = useStore((s) => s.dismissUmplanungAblehnung);
   const openBes = useStore((s) => s.openBesonderheiten);
   const openChecklist = useStore((s) => s.openChecklist);
   const checklistOpen = useStore((s) => s.checklistOpenId);
@@ -98,7 +101,24 @@ export function OrderModal({ orderId }: { orderId: string }) {
             <Meta label="Veranlagungsjahr" value={String(order.vj)} />
             <Meta label="Geplanter Monat" value={order.monat || 'ungeplant'} />
             <Meta label="Verantw. Partner" value={order.partner} />
-            <Meta label="Bearbeiter" value={order.bearbeiter} />
+            {(isAdmin || rolePolicy.canAssignOrder(role)) ? (
+              <div className="meta__item">
+                <span className="meta__label">Bearbeiter</span>
+                <select
+                  className="input"
+                  style={{ padding: '2px 6px', fontSize: 13 }}
+                  value={order.bearbeiterId}
+                  onChange={(e) => {
+                    const emp = EMPLOYEES.find((x) => x.id === e.target.value);
+                    if (emp) assignOrder(order.id, emp.id, emp.name);
+                  }}
+                >
+                  {EMPLOYEES.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+              </div>
+            ) : (
+              <Meta label="Bearbeiter" value={order.bearbeiter} />
+            )}
           </div>
         </div>
 
@@ -162,6 +182,16 @@ export function OrderModal({ orderId }: { orderId: string }) {
 
               <div className="field">
                 <label>Umplanung in anderen Monat</label>
+                {order.umplanung?.abgelehnt && (
+                  <div className="date-range" style={{ marginBottom: 8 }}>
+                    <span className="badge badge--pending">
+                      Anfrage → {order.umplanung.zielMonat} vom Partner abgelehnt
+                    </span>
+                    <button className="btn btn--ghost btn--sm" onClick={() => dismissAblehnung(order.id)}>
+                      Verstanden
+                    </button>
+                  </div>
+                )}
                 {order.umplanung?.freigabeAusstehend ? (
                   <div className="date-range">
                     <span className="badge badge--pending">Freigabe ausstehend → {order.umplanung.zielMonat}</span>

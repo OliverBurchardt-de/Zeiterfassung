@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { useStore, timerSeconds } from '@/state/store';
 import { formatTimer, formatHours, artNeedsNotiz, TIME_STATUS } from '@/lib/art';
@@ -15,6 +16,7 @@ export function TimePanel({ order }: { order: Order }) {
   const addManual = useStore((s) => s.addManualTime);
   const releaseTime = useStore((s) => s.releaseTime);
   const withdrawTime = useStore((s) => s.withdrawTime);
+  const deleteTime = useStore((s) => s.deleteTime);
 
   const [manualDauer, setManualDauer] = useState('');
   const [notiz, setNotiz] = useState('');
@@ -111,7 +113,13 @@ export function TimePanel({ order }: { order: Order }) {
               <span className="tabular">{formatHours(t.dauer)}</span>
               <span className={`badge ${TIME_STATUS[t.status].badge}`}>{TIME_STATUS[t.status].label}</span>
               {darfFreigeben && t.status === 'erfasst' && (
-                <button className="btn btn--success btn--sm" onClick={() => releaseTime(order.id, t.id)}>Freigeben</button>
+                <>
+                  <button className="btn btn--success btn--sm" onClick={() => releaseTime(order.id, t.id)}>Freigeben</button>
+                  <button className="icon-btn" onClick={() => deleteTime(order.id, t.id)}
+                    aria-label="Fehlbuchung löschen" title="Fehlbuchung löschen (nur solange nicht freigegeben)">
+                    <Trash2 size={15} />
+                  </button>
+                </>
               )}
               {darfFreigeben && t.status === 'freigegeben' && (
                 <button className="btn btn--ghost btn--sm" onClick={() => withdrawTime(order.id, t.id)}>Zurückziehen</button>

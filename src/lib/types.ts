@@ -95,6 +95,8 @@ export interface Suborder {
 export interface Umplanung {
   zielMonat: string; // z. B. "Apr 2025"
   freigabeAusstehend: boolean;
+  /** Partner hat die Anfrage abgelehnt — als Hinweis für den Mitarbeiter sichtbar, bis er ihn wegklickt. */
+  abgelehnt?: boolean;
 }
 
 export interface Order {

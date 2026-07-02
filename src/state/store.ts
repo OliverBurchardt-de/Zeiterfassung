@@ -108,7 +108,8 @@ interface AppState {
   umplanen: (orderId: string, zielMonat: string, opts?: { erzwungen?: boolean }) => void;
   requestUmplanung: (orderId: string, zielMonat: string) => void;
   approveUmplanung: (orderId: string) => void;
-  rejectUmplanung: (orderId: string) => void; // Partner lehnt ab → Anfrage verwerfen, Monat bleibt
+  rejectUmplanung: (orderId: string) => void; // Partner lehnt ab → Monat bleibt, Ablehnung bleibt als Hinweis sichtbar
+  dismissUmplanungAblehnung: (orderId: string) => void; // Mitarbeiter nimmt die Ablehnung zur Kenntnis
 
   // Timer / Zeiten — der Timer basiert auf einem Start-Zeitstempel (timerStartedAt), nicht auf
   // UI-Ticks: die Zeit läuft damit auch bei geschlossenem Detail und über Reloads korrekt weiter.
@@ -119,6 +120,7 @@ interface AppState {
   addManualTime: (orderId: string, datum: string, dauer: number, notiz?: string, aufwandsart?: Aufwandsart) => void;
   releaseTime: (orderId: string, timeId: string) => void; // Mitarbeiter gibt eigene Zeit frei (erfasst → freigegeben)
   withdrawTime: (orderId: string, timeId: string) => void; // Freigabe zurückziehen (freigegeben → erfasst), solange nicht übertragen
+  deleteTime: (orderId: string, timeId: string) => void; // Fehlbuchung löschen — NUR solange Status 'erfasst'
 
   // Teilaufträge (Monate, FiBu/Lohn)
   setSuborderDone: (orderId: string, suborderId: string, done: boolean) => void;
@@ -312,11 +314,24 @@ export const useStore = create<AppState>()(persist((set) => ({
     }),
   })),
   rejectUmplanung: (orderId) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => (o.umplanung ? { ...o, umplanung: null } : o)),
+    // Ablehnung nicht stumm verwerfen: als Hinweis am Auftrag stehen lassen, bis der
+    // Mitarbeiter ihn wegklickt (dismiss) oder neu plant/anfordert.
+    orders: mapOrder(s.orders, orderId, (o) => (o.umplanung
+      ? { ...o, umplanung: { zielMonat: o.umplanung.zielMonat, freigabeAusstehend: false, abgelehnt: true } }
+      : o)),
+  })),
+  dismissUmplanungAblehnung: (orderId) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => (o.umplanung?.abgelehnt ? { ...o, umplanung: null } : o)),
   })),
 
   startTimer: (orderId) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => (o.timerRunning ? o : { ...o, timerRunning: true, timerStartedAt: Date.now() })),
+    // Es läuft immer nur EIN Timer: andere laufende werden pausiert (Stand eingefroren) —
+    // sonst würde dieselbe Arbeitszeit mehrfach gezählt.
+    orders: s.orders.map((o) => {
+      if (o.id === orderId) return o.timerRunning ? o : { ...o, timerRunning: true, timerStartedAt: Date.now() };
+      if (o.timerRunning) return { ...o, timerSec: timerSeconds(o), timerRunning: false, timerStartedAt: undefined };
+      return o;
+    }),
   })),
   pauseTimer: (orderId) => set((s) => ({
     // Verstrichene Zeit in timerSec „einfrieren" — nichts geht verloren.
@@ -355,6 +370,13 @@ export const useStore = create<AppState>()(persist((set) => ({
   withdrawTime: (orderId, timeId) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({
       ...o, times: o.times.map((t) => (t.id === timeId && t.status === 'freigegeben' ? { ...t, status: 'erfasst' } : t)),
+    })),
+  })),
+  deleteTime: (orderId, timeId) => set((s) => ({
+    // Guard (SSOT): nur 'erfasst' ist löschbar — freigegeben erst zurückziehen, 'uebertragen'
+    // ist unantastbar (Korrektur dann nur in DATEV EO; die API kennt kein DELETE).
+    orders: mapOrder(s.orders, orderId, (o) => ({
+      ...o, times: o.times.filter((t) => !(t.id === timeId && t.status === 'erfasst')),
     })),
   })),
 
@@ -462,7 +484,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   // Klick-Prototyp: Stand im Browser sichern, damit ein Reload nichts verwirft.
   // version bei Änderungen am Mock-Datenmodell erhöhen → alter Stand wird verworfen.
   name: 'bk-zeiterfassung',
-  version: 11,
+  version: 12,
   partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId, anforderungen: s.anforderungen }),
   // Rolle/Admin-Recht werden bewusst NICHT persistiert, sondern beim Laden aus dem angemeldeten
   // Nutzer abgeleitet (eine Quelle der Wahrheit). Ohne dies fiele ein Partner nach Reload auf

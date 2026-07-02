@@ -38,6 +38,16 @@ export function ZeitenView() {
       </p>
 
       <Section title="Nicht freigegebene Zeiten" hint="Von dir noch freizugeben — erst danach Übertragung nach DATEV.">
+        {offen.length > 1 && darfFreigeben && (
+          <div style={{ marginBottom: 10 }}>
+            <button
+              className="btn btn--success btn--sm"
+              onClick={() => offen.forEach(({ order, time }) => releaseTime(order.id, time.id))}
+            >
+              Alle {offen.length} freigeben ({formatHours(summeOffen)})
+            </button>
+          </div>
+        )}
         {offen.length === 0 ? <Empty text="Alles freigegeben." /> : offen.map(({ order, time }) => (
           <Row key={time.id} o={order}>
             {time.aufwandsart && <span className="auf-tag">{AUFWANDSARTEN.find((a) => a.key === time.aufwandsart)?.label}</span>}

@@ -27,4 +27,10 @@ export const MOCK_USERS: User[] = [
     id: 'u-rh', name: 'R. Haas', initials: 'RH', email: 'r.haas@burchardt-kollegen.de',
     role: 'mitarbeiter', admin: false, aktiv: false, datevId: '1008', tagessoll: 8, arbeitstageProWoche: 3,
   },
+  {
+    // Zweiter Partner OHNE Admin-Recht — macht die Regel „Partner sieht nur seine verantworteten
+    // Mandate" in der Demo prüfbar (O. Burchardt sieht als Admin ohnehin alles).
+    id: 'u-ap', name: 'A. Peters', initials: 'AP', email: 'a.peters@burchardt-kollegen.de',
+    role: 'partner', admin: false, aktiv: true, datevId: '1002', tagessoll: 8, arbeitstageProWoche: 5,
+  },
 ];
