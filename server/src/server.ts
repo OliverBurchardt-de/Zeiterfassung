@@ -2,12 +2,12 @@ import { loadConfig } from './config';
 import { buildApp } from './app';
 import { createMemorySessionStore } from './auth/sessions';
 import { seedDemoUsers, createMemoryUserRepository } from './infra/memory/users';
-import { createMockDatevAdapter } from './datev/mockAdapter';
+import { createDatevAdapter } from './datev';
 
 /**
- * Einstiegspunkt fuer die Entwicklung. Verdrahtet die In-Memory-Infrastruktur und den
- * Schein-DATEV-Adapter. Spaeter werden diese Bausteine durch Prisma (MS SQL) und den
- * echten DATEV-HTTP-Adapter ersetzt — buildApp bleibt gleich.
+ * Einstiegspunkt fuer die Entwicklung. Verdrahtet die In-Memory-Infrastruktur und den DATEV-Adapter
+ * (Schein oder echt je nach DATEV_MODE). Die Persistenz wird spaeter durch Prisma (MS SQL) ersetzt —
+ * buildApp bleibt gleich.
  */
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -15,7 +15,7 @@ async function main(): Promise<void> {
   const deps = {
     sessions: createMemorySessionStore(config.sessionTtlMs),
     users,
-    datev: createMockDatevAdapter(),
+    datev: createDatevAdapter(config),
   };
   const app = buildApp(config, deps);
   await app.listen({ port: config.port, host: config.host });
