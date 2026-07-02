@@ -307,6 +307,30 @@ Verschiebung (kein Logikbruch). Schritt wird beim Backend-Start gemacht, nicht v
 
 ---
 
+## ADR-13 — Entwicklungsumgebung lokal (Kanzlei-PC), Produktion später im ASP
+
+**Klartext:** Entwickelt und getestet wird **auf dem eigenen Rechner** — dort haben wir alle Rechte
+(SQL Server Express, Node.js) und **echten DATEV-Zugriff** über die VPN-Verbindung. Der spätere
+Produktivbetrieb liegt im ASP.
+
+**Entscheidung (02.07.2026):** Lokale Entwicklungsumgebung mit **SQL Server Express** (gleiche
+Technik wie das ASP-MS-SQL) und DATEVconnect-Zugriff per **NTLM** über VPN (live verifiziert,
+Handoff §12). Alle Umgebungs-Unterschiede stecken **ausschließlich in der Konfiguration**
+(`.env`: DB-Host, DATEV-URL/Anmeldeweg) — nie im Code. Einrichtung + Umzugs-Checkliste:
+`docs/entwicklungsumgebung.md`.
+
+**Warum:** Kein Warten auf den ASP-Anbieter; schnelle Iteration mit echten DATEV-Daten; die
+Produktions-Technik (MS SQL, Node, DATEVconnect) wird 1:1 lokal gespiegelt, nur kleiner.
+
+**Konsequenz:** Der DATEV-Adapter beherrscht **beide** Anmeldewege (NTLM für die Entwicklung,
+Basic Auth für den technischen Benutzer in Produktion — umschaltbar per `DATEV_AUTH`).
+`DATEV_TLS_INSECURE` (IP-Zugriff in Entwicklung) ist in Produktion **verboten** (Fail-Fast).
+
+**Verworfen:** Entwicklung nur gegen Mocks bis zur ASP-Bereitstellung (verschenkt den verifizierten
+externen Zugriff); Entwicklung direkt auf dem ASP-Server (keine Rechte, keine Werkzeuge).
+
+---
+
 ## Was wir bewusst NICHT tun (damit es einfach bleibt)
 
 - **Keine Microservices, keine Container-Orchestrierung.** Ein Dienst, ein Server (ADR-08).
@@ -325,7 +349,8 @@ Verschiebung (kein Logikbruch). Schritt wird beim Backend-Start gemacht, nicht v
 | Aufbau | 3 Schichten: Web-API → Fachregeln → Adapter (DATEV/DB/Mail) |
 | Wo gelten die Regeln? | Verbindlich auf dem Server; Browser nur fürs Bedien-Erlebnis |
 | Sprache/Technik | Node.js + TypeScript, Web-Gerüst Fastify |
-| Datenbank | **bestehendes MS SQL**, eigene Datenbank, Zugriff über Prisma |
+| Datenbank | **bestehendes MS SQL**, eigene Datenbank, Zugriff über `mssql` (reines JS) |
+| Entwicklung | lokal (SQL Express + DATEV per VPN/NTLM); Umzug ins ASP = nur Konfiguration |
 | DATEV | ein gekapseltes Adapter-Modul, austauschbar & testbar |
 | Synchronisation | regelmäßiges Abholen + Outbox fürs Zurückschreiben (dublettensicher) |
 | Login | eigener Login, sichere Server-Session (Cookie), Passwort-Hash |

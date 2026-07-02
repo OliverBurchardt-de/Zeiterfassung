@@ -43,6 +43,14 @@ export function mapDatevOrder(raw: Record<string, unknown>): OrderView {
   };
 }
 
+/** Zerlegt "DOMAIN\benutzer" in Domaene + Benutzername (fuer NTLM). Ohne Backslash: nur Benutzer. */
+export function splitDomainUser(user: string): { domain: string; username: string } {
+  const i = user.indexOf('\\');
+  return i === -1
+    ? { domain: '', username: user }
+    : { domain: user.slice(0, i), username: user.slice(i + 1) };
+}
+
 export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
   const base = cfg.baseUrl.replace(/\/$/, '');
 
@@ -54,7 +62,8 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
     headers.Authorization = `Basic ${token}`;
   }
 
-  async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  /** Transport 1: fetch (Basic/none) — der Produktionsweg. */
+  async function requestFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const res = await fetch(`${base}/${path}`, {
       ...init,
       headers: { ...headers, ...(init?.headers as Record<string, string> | undefined) },
@@ -66,6 +75,48 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
     // 201/204 koennen leer sein
     const text = await res.text();
     return (text ? JSON.parse(text) : undefined) as T;
+  }
+
+  /** Transport 2: NTLM (Windows-Domänenkonto) — der verifizierte Weg der Entwicklungsumgebung. */
+  async function requestNtlm<T>(path: string, init?: { method?: string; body?: string }): Promise<T> {
+    // Lazy require: httpntlm wird nur im NTLM-Modus geladen.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const httpntlm = (await import('httpntlm')) as typeof import('httpntlm');
+    const { domain, username } = splitDomainUser(cfg.user);
+    const method = (init?.method ?? 'GET').toLowerCase() as 'get' | 'post' | 'put';
+    const fn = httpntlm[method];
+    return new Promise<T>((resolve, reject) => {
+      fn(
+        {
+          url: `${base}/${path}`,
+          username,
+          password: cfg.password,
+          domain,
+          workstation: '',
+          headers: {
+            ...headers,
+            ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+          },
+          ...(init?.body ? { body: init.body } : {}),
+          ...(cfg.tlsInsecure ? { rejectUnauthorized: false } : {}),
+        },
+        (err, res) => {
+          if (err) return reject(new Error(`DATEV ${method.toUpperCase()} ${path} -> ${err.message}`));
+          if (res.statusCode < 200 || res.statusCode >= 300) {
+            return reject(
+              new Error(`DATEV ${method.toUpperCase()} ${path} -> HTTP ${res.statusCode} ${(res.body ?? '').slice(0, 300)}`),
+            );
+          }
+          resolve((res.body ? JSON.parse(res.body) : undefined) as T);
+        },
+      );
+    });
+  }
+
+  async function request<T>(path: string, init?: { method?: string; body?: string; headers?: Record<string, string> }): Promise<T> {
+    return cfg.auth === 'ntlm'
+      ? requestNtlm<T>(path, init)
+      : requestFetch<T>(path, init as RequestInit);
   }
 
   return {

@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { mapDatevOrder } from './httpAdapter';
+import { mapDatevOrder, splitDomainUser } from './httpAdapter';
+
+describe('splitDomainUser', () => {
+  it('zerlegt DOMAIN\\benutzer', () => {
+    expect(splitDomainUser('DOMK230\\OBurchardt')).toEqual({ domain: 'DOMK230', username: 'OBurchardt' });
+  });
+  it('ohne Backslash: nur Benutzer, leere Domaene', () => {
+    expect(splitDomainUser('techuser')).toEqual({ domain: '', username: 'techuser' });
+  });
+});
 
 /**
  * Prueft die Feld-Umsetzung DATEV-Order-JSON -> OrderView anhand der am Echtsystem verifizierten

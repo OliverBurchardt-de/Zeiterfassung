@@ -5,12 +5,22 @@ export interface DatevConfig {
   mode: 'mock' | 'http';
   /** z. B. http://localhost:58454/datev/api oder https://<hostname>:58452/datev/api */
   baseUrl: string;
-  /** 'basic' = technischer Benutzer (Dauerbetrieb); 'none' = integrierte Windows-Anmeldung (nur auf dem ASP-Server). */
-  auth: 'basic' | 'none';
+  /**
+   * 'basic' = technischer Benutzer (Dauerbetrieb, Produktion);
+   * 'ntlm'  = Windows-Domänenkonto "DOMAIN\benutzer" (Entwicklungsumgebung — verifizierter Weg
+   *           von außerhalb des ASP, s. docs/datev-connect-handoff.md §12);
+   * 'none'  = integrierte Windows-Anmeldung (nur auf dem ASP-Server selbst).
+   */
+  auth: 'basic' | 'ntlm' | 'none';
   user: string;
   password: string;
   /** Optionaler OData-Filter für getOrders, z. B. "creation_year eq 2026" (gegen ~7.500 Aufträge). */
   ordersFilter: string;
+  /**
+   * NUR Entwicklung: Zertifikatsprüfung aus (Zugriff über IP → Zertifikatsname passt nicht).
+   * In Produktion verboten (Fail-Fast) — dort über den DNS-Hostnamen zugreifen.
+   */
+  tlsInsecure: boolean;
 }
 
 /** MS-SQL-Zugang. `mode: 'memory'` = In-Memory-Repos (ohne DB); `'mssql'` = echte Datenbank. */
@@ -18,6 +28,8 @@ export interface DbConfig {
   mode: 'memory' | 'mssql';
   host: string;
   port: number;
+  /** Benannte Instanz (z. B. 'SQLEXPRESS' bei SQL Server Express); wenn gesetzt, gilt sie statt des Ports. */
+  instanceName: string;
   database: string;
   user: string;
   password: string;
@@ -52,12 +64,18 @@ export function loadConfig(): Config {
   }
 
   const datevMode = (process.env.DATEV_MODE ?? 'mock') === 'http' ? 'http' : 'mock';
-  const datevAuth = (process.env.DATEV_AUTH ?? 'basic') === 'none' ? 'none' : 'basic';
+  const authRaw = process.env.DATEV_AUTH ?? 'basic';
+  const datevAuth: 'basic' | 'ntlm' | 'none' =
+    authRaw === 'ntlm' ? 'ntlm' : authRaw === 'none' ? 'none' : 'basic';
   const datevUser = process.env.DATEV_USER ?? '';
   const datevPassword = process.env.DATEV_PASSWORD ?? '';
-  // Fail-Fast: echter Zugriff per Basic Auth ohne Zugangsdaten wuerde nur 401 liefern.
-  if (datevMode === 'http' && datevAuth === 'basic' && (!datevUser || !datevPassword)) {
-    throw new Error('DATEV_MODE=http mit Basic Auth verlangt DATEV_USER und DATEV_PASSWORD (siehe .env.example).');
+  // Fail-Fast: echter Zugriff mit Anmeldung, aber ohne Zugangsdaten, wuerde nur 401 liefern.
+  if (datevMode === 'http' && datevAuth !== 'none' && (!datevUser || !datevPassword)) {
+    throw new Error(`DATEV_MODE=http mit ${datevAuth} verlangt DATEV_USER und DATEV_PASSWORD (siehe .env.example).`);
+  }
+  const tlsInsecure = (process.env.DATEV_TLS_INSECURE ?? 'false') === 'true';
+  if (tlsInsecure && nodeEnv === 'production') {
+    throw new Error('DATEV_TLS_INSECURE ist in Produktion verboten — DNS-Hostnamen verwenden (Handoff §12).');
   }
 
   const dbMode = (process.env.DB_MODE ?? 'memory') === 'mssql' ? 'mssql' : 'memory';
@@ -81,11 +99,13 @@ export function loadConfig(): Config {
       user: datevUser,
       password: datevPassword,
       ordersFilter: process.env.DATEV_ORDERS_FILTER ?? '',
+      tlsInsecure,
     },
     db: {
       mode: dbMode,
       host: process.env.DB_HOST ?? 'localhost',
       port: Number(process.env.DB_PORT ?? 1433),
+      instanceName: process.env.DB_INSTANCE ?? '',
       database: process.env.DB_NAME ?? 'Zeiterfassung',
       user: dbUser,
       password: dbPassword,

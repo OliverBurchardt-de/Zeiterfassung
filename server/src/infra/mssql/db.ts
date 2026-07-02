@@ -9,13 +9,15 @@ import type { DbConfig } from '../../config';
 export async function createPool(cfg: DbConfig): Promise<sql.ConnectionPool> {
   const pool = new sql.ConnectionPool({
     server: cfg.host,
-    port: cfg.port,
+    // Benannte Instanz (z. B. SQLEXPRESS) hat Vorrang; sonst fester Port.
+    ...(cfg.instanceName ? {} : { port: cfg.port }),
     database: cfg.database,
     user: cfg.user,
     password: cfg.password,
     options: {
       encrypt: cfg.encrypt,
       trustServerCertificate: cfg.trustServerCertificate,
+      ...(cfg.instanceName ? { instanceName: cfg.instanceName } : {}),
     },
     pool: { max: 10, min: 0, idleTimeoutMillis: 30_000 },
   });
