@@ -13,7 +13,7 @@ async function main(): Promise<void> {
   const config = loadConfig();
   const users = createMemoryUserRepository(await seedDemoUsers());
   const deps = {
-    sessions: createMemorySessionStore(),
+    sessions: createMemorySessionStore(config.sessionTtlMs),
     users,
     datev: createMockDatevAdapter(),
   };

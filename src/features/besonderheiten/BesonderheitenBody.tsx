@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useStore, besKey, useCurrentUser } from '@/state/store';
-import type { ArtKey } from '@/lib/types';
 
 /**
  * Bearbeitbarer Inhalt der Mandantenbesonderheiten — geteilt von Modal und Karten-Flyout.
- * Inhalte hängen am Schlüssel Mandant + Auftragsart (period-übergreifend wiederverwendet).
+ * Inhalte hängen am Schlüssel Mandant + Ordertype (period-übergreifend wiederverwendet).
  */
-export function BesonderheitenBody({ mandantNr, artKey }: { mandantNr: string; artKey: ArtKey }) {
-  const key = besKey(mandantNr, artKey);
+export function BesonderheitenBody({ mandantNr, ordertype }: { mandantNr: string; ordertype: string }) {
+  const key = besKey(mandantNr, ordertype);
   const all = useStore((s) => s.besonderheiten);
   const add = useStore((s) => s.addBesonderheit);
   const edit = useStore((s) => s.editBesonderheit);

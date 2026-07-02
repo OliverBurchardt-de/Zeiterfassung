@@ -1,7 +1,8 @@
 import { Check } from 'lucide-react';
 import { useStore } from '@/state/store';
+import { useVisibleOrders } from '@/state/selectors';
 import { EMPLOYEES } from '@/mock/orders';
-import { ART } from '@/lib/art';
+import { ART, isLaufendeArt } from '@/lib/art';
 import { ORDERTYPE_GROUPS } from '@/lib/ordertypes';
 import type { ArtKey } from '@/lib/types';
 
@@ -14,7 +15,10 @@ const ART_LABEL: Record<ArtKey, string> = {
 };
 
 export function FilterSidebar() {
-  const orders = useStore((s) => s.orders);
+  // Dieselbe Basis wie das Board: sichtbare Aufträge ohne laufende Arten — sonst zeigen die
+  // Zähler Zahlen, die der Nutzer gar nicht sehen darf bzw. die dem Board widersprechen.
+  const visible = useVisibleOrders();
+  const orders = visible.filter((o) => !isLaufendeArt(o.artKey));
   const filters = useStore((s) => s.filters);
   const setEmployee = useStore((s) => s.setEmployee);
   const setMonat = useStore((s) => s.setMonat);

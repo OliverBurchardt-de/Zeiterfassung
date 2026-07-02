@@ -35,7 +35,7 @@ export function BesonderheitenModal() {
         </div>
 
         <div className="modal__body">
-          <BesonderheitenBody mandantNr={ctx.mandantNr} artKey={ctx.artKey} />
+          <BesonderheitenBody mandantNr={ctx.mandantNr} ordertype={ctx.ordertype} />
         </div>
       </div>
     </div>

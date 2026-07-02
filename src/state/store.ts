@@ -1,21 +1,28 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User, Aufwandsart, AuftragsAnforderung } from '@/lib/types';
-import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
+import { MOCK_ORDERS, MOCK_BESONDERHEITEN, HEUTE } from '@/mock/orders';
 import { MOCK_USERS } from '@/mock/users';
 import { monatBounds } from '@/lib/monate';
 import { hasUnterlagenProzess } from '@/lib/art';
+import { umplanungFreiMoeglich } from '@/lib/regeln';
 import { CHECKLIST_TEMPLATES_BY_ORDERTYPE } from '@/lib/checklists';
 import { notePolicy } from '@/lib/tokens';
 
-/** Schlüssel der Besonderheiten: Mandantennummer + Auftragsart (period-unabhängig). */
-export const besKey = (mandantNr: string, artKey: ArtKey) => `${mandantNr}::${artKey}`;
+/**
+ * Schlüssel der Besonderheiten: Mandantennummer + **Ordertype** (period-unabhängig).
+ * Bewusst der konkrete Ordertype (nicht der grobe artKey-Bucket) — deckungsgleich mit dem
+ * DB-Design (`Besonderheit clientId+ordertype`) und `docs/datev-integration.md`; sonst teilten
+ * sich z. B. Monats-/Quartals-/Jahres-FiBu (106/107/108) fälschlich dieselben Einträge.
+ */
+export const besKey = (mandantNr: string, ordertype: string) => `${mandantNr}::${ordertype}`;
 
 /** Kontext des geöffneten Besonderheiten-Dialogs */
 export interface BesContext {
   mandantNr: string;
   mandant: string;
-  artKey: ArtKey;
+  ordertype: string; // Schlüssel-Bestandteil
+  artKey: ArtKey; // nur Anzeige (Badge-Farbe)
   art: string;
 }
 
@@ -58,7 +65,6 @@ interface AppState {
   // Nutzerverwaltung (Modul „Verwaltung")
   users: User[];
   userEditId: string | 'new' | null; // offener Nutzer-Dialog
-  setAdmin: (v: boolean) => void;
   openUserEdit: (id: string | 'new') => void;
   closeUserEdit: () => void;
   addUser: (draft: UserDraft) => void;
@@ -66,7 +72,6 @@ interface AppState {
   setUserActive: (id: string, aktiv: boolean) => void;
 
   // UI
-  setRole: (role: Role) => void;
   setEmployee: (id: string | 'team') => void;
   setMonat: (m: string | 'alle') => void;
   setVj: (vj: number | 'alle') => void;
@@ -89,17 +94,27 @@ interface AppState {
   setStatus: (orderId: string, status: StatusId) => void;
   assignOrder: (orderId: string, bearbeiterId: string, bearbeiter: string) => void;
   planOrder: (orderId: string, monat: string) => void; // Auftrag in einen Monat einplanen (setzt Start/Ende)
-  unplanOrder: (orderId: string) => void; // Einplanung aufheben (zurück in den Pool)
-  umplanen: (orderId: string, zielMonat: string) => void; // freie (Um-)Planung ohne Freigabe; zählt das VJ-Kontingent
+  /**
+   * Einplanung aufheben (zurück in den Pool). Standard (Partner/Admin): VJ-Kontingent zurücksetzen.
+   * `kontingentVerbrauchen` (Mitarbeiter-Weg): zählt stattdessen +1 — sonst ließe sich die
+   * Partner-Freigabe über „Pool und neu ziehen" umgehen (Review-Befund 6).
+   */
+  unplanOrder: (orderId: string, opts?: { kontingentVerbrauchen?: boolean }) => void;
+  /**
+   * Freie (Um-)Planung ohne Partner-Freigabe. Guard im Store (SSOT): nur wenn
+   * `umplanungFreiMoeglich` — es sei denn `erzwungen` (Partner/Admin verschiebt selbst; zählt
+   * wie eine freigegebene Umplanung). Erstplanung und Ziel = aktueller Monat verbrauchen NICHTS.
+   */
+  umplanen: (orderId: string, zielMonat: string, opts?: { erzwungen?: boolean }) => void;
   requestUmplanung: (orderId: string, zielMonat: string) => void;
   approveUmplanung: (orderId: string) => void;
   rejectUmplanung: (orderId: string) => void; // Partner lehnt ab → Anfrage verwerfen, Monat bleibt
 
-  // Timer / Zeiten
+  // Timer / Zeiten — der Timer basiert auf einem Start-Zeitstempel (timerStartedAt), nicht auf
+  // UI-Ticks: die Zeit läuft damit auch bei geschlossenem Detail und über Reloads korrekt weiter.
   startTimer: (orderId: string) => void;
   pauseTimer: (orderId: string) => void;
   resetTimer: (orderId: string) => void;
-  tick: (orderId: string) => void;
   transferTimer: (orderId: string, notiz?: string) => void;
   addManualTime: (orderId: string, datum: string, dauer: number, notiz?: string, aufwandsart?: Aufwandsart) => void;
   releaseTime: (orderId: string, timeId: string) => void; // Mitarbeiter gibt eigene Zeit frei (erfasst → freigegeben)
@@ -149,6 +164,17 @@ function mapNote(o: Order, noteId: string, fn: (n: Note) => Note): Order {
   return { ...o, notes: o.notes.map((n) => (n.id === noteId ? fn(n) : n)) };
 }
 
+/**
+ * Aktueller Timer-Stand in Sekunden: eingefrorene Basis (timerSec) plus die seit dem Start
+ * verstrichene Echtzeit. Läuft damit unabhängig davon, ob ein UI-Intervall tickt — auch bei
+ * geschlossenem Detail und über Reloads (timerStartedAt wird mitpersistiert).
+ */
+export function timerSeconds(o: Order, nowMs: number = Date.now()): number {
+  const basis = o.timerSec ?? 0;
+  if (!o.timerRunning || !o.timerStartedAt) return basis;
+  return basis + Math.max(0, Math.floor((nowMs - o.timerStartedAt) / 1000));
+}
+
 export const useStore = create<AppState>()(persist((set) => ({
   orders: MOCK_ORDERS,
   currentUserId: null,
@@ -169,7 +195,6 @@ export const useStore = create<AppState>()(persist((set) => ({
 
   users: MOCK_USERS,
   userEditId: null,
-  setAdmin: (isAdmin) => set({ isAdmin }),
   openUserEdit: (id) => set({ userEditId: id }),
   closeUserEdit: () => set({ userEditId: null }),
   addUser: (draft) => set((s) => ({
@@ -182,9 +207,10 @@ export const useStore = create<AppState>()(persist((set) => ({
   })),
   setUserActive: (id, aktiv) => set((s) => ({
     users: s.users.map((u) => (u.id === id ? { ...u, aktiv } : u)),
+    // Deaktivierung wirkt sofort: betrifft sie den angemeldeten Nutzer, wird er abgemeldet.
+    ...(id === s.currentUserId && !aktiv ? { currentUserId: null } : {}),
   })),
 
-  setRole: (role) => set({ role }),
   setEmployee: (employeeId) => set((s) => ({ filters: { ...s.filters, employeeId } })),
   setMonat: (monat) => set((s) => ({ filters: { ...s.filters, monat } })),
   setVj: (vj) => set((s) => ({ filters: { ...s.filters, vj } })),
@@ -199,7 +225,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   openChecklist: (id) => set({ checklistOpenId: id }),
   closeChecklist: () => set({ checklistOpenId: null }),
 
-  openBesonderheiten: (o) => set({ besOpen: { mandantNr: o.mandantNr, mandant: o.mandant, artKey: o.artKey, art: o.art } }),
+  openBesonderheiten: (o) => set({ besOpen: { mandantNr: o.mandantNr, mandant: o.mandant, ordertype: o.ordertype, artKey: o.artKey, art: o.art } }),
   closeBesonderheiten: () => set({ besOpen: null }),
   addBesonderheit: (key, text, author) => set((s) => ({
     besonderheiten: {
@@ -240,17 +266,29 @@ export const useStore = create<AppState>()(persist((set) => ({
       return b ? { ...o, monat, fristStart: b.start, fristEnde: b.end } : o;
     }),
   })),
-  unplanOrder: (orderId) => set((s) => ({
-    // Zurück in den Pool = frische Erstplanung → VJ-Umplanungskontingent zurücksetzen.
-    orders: mapOrder(s.orders, orderId, (o) => ({ ...o, monat: '', fristStart: '', fristEnde: '', umplanungenVerbraucht: 0 })),
+  unplanOrder: (orderId, opts) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => ({
+      ...o, monat: '', fristStart: '', fristEnde: '', umplanung: null,
+      // Partner/Admin (Standard): zurück in den Pool = frische Erstplanung → Kontingent zurück.
+      // Mitarbeiter (kontingentVerbrauchen): zählt als genutzte freie Umplanung, damit
+      // „Pool und neu ziehen" die Partner-Freigabe nicht umgeht.
+      umplanungenVerbraucht: opts?.kontingentVerbrauchen ? (o.umplanungenVerbraucht ?? 0) + 1 : 0,
+    })),
   })),
 
-  // Freie (Um-)Planung ohne Partner-Freigabe (Erstplanung oder erste JA/ESt-Umplanung im VJ).
-  // Setzt Monat + Fristdaten konsistent (wie planOrder/approveUmplanung) und zählt das Kontingent hoch.
-  umplanen: (orderId, zielMonat) => set((s) => ({
+  // Freie (Um-)Planung ohne Partner-Freigabe. Setzt Monat + Fristdaten konsistent
+  // (wie planOrder/approveUmplanung). Kontingent-Logik:
+  //  - Ziel = aktueller Monat → No-Op (nichts verbrauchen).
+  //  - Erstplanung (kein Monat) → frei, verbraucht NICHTS.
+  //  - sonst nur wenn umplanungFreiMoeglich (Guard, SSOT) → verbraucht +1.
+  //  - erzwungen (Partner/Admin verschiebt direkt) → wie eine freigegebene Umplanung: +1.
+  umplanen: (orderId, zielMonat, opts) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => {
+      if (o.monat === zielMonat) return o;
+      const erstplanung = !o.monat;
+      if (!erstplanung && !opts?.erzwungen && !umplanungFreiMoeglich(o)) return o;
+      const verbraucht = erstplanung ? (o.umplanungenVerbraucht ?? 0) : (o.umplanungenVerbraucht ?? 0) + 1;
       const b = monatBounds(zielMonat);
-      const verbraucht = (o.umplanungenVerbraucht ?? 0) + 1;
       return b
         ? { ...o, monat: zielMonat, fristStart: b.start, fristEnde: b.end, umplanung: null, umplanungenVerbraucht: verbraucht }
         : { ...o, monat: zielMonat, umplanung: null, umplanungenVerbraucht: verbraucht };
@@ -277,16 +315,24 @@ export const useStore = create<AppState>()(persist((set) => ({
     orders: mapOrder(s.orders, orderId, (o) => (o.umplanung ? { ...o, umplanung: null } : o)),
   })),
 
-  startTimer: (orderId) => set((s) => ({ orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerRunning: true })) })),
-  pauseTimer: (orderId) => set((s) => ({ orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerRunning: false })) })),
-  resetTimer: (orderId) => set((s) => ({ orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerRunning: false, timerSec: 0 })) })),
-  tick: (orderId) => set((s) => ({ orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerSec: (o.timerSec ?? 0) + 1 })) })),
+  startTimer: (orderId) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => (o.timerRunning ? o : { ...o, timerRunning: true, timerStartedAt: Date.now() })),
+  })),
+  pauseTimer: (orderId) => set((s) => ({
+    // Verstrichene Zeit in timerSec „einfrieren" — nichts geht verloren.
+    orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerSec: timerSeconds(o), timerRunning: false, timerStartedAt: undefined })),
+  })),
+  resetTimer: (orderId) => set((s) => ({
+    orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerRunning: false, timerSec: 0, timerStartedAt: undefined })),
+  })),
   transferTimer: (orderId, notiz) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => {
-      const dauer = Math.round(((o.timerSec ?? 0) / 3600) * 100) / 100;
-      if (dauer <= 0) return { ...o, timerRunning: false };
-      const entry = { id: uid(), datum: new Date().toISOString().slice(0, 10), dauer, status: 'erfasst' as const, notiz: notiz?.trim() || undefined };
-      return { ...o, times: [...o.times, entry], timerRunning: false, timerSec: 0 };
+      const sec = timerSeconds(o);
+      const dauer = Math.round((sec / 3600) * 100) / 100;
+      if (dauer <= 0) return { ...o, timerRunning: false, timerStartedAt: undefined };
+      // Arbeitsdatum = Demo-Stichtag HEUTE (einheitlich mit allen Auswertungen); in Produktion echtes Datum.
+      const entry = { id: uid(), datum: HEUTE, dauer, status: 'erfasst' as const, notiz: notiz?.trim() || undefined };
+      return { ...o, times: [...o.times, entry], timerRunning: false, timerSec: 0, timerStartedAt: undefined };
     }),
   })),
   addManualTime: (orderId, datum, dauer, notiz, aufwandsart) => set((s) => {
@@ -416,8 +462,24 @@ export const useStore = create<AppState>()(persist((set) => ({
   // Klick-Prototyp: Stand im Browser sichern, damit ein Reload nichts verwirft.
   // version bei Änderungen am Mock-Datenmodell erhöhen → alter Stand wird verworfen.
   name: 'bk-zeiterfassung',
-  version: 10,
+  version: 11,
   partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId, anforderungen: s.anforderungen }),
+  // Rolle/Admin-Recht werden bewusst NICHT persistiert, sondern beim Laden aus dem angemeldeten
+  // Nutzer abgeleitet (eine Quelle der Wahrheit). Ohne dies fiele ein Partner nach Reload auf
+  // „mitarbeiter" zurück (Review-Befund 1). Deaktivierte/gelöschte Nutzer werden abgemeldet.
+  merge: (persisted, current) => {
+    const s = { ...current, ...(persisted as Partial<AppState>) };
+    const u = s.users.find((x) => x.id === s.currentUserId);
+    if (u?.aktiv) {
+      s.role = u.role;
+      s.isAdmin = u.admin;
+    } else {
+      s.currentUserId = null;
+      s.role = 'mitarbeiter';
+      s.isAdmin = false;
+    }
+    return s;
+  },
 }));
 
 /**
@@ -434,7 +496,7 @@ export function offeneNotes(o: Order): number {
   return o.notes.filter(noteOffen).length;
 }
 
-/** Der aktuell angemeldete Nutzer (Mock-Login) — oder undefined, wenn nicht angemeldet. */
+/** Der aktuell angemeldete Nutzer (Mock-Login) — oder undefined, wenn nicht angemeldet/deaktiviert. */
 export function useCurrentUser(): User | undefined {
-  return useStore((s) => s.users.find((u) => u.id === s.currentUserId));
+  return useStore((s) => s.users.find((u) => u.id === s.currentUserId && u.aktiv));
 }

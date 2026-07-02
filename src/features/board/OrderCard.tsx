@@ -3,7 +3,7 @@ import { useDraggable } from '@dnd-kit/core';
 import type { Order } from '@/lib/types';
 import { ART, formatTimer, formatHours, erfassteStunden } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
-import { offeneNotes, useStore } from '@/state/store';
+import { offeneNotes, useStore, timerSeconds } from '@/state/store';
 import { hasOffeneZeiten } from '@/state/selectors';
 
 /**
@@ -37,7 +37,7 @@ function CardInner({ order }: { order: Order }) {
         {timerLaufend && (
           <div className="state-line" style={{ color: 'var(--bk-blood-orange)', fontWeight: 600 }}>
             <span className="dot dot--pulse" style={{ background: 'var(--bk-blood-orange)' }} />
-            {formatTimer(order.timerSec ?? 0)} läuft
+            {formatTimer(timerSeconds(order))} läuft
           </div>
         )}
         {offeneZeit && (

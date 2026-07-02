@@ -7,6 +7,7 @@ import { AlertTriangle, GripVertical } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { useStore, useCurrentUser } from '@/state/store';
 import { useVisibleOrders, umplanungFreiMoeglich } from '@/state/selectors';
+import { rolePolicy } from '@/lib/tokens';
 import { ART, formatHours, erfassteStunden, isLaufendeArt } from '@/lib/art';
 import { arbeitstage } from '@/lib/monate';
 import { EMPLOYEES, DEMO_KALENDER } from '@/mock/orders';
@@ -29,14 +30,22 @@ export function PlanungView() {
   const requestUmplanung = useStore((s) => s.requestUmplanung);
   const me = useCurrentUser();
   const istAdmin = !!me?.admin;
+  const role = useStore((s) => s.role);
+  // Partner/Admin verschieben frei (sie sind die freigebende Instanz); Mitarbeiter unterliegen
+  // der Umplanungs-Regel — zentral über rolePolicy, wie im OrderModal.
+  const darfFreiVerschieben = istAdmin || rolePolicy.canApproveUmplanung(role);
 
-  // Nicht-Admins planen nur sich selbst (Sichtbarkeit greift ohnehin); Admin wählt frei.
-  const [empId, setEmpId] = useState(() => (me && !me.admin ? me.initials.toLowerCase() : 'sw'));
+  // Nicht-Admins planen nur sich selbst; Admin wählt frei. Zuordnung Nutzer → Planungs-Profil
+  // über die Initialen; ohne Treffer (neu angelegter Nutzer) KEIN stiller Rückfall auf einen
+  // fremden Mitarbeiter — dann bleibt die Liste leer und die Kapazität kommt aus dem Nutzerprofil.
+  const meinEmp = me ? EMPLOYEES.find((e) => e.initials === me.initials) : undefined;
+  const [adminEmpId, setAdminEmpId] = useState('sw');
+  const empId = istAdmin ? adminEmpId : meinEmp?.id ?? '';
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
-  const emp = EMPLOYEES.find((e) => e.id === empId) ?? EMPLOYEES[0];
-  const profil = users.find((u) => u.initials === emp.initials);
+  const emp = EMPLOYEES.find((e) => e.id === empId);
+  const profil = istAdmin ? users.find((u) => u.initials === emp?.initials) : me;
   const tagessoll = profil?.tagessoll ?? 8;
   const tageProWoche = profil?.arbeitstageProWoche ?? 5;
   // Monatskapazität: Tagessoll × Arbeitstage (Mo–Fr), bei Teilzeit anteilig (Tage/Woche ÷ 5).
@@ -44,7 +53,7 @@ export function PlanungView() {
   const kapazitaet = (m: string) => Math.round(tagessoll * arbeitstage(m) * (tageProWoche / 5));
 
   const meine = useMemo(
-    () => orders.filter((o) => o.bearbeiterId === empId && !isLaufendeArt(o.artKey)),
+    () => (empId ? orders.filter((o) => o.bearbeiterId === empId && !isLaufendeArt(o.artKey)) : []),
     [orders, empId],
   );
   const pool = meine.filter((o) => !o.monat);
@@ -58,14 +67,25 @@ export function PlanungView() {
     const overId = e.over?.id ? String(e.over.id) : null;
     const id = String(e.active.id);
     if (!overId) return;
-    if (overId === 'pool') { unplanOrder(id); return; }
+    const o = orders.find((x) => x.id === id);
+    if (!o) return;
+
+    if (overId === 'pool') {
+      if (!o.monat) return; // liegt bereits im Pool
+      // Zurücklegen unterliegt derselben Regel wie Umplanen — sonst wäre „Pool und neu
+      // ziehen" eine Umgehung der Partner-Freigabe. Mitarbeiter: nur wenn frei möglich,
+      // und es verbraucht das Freikontingent; Partner/Admin: frei (Kontingent zurückgesetzt).
+      if (darfFreiVerschieben) unplanOrder(id);
+      else if (umplanungFreiMoeglich(o)) unplanOrder(id, { kontingentVerbrauchen: true });
+      return; // sonst: bleibt geplant (Umplanung in einen konkreten Monat anfordern)
+    }
     if (!overId.startsWith('m:')) return;
     const ziel = overId.slice(2);
-    const o = orders.find((x) => x.id === id);
-    if (!o || o.monat === ziel) return;
-    if (!o.monat) planOrder(id, ziel); // Erstplanung aus dem Pool
+    if (o.monat === ziel) return;
+    if (!o.monat) planOrder(id, ziel); // Erstplanung aus dem Pool (immer frei, verbraucht nichts)
+    else if (darfFreiVerschieben) umplanen(id, ziel, { erzwungen: true }); // Partner/Admin: direkt (zählt wie Freigabe)
     else if (umplanungFreiMoeglich(o)) umplanen(id, ziel); // freie JA/ESt-Umplanung im VJ
-    else requestUmplanung(id, ziel); // Umplanung erfordert Partner-Freigabe → Karte bleibt, Badge erscheint
+    else if (rolePolicy.canRequestUmplanung(role)) requestUmplanung(id, ziel); // → Badge „Freigabe ausstehend"
   }
 
   return (
@@ -85,7 +105,7 @@ export function PlanungView() {
         <div className="field" style={{ marginBottom: 0, minWidth: 170 }}>
           <label>Mitarbeiter</label>
           {istAdmin ? (
-            <select className="input" value={empId} onChange={(e) => setEmpId(e.target.value)}>
+            <select className="input" value={adminEmpId} onChange={(e) => setAdminEmpId(e.target.value)}>
               {EMPLOYEES.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
           ) : (

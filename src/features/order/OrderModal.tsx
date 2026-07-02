@@ -178,11 +178,21 @@ export function OrderModal({ orderId }: { orderId: string }) {
                       {DEMO_KALENDER.map((m) => <option key={m}>{m}</option>)}
                     </select>
                     {umplanFrei ? (
-                      <button className="btn btn--success btn--sm" onClick={() => umplanen(order.id, zielWert)}>
-                        Umplanen
+                      <button
+                        className="btn btn--success btn--sm"
+                        disabled={zielWert === order.monat}
+                        title={zielWert === order.monat ? 'Zielmonat entspricht dem aktuellen Monat' : undefined}
+                        onClick={() => umplanen(order.id, zielWert)}
+                      >
+                        {order.monat ? 'Umplanen' : 'Einplanen'}
                       </button>
                     ) : (
-                      <button className="btn btn--amber btn--sm" onClick={() => requestUmplanung(order.id, zielWert)}>
+                      <button
+                        className="btn btn--amber btn--sm"
+                        disabled={zielWert === order.monat}
+                        title={zielWert === order.monat ? 'Zielmonat entspricht dem aktuellen Monat' : undefined}
+                        onClick={() => requestUmplanung(order.id, zielWert)}
+                      >
                         Freigabe anfordern
                       </button>
                     )}

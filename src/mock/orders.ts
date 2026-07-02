@@ -73,10 +73,12 @@ const nextNr = () => `A-2025-${++seq}`;
 
 const BASE_ORDERS: OrderSeed[] = [
   {
+    // ua/uv sind den Ordertypes mit Unterlagen-Prozess vorbehalten (JA 301/302/303) —
+    // die Demo-Belegung der beiden Spalten kommt daher von JA-Aufträgen (o1/o2).
     id: 'o1', mandant: 'Praxis Dr. Wagner', mandantNr: 'D10217', auftragsNr: nextNr(),
     ordertype: '303', vj: 2024,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
-    soll: 18, seiten: 42, kosten: 1840, status: 'av',
+    soll: 18, seiten: 42, kosten: 1840, status: 'ua',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
     checklist: [], notes: [], times: [],
   },
@@ -84,7 +86,7 @@ const BASE_ORDERS: OrderSeed[] = [
     id: 'o2', mandant: 'Müller Immobilien GmbH', mandantNr: 'D10219', auftragsNr: nextNr(),
     ordertype: '303', vj: 2024,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
-    soll: 24, seiten: 0, kosten: 0, status: 'av',
+    soll: 24, seiten: 0, kosten: 0, status: 'uv',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
     checklist: [], notes: [], times: [],
     umplanung: { zielMonat: 'Apr 2025', freigabeAusstehend: true },
@@ -93,7 +95,7 @@ const BASE_ORDERS: OrderSeed[] = [
     id: 'o3', mandant: 'TechStart UG', mandantNr: 'D10221', auftragsNr: nextNr(),
     ordertype: '106', vj: 2025,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
-    soll: 10, seiten: 12, kosten: 620, status: 'ua',
+    soll: 10, seiten: 12, kosten: 620, status: 'bb',
     bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
     checklist: [], notes: [], times: [],
   },
@@ -101,7 +103,7 @@ const BASE_ORDERS: OrderSeed[] = [
     id: 'o4', mandant: 'Hotel Seeblick KG', mandantNr: 'D10224', auftragsNr: nextNr(),
     ordertype: '106', vj: 2025,
     fristStart: '2025-03-01', fristEnde: '2025-03-31', monat: 'Mär 2025',
-    soll: 8, seiten: 6, kosten: 410, status: 'uv',
+    soll: 8, seiten: 6, kosten: 410, status: 'av',
     bearbeiter: 'M. Klein', bearbeiterId: 'mk', partner: 'O. Burchardt',
     checklist: [], notes: [], times: [],
   },
@@ -331,16 +333,17 @@ export const MOCK_ORDERS: Order[] = BASE_ORDERS.map((o) => {
 });
 
 /**
- * Mandantenbesonderheiten — Schlüssel = `${mandantNr}::${artKey}` (period-unabhängig).
- * Bäckerei Lindner (D10216) hat zwei JA-Aufträge (o5, o8) → beide greifen auf denselben Eintrag zu;
+ * Mandantenbesonderheiten — Schlüssel = `${mandantNr}::${ordertype}` (period-unabhängig,
+ * deckungsgleich mit DB-Design `clientId+ordertype`).
+ * Bäckerei Lindner (D10216) hat zwei 303-Aufträge (o5, o8) → beide greifen auf denselben Eintrag zu;
  * genauso würde der JA-Folgeauftrag eines neuen Jahres automatisch dieselben Besonderheiten zeigen.
  */
 export const MOCK_BESONDERHEITEN: Record<string, Besonderheit[]> = {
-  'D10216::ja': [
+  'D10216::303': [
     { id: 'b1', text: 'Vorräte werden nach FIFO bewertet (Abstimmung mit Mandant 2022).', author: 'O. Burchardt', datum: '2024-02-10' },
     { id: 'b2', text: 'Pensionsrückstellung: jährliches versicherungsmathematisches Gutachten anfordern.', author: 'S. Wolf', datum: '2024-02-12' },
   ],
-  'D10221::fibu': [
+  'D10221::106': [
     { id: 'b3', text: 'EU-Eingangsleistungen: Reverse-Charge beachten (§ 13b UStG).', author: 'S. Wolf', datum: '2025-01-15' },
     { id: 'b4', text: 'Buchung auf Kostenstellen je Projekt erforderlich.', author: 'S. Wolf', datum: '2025-01-15' },
   ],

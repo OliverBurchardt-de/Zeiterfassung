@@ -25,15 +25,20 @@ export function buildApp(config: Config, deps: AppDeps): FastifyInstance {
   app.register(async (instance) => {
     registerAuth(instance, deps);
     healthRoutes(instance, deps.datev);
-    authRoutes(instance, deps);
+    authRoutes(instance, deps, {
+      secureCookies: config.nodeEnv === 'production',
+      sessionTtlMs: config.sessionTtlMs,
+    });
     orderRoutes(instance, deps.datev);
   });
 
-  // Zentrale Fehlerbehandlung (ADR-11): keine internen Details nach aussen.
+  // Zentrale Fehlerbehandlung (ADR-11): keine internen Details nach aussen — auch bei 4xx nicht
+  // (Library-Fehlermeldungen wie Content-Type-Parser koennten Interna verraten; unsere Routen
+  // antworten ohnehin direkt mit eigenen Meldungen und laufen nicht durch diesen Handler).
   app.setErrorHandler((err, req, reply) => {
     req.log.error(err);
     const status = err.statusCode ?? 500;
-    reply.code(status).send({ error: status >= 500 ? 'interner Fehler' : err.message });
+    reply.code(status).send({ error: status >= 500 ? 'interner Fehler' : 'Anfrage fehlgeschlagen' });
   });
 
   return app;

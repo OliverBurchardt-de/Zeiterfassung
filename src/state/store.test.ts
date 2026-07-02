@@ -56,17 +56,96 @@ describe('umplanen (freie Umplanung) + VJ-Kontingent', () => {
     expect(o.fristStart).toBe('2025-05-01');
     expect(o.umplanungenVerbraucht).toBe(1);
   });
+  it('Erstplanung (kein Monat) verbraucht das Kontingent NICHT', () => {
+    seed({ artKey: 'ja', monat: '', fristStart: '', fristEnde: '', umplanungenVerbraucht: 0 });
+    useStore.getState().umplanen('test-1', 'Mai 2025');
+    const o = current();
+    expect(o.monat).toBe('Mai 2025');
+    expect(o.umplanungenVerbraucht).toBe(0);
+  });
+  it('Ziel = aktueller Monat ist ein No-Op (verbraucht nichts)', () => {
+    seed({ artKey: 'ja', monat: 'Mär 2025', umplanungenVerbraucht: 0 });
+    useStore.getState().umplanen('test-1', 'Mär 2025');
+    const o = current();
+    expect(o.monat).toBe('Mär 2025');
+    expect(o.umplanungenVerbraucht).toBe(0);
+  });
+  it('Guard: ohne Freikontingent (oder fremde Art) ändert umplanen nichts', () => {
+    seed({ artKey: 'ja', monat: 'Mär 2025', umplanungenVerbraucht: 1 });
+    useStore.getState().umplanen('test-1', 'Mai 2025');
+    expect(current().monat).toBe('Mär 2025');
+
+    seed({ artKey: 'fibu', monat: 'Mär 2025', umplanungenVerbraucht: 0 });
+    useStore.getState().umplanen('test-1', 'Mai 2025');
+    expect(current().monat).toBe('Mär 2025');
+  });
+  it('erzwungen (Partner/Admin) verschiebt trotz Sperre und zählt wie eine Freigabe', () => {
+    seed({ artKey: 'fibu', monat: 'Mär 2025', umplanungenVerbraucht: 0 });
+    useStore.getState().umplanen('test-1', 'Mai 2025', { erzwungen: true });
+    const o = current();
+    expect(o.monat).toBe('Mai 2025');
+    expect(o.umplanungenVerbraucht).toBe(1);
+  });
   it('approveUmplanung zählt das Kontingent ebenfalls hoch', () => {
     seed({ artKey: 'ja', monat: 'Mär 2025', umplanungenVerbraucht: 1, umplanung: { zielMonat: 'Jun 2025', freigabeAusstehend: true } });
     useStore.getState().approveUmplanung('test-1');
     expect(current().umplanungenVerbraucht).toBe(2);
   });
-  it('unplanOrder setzt das Kontingent zurück', () => {
+  it('unplanOrder (Partner/Admin-Weg) setzt das Kontingent zurück', () => {
     seed({ artKey: 'ja', monat: 'Mai 2025', umplanungenVerbraucht: 1 });
     useStore.getState().unplanOrder('test-1');
     const o = current();
     expect(o.monat).toBe('');
     expect(o.umplanungenVerbraucht).toBe(0);
+  });
+  it('unplanOrder mit kontingentVerbrauchen zählt +1 (kein Freigabe-Umweg über den Pool)', () => {
+    seed({ artKey: 'ja', monat: 'Mai 2025', umplanungenVerbraucht: 0 });
+    useStore.getState().unplanOrder('test-1', { kontingentVerbrauchen: true });
+    const o = current();
+    expect(o.monat).toBe('');
+    expect(o.umplanungenVerbraucht).toBe(1);
+    // Anschließende Erstplanung ist frei, verbraucht aber nichts weiter →
+    // netto genau eine freie Verschiebung, wie beim direkten Umplanen.
+    useStore.getState().umplanen('test-1', 'Jun 2025');
+    expect(current().monat).toBe('Jun 2025');
+    expect(current().umplanungenVerbraucht).toBe(1);
+  });
+});
+
+describe('Timer (Zeitstempel-basiert)', () => {
+  it('läuft unabhängig vom UI weiter und friert bei Pause ein', async () => {
+    seed({ timerRunning: false, timerSec: 0, times: [] });
+    useStore.getState().startTimer('test-1');
+    const o1 = current();
+    expect(o1.timerRunning).toBe(true);
+    expect(o1.timerStartedAt).toBeTypeOf('number');
+    // timerSeconds rechnet Basis + Echtzeit seit Start (hier simuliert über nowMs).
+    const { timerSeconds } = await import('./store');
+    expect(timerSeconds(o1, o1.timerStartedAt! + 90_000)).toBe(90);
+    useStore.getState().pauseTimer('test-1');
+    const o2 = current();
+    expect(o2.timerRunning).toBe(false);
+    expect(o2.timerStartedAt).toBeUndefined();
+  });
+  it('transferTimer bucht auf den Demo-Stichtag HEUTE', () => {
+    seed({ timerRunning: false, timerSec: 3600, times: [] });
+    useStore.getState().transferTimer('test-1', 'Notiz');
+    const o = current();
+    expect(o.times).toHaveLength(1);
+    expect(o.times[0].dauer).toBe(1);
+    expect(o.times[0].datum).toBe('2025-03-20');
+    expect(o.timerSec).toBe(0);
+  });
+});
+
+describe('Login/Deaktivierung', () => {
+  it('setUserActive meldet den betroffenen angemeldeten Nutzer ab', () => {
+    const users = useStore.getState().users;
+    useStore.setState({ currentUserId: users[0].id });
+    useStore.getState().setUserActive(users[0].id, false);
+    expect(useStore.getState().currentUserId).toBeNull();
+    // aufräumen
+    useStore.getState().setUserActive(users[0].id, true);
   });
 });
 

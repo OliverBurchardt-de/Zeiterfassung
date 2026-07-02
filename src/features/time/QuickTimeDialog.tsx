@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
+import { HEUTE } from '@/mock/orders';
 
 /**
  * Schnellbuchung laufender Zeiten direkt aus dem Auftrag heraus — ohne Screenwechsel.
@@ -41,7 +42,8 @@ export function QuickTimeDialog({ order, onClose }: { order: Order; onClose: () 
     const ziel = kat === 'beratung' ? beratung : mehr;
     if (!ziel) return;
     const aufwandsart = kat === 'mehraufwand' ? 'mehraufwand' : kat === 'dumm' ? 'dumm' : undefined;
-    addManual(ziel.id, new Date().toISOString().slice(0, 10), v, notiz, aufwandsart);
+    // Arbeitsdatum = Demo-Stichtag HEUTE (einheitlich mit „Heute erfasst"/Controlling).
+    addManual(ziel.id, HEUTE, v, notiz, aufwandsart);
     setDone(true);
   }
 

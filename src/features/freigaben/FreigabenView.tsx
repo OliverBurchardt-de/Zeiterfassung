@@ -31,7 +31,7 @@ export function FreigabenView() {
       <h1 style={{ fontSize: 'var(--bk-fs-h1)', marginBottom: 4 }}>Freigaben</h1>
       <p className="muted" style={{ marginBottom: 18 }}>
         Offene Freigaben des mandatsverantwortlichen Partners an einer Stelle.
-        {nurPartner && ' Zum Freigeben oben rechts in die Rolle „Partner" wechseln.'}
+        {nurPartner && ' Freigeben kann nur ein als Partner angemeldeter Nutzer (z. B. O. Burchardt).'}
       </p>
 
       <div className="ctrl-kpis">

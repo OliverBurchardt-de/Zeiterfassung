@@ -54,9 +54,10 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
   **nur Umplanungen + Review-Notes** — **Zeiten brauchen keine Partner-Freigabe** (s. u.).
 - **Persistenz:** Store via `persist` (localStorage, Key `bk-zeiterfassung`); `version` bei
   Änderungen am Order-Datenmodell erhöhen, damit der Mock neu seedet.
-- **Mandantenbesonderheiten** am Schlüssel `besKey(mandantNr, artKey)` (period-unabhängig, nicht am
-  Order-Objekt) → automatische Übernahme in Folgeaufträge. Button nur für Ordertypes mit
-  `besonderheiten`-Flag (`hasBesonderheiten`).
+- **Mandantenbesonderheiten** am Schlüssel `besKey(mandantNr, ordertype)` (period-unabhängig, nicht
+  am Order-Objekt; deckungsgleich mit DB-Design `clientId+ordertype` und `docs/datev-integration.md`)
+  → automatische Übernahme in Folgeaufträge. Button nur für Ordertypes mit `besonderheiten`-Flag
+  (`hasBesonderheiten`).
 - **Controlling** ist eine reine Sicht über `orders[]` (Logik zentral in `src/state/selectors.ts`:
   `auslastungPct`, `istUeberfaellig`, `istNichtAbgerechnet`); **Planung** plant Aufträge per
   Drag & Drop ein (`planOrder`/`unplanOrder` setzen `monat`+`fristStart/Ende`; Monats-/Arbeitstags-
@@ -85,9 +86,13 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
 - **Umplanung** in anderen Monat → grundsätzlich Freigabe-Anfrage an den Partner (Badge „Freigabe
   ausstehend"). **Ausnahme JA/ESt:** Erstplanung ist frei; `ja`/`est`-Aufträge dürfen **1× pro
   Veranlagungsjahr** ohne Freigabe umgeplant werden, danach gilt wieder die Partner-Freigabe.
-  Zentral in `umplanungFreiMoeglich`/`umplanungRegelGilt` (`src/state/selectors.ts`) + Store-Action
-  `umplanen` (zählt `Order.umplanungenVerbraucht`; `unplanOrder` setzt zurück); durchgesetzt in
-  `OrderModal` und `PlanungView`.
+  Zentral in `umplanungFreiMoeglich`/`umplanungRegelGilt` (`src/lib/regeln.ts`, re-exportiert aus
+  `selectors.ts`) + Store-Action `umplanen` mit **Guard im Store** (Erstplanung und Ziel = aktueller
+  Monat verbrauchen NICHTS; sonst zählt `Order.umplanungenVerbraucht` +1; `erzwungen` = Partner/
+  Admin-Direktverschiebung, zählt wie Freigabe). `unplanOrder` (Partner/Admin) setzt zurück;
+  Mitarbeiter-Zurücklegen nutzt `{ kontingentVerbrauchen: true }` — sonst wäre „Pool und neu
+  ziehen" eine Freigabe-Umgehung. Durchgesetzt in `OrderModal` und `PlanungView` (beide über
+  `rolePolicy`).
 - **Auftrags-Anforderung** (Workflow, kein API-Write — DATEV kennt kein `POST /orders`): Knopf
   „Auftrag anfordern" im Board-Kopf (`KpiHeader`) → `AuftragsAnforderung` im Store
   (`angefordert → angelegt | abgelehnt`); Backoffice-Inbox in der Verwaltung (Admin). Sicht über

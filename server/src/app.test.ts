@@ -77,4 +77,46 @@ describe('API', () => {
     const ids = (res.json() as Array<{ id: string }>).map((o) => o.id);
     expect(ids).toEqual(['9993', '9001']);
   });
+
+  it('Login setzt httpOnly-Session-Cookie mit Ablauf', async () => {
+    const app = await makeApp();
+    const { res } = await loginCookie(app, 'wolf', 'demo');
+    const cookie = res.cookies.find((c) => c.name === 'sid');
+    expect(cookie?.httpOnly).toBe(true);
+    expect(cookie?.maxAge).toBeGreaterThan(0);
+  });
+
+  it('unbekannter Benutzer und falsches Passwort liefern dieselbe Antwort', async () => {
+    const app = await makeApp();
+    const a = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'gibtsnicht', password: 'x' } });
+    const b = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'wolf', password: 'falsch' } });
+    expect(a.statusCode).toBe(401);
+    expect(b.statusCode).toBe(401);
+    expect(a.json()).toEqual(b.json());
+  });
+});
+
+describe('Sessions (TTL)', () => {
+  it('abgelaufene Session ist ungueltig', async () => {
+    const { createMemorySessionStore } = await import('./auth/sessions');
+    const store = createMemorySessionStore(-1); // sofort abgelaufen
+    const id = store.create('u-wolf');
+    expect(store.get(id)).toBeUndefined();
+  });
+});
+
+describe('Config (Fail-Fast)', () => {
+  it('bricht in Produktion ohne COOKIE_SECRET ab', async () => {
+    const { loadConfig } = await import('./config');
+    const prevEnv = process.env.NODE_ENV;
+    const prevSecret = process.env.COOKIE_SECRET;
+    process.env.NODE_ENV = 'production';
+    delete process.env.COOKIE_SECRET;
+    try {
+      expect(() => loadConfig()).toThrow(/COOKIE_SECRET/);
+    } finally {
+      process.env.NODE_ENV = prevEnv;
+      if (prevSecret !== undefined) process.env.COOKIE_SECRET = prevSecret;
+    }
+  });
 });

@@ -1,16 +1,19 @@
 import { useMemo, useState } from 'react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
+import { useVisibleOrders } from '@/state/selectors';
 import { ART, formatHours, erfassteStunden, artNeedsNotiz, isLaufendeArt, AUFWANDSARTEN, needsAufwandsart, TIME_STATUS } from '@/lib/art';
 import { rolePolicy } from '@/lib/tokens';
 import type { Aufwandsart } from '@/lib/types';
+import { HEUTE } from '@/mock/orders';
 
 /**
  * Modul „Laufende Buchungen": Auftragsarten ohne Status-Flow (Laufende Steuerberatung,
  * Mehraufwand). Pro Mandant ein Block, in dem nur Zeit gebucht wird — mit Pflicht-Notiz.
+ * Sichtbarkeit wie überall: nur die für den angemeldeten Nutzer sichtbaren Aufträge.
  */
 export function LaufendeView() {
-  const orders = useStore((s) => s.orders);
+  const orders = useVisibleOrders();
 
   const byMandant = useMemo(() => {
     const map = new Map<string, Order[]>();
@@ -66,7 +69,7 @@ function LaufendeOrder({ order }: { order: Order }) {
   function submit() {
     const v = parseFloat(dauer.replace(',', '.'));
     if (!isNaN(v) && v > 0 && notizOk && aufOk) {
-      addManual(order.id, new Date().toISOString().slice(0, 10), v, notiz, aufwandsart || undefined);
+      addManual(order.id, HEUTE, v, notiz, aufwandsart || undefined);
       setDauer('');
       setNotiz('');
       setAufwandsart('');

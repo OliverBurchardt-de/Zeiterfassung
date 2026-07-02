@@ -27,34 +27,9 @@ export function useVisibleOrders(): Order[] {
 }
 
 // ---- Umplanungs-Regeln (JA/ESt) -----------------------------------------
-
-/** Freie Umplanungen pro Veranlagungsjahr, bevor eine Partner-Freigabe nötig wird. */
-export const FREIE_UMPLANUNGEN_PRO_JAHR = 1;
-
-/**
- * Gilt für den Auftrag die Sonderregel „1× Umplanung pro VJ frei, danach Partner-Freigabe"?
- * Abgestimmt: nur Jahresabschluss (`ja`) und Einkommensteuer/Private Steuern (`est`).
- */
-export function umplanungRegelGilt(o: Order): boolean {
-  return o.artKey === 'ja' || o.artKey === 'est';
-}
-
-/**
- * Darf der Auftrag OHNE Partner-Freigabe (um)geplant werden?
- * - Erstplanung (noch kein Monat) ist immer frei.
- * - JA/ESt: solange das Freikontingent des VJ nicht aufgebraucht ist.
- * - Alle übrigen Arten: nein — jede Umplanung erfordert die Partner-Freigabe (CLAUDE.md).
- */
-export function umplanungFreiMoeglich(o: Order): boolean {
-  if (!o.monat) return true;
-  if (!umplanungRegelGilt(o)) return false;
-  return (o.umplanungenVerbraucht ?? 0) < FREIE_UMPLANUNGEN_PRO_JAHR;
-}
-
-/** Verbleibende freie Umplanungen des Auftrags im VJ (nur sinnvoll, wenn die Regel gilt). */
-export function freieUmplanungenRest(o: Order): number {
-  return Math.max(0, FREIE_UMPLANUNGEN_PRO_JAHR - (o.umplanungenVerbraucht ?? 0));
-}
+// Reine Regeln leben in src/lib/regeln.ts (auch der Store-Guard nutzt sie);
+// hier nur re-exportiert, damit bestehende Importe stabil bleiben.
+export { FREIE_UMPLANUNGEN_PRO_JAHR, umplanungRegelGilt, umplanungFreiMoeglich, freieUmplanungenRest } from '@/lib/regeln';
 
 // ---- Auftrags-Anforderungen ---------------------------------------------
 
@@ -182,14 +157,20 @@ export function kpis(orders: Order[]) {
 export const TAGES_SOLL = 8.0;
 
 export function heuteErfasst(orders: Order[]): { gesamt: number; perMandant: { mandant: string; stunden: number }[] } {
-  const perMandant: { mandant: string; stunden: number }[] = [];
+  // Pro Mandant aggregieren (mehrere Aufträge desselben Mandanten → eine Zeile) und die
+  // Top 5 nach Stunden zeigen — sonst doppelte Zeilen/React-Keys und ein zufälliges „Top 5".
+  const map = new Map<string, number>();
   let gesamt = 0;
   for (const o of orders) {
     const h = erfassteStunden(o.times.filter((t) => t.datum === HEUTE));
     if (h > 0) {
       gesamt += h;
-      perMandant.push({ mandant: o.mandant, stunden: h });
+      map.set(o.mandant, (map.get(o.mandant) ?? 0) + h);
     }
   }
-  return { gesamt, perMandant: perMandant.slice(0, 5) };
+  const perMandant = Array.from(map.entries())
+    .map(([mandant, stunden]) => ({ mandant, stunden }))
+    .sort((a, b) => b.stunden - a.stunden)
+    .slice(0, 5);
+  return { gesamt, perMandant };
 }

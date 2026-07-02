@@ -10,17 +10,27 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-/** Aus einer Dateiauswahl Anhänge erzeugen (Mock: Object-URL fürs Herunterladen). */
-function filesToAttachments(files: FileList | null): Attachment[] {
-  if (!files) return [];
-  return Array.from(files).map((f) => ({
-    id: crypto.randomUUID(), name: f.name, size: f.size, url: URL.createObjectURL(f),
-  }));
+/**
+ * Max. Dateigröße je Anhang im Mock: Anhänge werden als data-URL im Browser-Speicher
+ * (localStorage) persistiert — Object-URLs wären nach einem Reload tote Links und
+ * würden Speicher leaken. Echte Datei-Ablage (Storage + Prüfung) kommt in M2.
+ */
+const MAX_ATTACHMENT_BYTES = 1.5 * 1024 * 1024;
+
+function fileToAttachment(f: File): Promise<Attachment | null> {
+  if (f.size > MAX_ATTACHMENT_BYTES) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const r = new FileReader();
+    r.onload = () => resolve({ id: crypto.randomUUID(), name: f.name, size: f.size, url: String(r.result) });
+    r.onerror = () => resolve(null);
+    r.readAsDataURL(f);
+  });
 }
 
-/** Button mit verstecktem Datei-Input. */
+/** Button mit verstecktem Datei-Input; zu große Dateien werden mit Hinweis übersprungen. */
 function AttachButton({ onFiles, label }: { onFiles: (a: Attachment[]) => void; label: string }) {
   const ref = useRef<HTMLInputElement>(null);
+  const [skipped, setSkipped] = useState(0);
   return (
     <>
       <input
@@ -29,8 +39,12 @@ function AttachButton({ onFiles, label }: { onFiles: (a: Attachment[]) => void; 
         multiple
         style={{ display: 'none' }}
         onChange={(e) => {
-          const atts = filesToAttachments(e.target.files);
-          if (atts.length) onFiles(atts);
+          const files = Array.from(e.target.files ?? []);
+          void Promise.all(files.map(fileToAttachment)).then((list) => {
+            const atts = list.filter((a): a is Attachment => a !== null);
+            setSkipped(files.length - atts.length);
+            if (atts.length) onFiles(atts);
+          });
           if (ref.current) ref.current.value = '';
         }}
       />
@@ -42,6 +56,11 @@ function AttachButton({ onFiles, label }: { onFiles: (a: Attachment[]) => void; 
       >
         <Paperclip size={14} /> {label}
       </button>
+      {skipped > 0 && (
+        <span className="hint" style={{ color: 'var(--bk-blood-orange)' }}>
+          {skipped} Datei{skipped > 1 ? 'en' : ''} übersprungen (max. 1,5 MB je Datei im Prototyp)
+        </span>
+      )}
     </>
   );
 }

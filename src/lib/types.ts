@@ -21,7 +21,10 @@ export interface Comment {
   role: Role;
 }
 
-/** Datei-Anhang an einer Note (Mock: url = Object-URL; im Backend später echte Datei-URL). */
+/**
+ * Datei-Anhang an einer Note. Mock: `url` = data-URL (überlebt Reloads, kein Speicher-Leak);
+ * begrenzt auf kleine Dateien. Im Backend (M2) später Storage-Key + echte Datei-URL.
+ */
 export interface Attachment {
   id: string;
   name: string;
@@ -131,9 +134,14 @@ export interface Order {
    * DATEV-Auftrag genau ein `vj` trägt, ist der Zähler am Auftrag zugleich der VJ-Zähler.
    */
   umplanungenVerbraucht?: number;
-  /** läuft gerade ein Timer auf dieser Karte (Demo-State) */
+  /**
+   * Live-Timer: `timerSec` = eingefrorene Basis (Sekunden), `timerStartedAt` = Epoch-ms des
+   * letzten Starts. Der aktuelle Stand ist `timerSeconds(order)` (Basis + Echtzeit seit Start) —
+   * so läuft die Zeit auch bei geschlossenem Detail und über Reloads korrekt weiter.
+   */
   timerSec?: number;
   timerRunning?: boolean;
+  timerStartedAt?: number;
 }
 
 export interface Employee {
