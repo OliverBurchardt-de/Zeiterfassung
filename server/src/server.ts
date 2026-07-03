@@ -1,9 +1,10 @@
 import { loadConfig } from './config';
 import { buildApp } from './app';
 import { createMemorySessionStore } from './auth/sessions';
-import { seedDemoUsers, createMemoryUserRepository } from './infra/memory/users';
+import { seedDemoUsers } from './infra/memory/users';
+import { createMemoryRepositories } from './infra/memory/repos';
 import { createPool } from './infra/mssql/db';
-import { createMssqlUserRepository } from './infra/mssql/users';
+import { createMssqlRepositories } from './infra/mssql';
 import { createDatevAdapter } from './datev';
 
 /**
@@ -12,13 +13,13 @@ import { createDatevAdapter } from './datev';
  */
 async function main(): Promise<void> {
   const config = loadConfig();
-  const users =
+  const repos =
     config.db.mode === 'mssql'
-      ? createMssqlUserRepository(await createPool(config.db))
-      : createMemoryUserRepository(await seedDemoUsers());
+      ? createMssqlRepositories(await createPool(config.db))
+      : createMemoryRepositories(await seedDemoUsers());
   const deps = {
     sessions: createMemorySessionStore(config.sessionTtlMs),
-    users,
+    users: repos.users,
     datev: createDatevAdapter(config),
   };
   const app = buildApp(config, deps);

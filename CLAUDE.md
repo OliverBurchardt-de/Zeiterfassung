@@ -113,5 +113,8 @@ DATEV-Adapter (DATEVconnect, Basic Auth) für Lesen + Rückschreibung, eigene Pe
 E-Mail-Reminder. Architektur-Entscheidungen: `docs/architektur-entscheidungen.md`; Fahrplan:
 `docs/m2-plan.md`. DATEV-Mechanik (lesen, buchen, PUT) am Echtsystem verifiziert — auch **von
 außerhalb des ASP** (`docs/datev-connect-handoff.md`, §12). Stand: echter HTTP-DATEV-Adapter
-(`DATEV_MODE=http`) und MS-SQL-User-Repository (`DB_MODE=mssql`) vorhanden; Default bleibt
-in-memory + Schein-DATEV (Tests grün). Übrige Fach-Repos (Zeiten/Notes/…) folgen.
+(`DATEV_MODE=http`, Basic + NTLM) und **alle Fach-Repositories** (Nutzer, Zeiten, Notes,
+Board-Overlay, Checklisten, Status-Historie, Outbox, Anforderungen, Besonderheiten) als Memory-
+**und** MS-SQL-Variante hinter denselben Ports (`Repositories` in `server/src/domain/ports.ts`,
+Umschaltung per `DB_MODE`); Default bleibt in-memory + Schein-DATEV (Tests grün). Als Nächstes:
+Domain-Aktionen (Status/Zeit/Note) + API-Routen auf den Repos, dann Frontend anschließen.

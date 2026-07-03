@@ -113,9 +113,15 @@ bestätigten Annahmen, offenen Risiken und dem finalen Status-Mapping. Erst dana
 > verifiziertes Feld-Mapping, getestet) und **MS-SQL-Grundlage** (`DB_MODE=mssql`): vollständiges
 > Schema `server/db/schema.sql` (10 Tabellen, idempotent), Einricht-Skript `npm run db:setup`
 > (Tabellen + erster Admin), Nutzer-Repository gegen MS SQL. **Prisma → `mssql`/tedious** (reines JS,
-> keine Engine-Binärdateien; ADR-04-Änderungsvermerk). **29 Tests grün.** **Nächste Schritte:**
-> übrige Fach-Repos (Zeiten/Notes/Overlay/Outbox) auf MS SQL, Frontend anschließen, Domain-Aktionen
-> (Status/Zeit/Note) serverseitig.
+> keine Engine-Binärdateien; ADR-04-Änderungsvermerk). Dazu **NTLM-Anmeldung** im DATEV-Adapter +
+> **lokale Entwicklungsumgebung** (ADR-13, `docs/entwicklungsumgebung.md`).
+>
+> ✅ **Fortschritt (03.07.2026):** **Alle Fach-Repositories** vollständig — Zeiten, Notes
+> (+Kommentare), Board-Overlay, Checklisten, Status-Historie, Outbox, Anforderungen,
+> Besonderheiten — jeweils als **Memory**- und **MS-SQL**-Variante hinter denselben Ports
+> (`Repositories`-Bündel in `src/domain/ports.ts`; Verdrahtung per `DB_MODE` in `server.ts`).
+> **48 Tests grün.** **Nächste Schritte:** Domain-Aktionen (Status/Zeit/Note) serverseitig auf
+> die Repos setzen, API-Routen ergänzen, Frontend anschließen.
 
 - **Stack:** Node.js + TypeScript, **Fastify** (leichtgewichtig, gutes Schema/Validation), REST-API
   für die SPA. **MS SQL Server** (bestehende Instanz im ASP-Umfeld, eigene DB + eigener Benutzer);

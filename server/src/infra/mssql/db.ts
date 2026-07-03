@@ -17,6 +17,9 @@ export async function createPool(cfg: DbConfig): Promise<sql.ConnectionPool> {
     options: {
       encrypt: cfg.encrypt,
       trustServerCertificate: cfg.trustServerCertificate,
+      // Datumswerte konsequent als UTC lesen/schreiben — die Domaene arbeitet mit
+      // ISO-Strings; ohne Festlegung hinge z. B. das work_date von der Server-Zeitzone ab.
+      useUTC: true,
       ...(cfg.instanceName ? { instanceName: cfg.instanceName } : {}),
     },
     pool: { max: 10, min: 0, idleTimeoutMillis: 30_000 },

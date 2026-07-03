@@ -6,7 +6,9 @@ Server der App: REST-API, eigener Login, eigene Persistenz, DATEV-Adapter. Archi
 > **Stand:** Gerüst + echte Adapter. Default läuft gegen **In-Memory**-Daten und einen
 > **Schein-DATEV-Adapter** (ohne Datenbank/DATEV lauffähig und testbar). Zuschaltbar sind der
 > **echte DATEVconnect-Adapter** (`DATEV_MODE=http`) und die **MS-SQL-Persistenz**
-> (`DB_MODE=mssql`, Nutzer-Repository; übrige Fach-Repos folgen) — `buildApp` bleibt gleich.
+> (`DB_MODE=mssql`; **alle** Fach-Repositories: Nutzer, Zeiten, Notes, Board-Overlay, Checklisten,
+> Status-Historie, Outbox, Anforderungen, Besonderheiten) — `buildApp` bleibt gleich.
+> Die Domain-Aktionen/Routen auf diesen Repos folgen als nächster Schritt.
 
 ## Schnellstart
 ```bash
