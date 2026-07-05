@@ -116,7 +116,9 @@ const BASE_ORDERS: OrderSeed[] = [
     checklist: [],
     notes: [],
     times: [{ id: 't1', datum: '2025-03-18', dauer: 3.5, status: 'erfasst' }],
-    timerRunning: true, timerSec: 0,
+    // Laufender Demo-Timer: MIT Startzeitpunkt seeden (~12 min her), sonst friert der
+    // zeitstempelbasierte Timer bei 00:00 ein und „Übertragen" bucht nichts (Codex-Review P3).
+    timerRunning: true, timerSec: 0, timerStartedAt: Date.now() - 12 * 60 * 1000,
   },
   {
     id: 'o6', mandant: 'Schmidt & Partner', mandantNr: 'D10230', auftragsNr: nextNr(),

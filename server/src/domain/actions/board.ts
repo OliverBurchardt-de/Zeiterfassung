@@ -49,8 +49,12 @@ export function createBoardActions(repos: Repositories, datev: DatevPort) {
         repos.overlays.list(),
       ]);
       const visible = visibleOrders(orders, actor);
+      // Note-/Kommentar-Autoren tragen die APP-User-ID (authorId); Auftrags-Bearbeiter/-Partner
+      // dagegen die DATEV-Mitarbeiter-ID (responsibleId/partnerId). Deshalb zwei getrennte Lookups.
       const userById = new Map(users.map((u) => [u.id, u]));
-      const nameOf = (id?: string) => (id ? userById.get(id)?.name : undefined);
+      const nameByAppId = (id?: string) => (id ? userById.get(id)?.name : undefined);
+      const nameByDatevId = new Map(users.filter((u) => u.datevEmployeeId).map((u) => [u.datevEmployeeId as string, u.name]));
+      const nameByDatev = (id?: string) => (id ? nameByDatevId.get(id) : undefined);
       const overlayByOrder = new Map(overlays.map((o) => [o.orderId, o]));
 
       return Promise.all(
@@ -67,13 +71,13 @@ export function createBoardActions(repos: Repositories, datev: DatevPort) {
               noteState: n.noteState,
               text: n.text,
               authorId: n.authorId,
-              authorName: nameOf(n.authorId) ?? n.authorId,
+              authorName: nameByAppId(n.authorId) ?? n.authorId,
               createdAt: n.createdAt,
               comments: (await repos.notes.listComments(n.id)).map((c) => ({
                 id: c.id,
                 text: c.text,
                 authorId: c.authorId,
-                authorName: nameOf(c.authorId) ?? c.authorId,
+                authorName: nameByAppId(c.authorId) ?? c.authorId,
                 authorRole: userById.get(c.authorId)?.role ?? 'mitarbeiter',
                 createdAt: c.createdAt,
               })),
@@ -84,8 +88,8 @@ export function createBoardActions(repos: Repositories, datev: DatevPort) {
             ...o,
             boardStatus: overlay?.boardStatus,
             umplanungenVerbraucht: overlay?.umplanungenVerbraucht ?? 0,
-            responsibleName: nameOf(o.responsibleId),
-            partnerName: nameOf(o.partnerId),
+            responsibleName: nameByDatev(o.responsibleId),
+            partnerName: nameByDatev(o.partnerId),
             times,
             notes: noteDtos,
             checklist,

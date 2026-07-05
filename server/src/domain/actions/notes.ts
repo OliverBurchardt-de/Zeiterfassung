@@ -70,13 +70,25 @@ export function createNoteActions(repos: Repositories, clock: Clock, requireVisi
       return next;
     },
 
-    /** erledigt -> offen, nur fuer eine Frage (Rueckfrage/wieder aufnehmen). */
+    /**
+     * -> offen. Zwei Faelle (wie im Frontend):
+     *  - Frage:  erledigt -> offen (Rueckfrage/wieder aufnehmen) — der Mitarbeiter.
+     *  - Review: erledigt -> offen („Zurueck an Mitarbeiter") ODER freigegeben -> offen
+     *            (freigegebene Review wieder aufnehmen) — der Partner (Codex-Review P2).
+     */
     async reopen(actor: PublicUser, id: string): Promise<Note> {
       const note = await loadVisible(actor, id);
-      if (note.kind !== 'frage' || !notePolicy.canReopenFrage(actor.role)) {
-        throw new DomainError('forbidden', 'nur der Mitarbeiter kann eine Frage wieder aufnehmen');
+      if (note.kind === 'frage') {
+        if (!notePolicy.canReopenFrage(actor.role)) {
+          throw new DomainError('forbidden', 'nur der Mitarbeiter kann eine Frage wieder aufnehmen');
+        }
+        if (note.noteState !== 'erledigt') throw new DomainError('conflict', 'Frage ist nicht erledigt');
+      } else {
+        if (!notePolicy.canReturnReview(actor.role, note.kind)) {
+          throw new DomainError('forbidden', 'nur der Partner kann eine Review zurueckgeben');
+        }
+        if (note.noteState === 'offen') throw new DomainError('conflict', 'Review ist bereits offen');
       }
-      if (note.noteState !== 'erledigt') throw new DomainError('conflict', 'Note ist nicht erledigt');
       const next: Note = { ...note, noteState: 'offen' };
       await repos.notes.update(next);
       return next;

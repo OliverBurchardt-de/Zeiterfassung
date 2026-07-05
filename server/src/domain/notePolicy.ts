@@ -19,6 +19,12 @@ export const notePolicy = {
   canReopenFrage: (role: Role): boolean => role === 'mitarbeiter',
   /** Nur Review-Notes durchlaufen eine Partner-Freigabe (erledigt -> freigegeben). */
   canApprove: (role: Role, kind: NoteKind): boolean => role === 'partner' && kind === 'review',
+  /**
+   * Review „Zurueck an Mitarbeiter" (erledigt -> offen) bzw. eine bereits freigegebene Review
+   * wieder aufnehmen (freigegeben -> offen): der Partner. Spiegel des Frontend-Buttons
+   * „Zurueck an Mitarbeiter" (Codex-Review P2).
+   */
+  canReturnReview: (role: Role, kind: NoteKind): boolean => role === 'partner' && kind === 'review',
   /** Fragen entfernt der Mitarbeiter, Review-Notes der Partner. */
   canDelete: (role: Role, kind: NoteKind): boolean =>
     kind === 'frage' ? role === 'mitarbeiter' : role === 'partner',

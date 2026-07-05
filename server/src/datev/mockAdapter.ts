@@ -18,8 +18,10 @@ const SAMPLE_ORDERS: OrderView[] = [
     clientId: 'client-1',
     clientName: 'Hotel Seeblick KG',
     clientNumber: '10230',
-    responsibleId: 'u-wolf',
-    partnerId: 'u-burchardt',
+    // DATEV-Mitarbeiter-IDs (order_responsible1_id / order_partner_id) — bewusst NICHT die
+    // App-User-IDs; der Abgleich laeuft ueber user.datevEmployeeId (s. domain/visibility.ts).
+    responsibleId: 'emp-wolf',
+    partnerId: 'emp-burchardt',
     isInternal: false,
     plannedHours: 18,
     assessmentYear: 2026,
@@ -37,8 +39,8 @@ const SAMPLE_ORDERS: OrderView[] = [
     clientId: 'client-2',
     clientName: 'Praxis Dr. Wagner',
     clientNumber: '10475',
-    responsibleId: 'u-klein',
-    partnerId: 'u-burchardt',
+    responsibleId: 'emp-klein',
+    partnerId: 'emp-burchardt',
     isInternal: false,
     plannedHours: 40,
     assessmentYear: 2025,

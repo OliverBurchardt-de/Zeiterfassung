@@ -6,13 +6,15 @@ import type { Clock } from '../clock';
 import { createActions, type Actions } from './index';
 import { isDomainError } from '../errors';
 
-const mitarbeiter: PublicUser = { id: 'u-wolf', username: 'wolf', name: 'S. Wolf', role: 'mitarbeiter', admin: false };
-const anderer: PublicUser = { id: 'u-klein', username: 'klein', name: 'M. Klein', role: 'mitarbeiter', admin: false };
-const partner: PublicUser = { id: 'u-burchardt', username: 'burchardt', name: 'O. Burchardt', role: 'partner', admin: true };
+// App-User-ID (u-…) und DATEV-Mitarbeiter-ID (emp-…) sind verschieden — der Auftrag traegt die
+// DATEV-ID, der Sichtbarkeits-Abgleich laeuft ueber datevEmployeeId (Codex-Review P1).
+const mitarbeiter: PublicUser = { id: 'u-wolf', username: 'wolf', name: 'S. Wolf', role: 'mitarbeiter', admin: false, datevEmployeeId: 'emp-wolf' };
+const anderer: PublicUser = { id: 'u-klein', username: 'klein', name: 'M. Klein', role: 'mitarbeiter', admin: false, datevEmployeeId: 'emp-klein' };
+const partner: PublicUser = { id: 'u-burchardt', username: 'burchardt', name: 'O. Burchardt', role: 'partner', admin: true, datevEmployeeId: 'emp-burchardt' };
 
 /** Test-DATEV: 'o1' gehoert dem Mitarbeiter (Partner ist Admin) — 'anderer' (u-klein) sieht es NICHT. */
 const ORDERS: OrderView[] = [
-  { id: 'o1', orderNumber: 1, ordertype: '202', name: 'Testauftrag', status: 'started', clientId: 'c1', responsibleId: 'u-wolf', partnerId: 'u-burchardt', isInternal: false, plannedHours: 10 },
+  { id: 'o1', orderNumber: 1, ordertype: '202', name: 'Testauftrag', status: 'started', clientId: 'c1', responsibleId: 'emp-wolf', partnerId: 'emp-burchardt', isInternal: false, plannedHours: 10 },
 ];
 const datev: DatevPort = {
   health: async () => true,
@@ -122,10 +124,23 @@ describe('Note-Aktionen', () => {
     await expectDomainError(() => actions.notes.approve(mitarbeiter, review.id), 'forbidden');
   });
 
-  it('reopen gilt nur fuer Fragen, nicht fuer Reviews', async () => {
+  it('Mitarbeiter kann eine Review NICHT zurueckgeben (nur der Partner)', async () => {
     const review = await actions.notes.createNote(partner, { orderId: 'o1', text: 'Review' });
     await actions.notes.markDone(mitarbeiter, review.id);
     await expectDomainError(() => actions.notes.reopen(mitarbeiter, review.id), 'forbidden');
+  });
+
+  it('Partner gibt eine erledigte Review zurueck an den Mitarbeiter (erledigt -> offen)', async () => {
+    const review = await actions.notes.createNote(partner, { orderId: 'o1', text: 'Review' });
+    await actions.notes.markDone(mitarbeiter, review.id);
+    expect((await actions.notes.reopen(partner, review.id)).noteState).toBe('offen');
+  });
+
+  it('Partner nimmt eine freigegebene Review wieder auf (freigegeben -> offen)', async () => {
+    const review = await actions.notes.createNote(partner, { orderId: 'o1', text: 'Review' });
+    await actions.notes.markDone(mitarbeiter, review.id);
+    await actions.notes.approve(partner, review.id);
+    expect((await actions.notes.reopen(partner, review.id)).noteState).toBe('offen');
   });
 
   it('Loeschen: Frage nur Mitarbeiter, Review nur Partner', async () => {

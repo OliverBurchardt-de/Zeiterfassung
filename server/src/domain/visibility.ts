@@ -8,12 +8,20 @@ import type { OrderView, PublicUser } from './types';
  * - Partner: nur seine verantworteten Mandate (+ eigene Bearbeitung) — NICHT alle Mandate
  *   (Regel wie im Frontend `sichtbareAuftraege`; Review-Befund: Server war grosszuegiger).
  * - Mitarbeiter: nur Auftraege, bei denen er Bearbeiter ist.
+ *
+ * WICHTIG: `order.responsibleId`/`partnerId` sind **DATEV-Mitarbeiter-IDs** (order_responsible1_id /
+ * order_partner_id), NICHT die internen App-User-IDs. Der Abgleich laeuft daher ueber die am Nutzer
+ * hinterlegte `datevEmployeeId` (Mapping App<->DATEV). Ohne gesetzte `datevEmployeeId` sieht ein
+ * Nicht-Admin bewusst NICHTS (fail-closed) — im Mock stimmen App-ID und DATEV-ID nicht ueberein,
+ * damit dieser Abgleich verifizierbar ist (Codex-Review P1).
  */
 export function canAccessOrder(order: OrderView, user: PublicUser): boolean {
   if (order.isInternal) return false;
   if (user.admin) return true;
-  if (user.role === 'partner') return order.partnerId === user.id || order.responsibleId === user.id;
-  return order.responsibleId === user.id;
+  const datevId = user.datevEmployeeId;
+  if (!datevId) return false;
+  if (user.role === 'partner') return order.partnerId === datevId || order.responsibleId === datevId;
+  return order.responsibleId === datevId;
 }
 
 /** Board-Liste eines Nutzers — Filter ueber dasselbe Ein-Auftrag-Praedikat. */

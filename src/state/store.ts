@@ -490,7 +490,8 @@ export const useStore = create<AppState>()(persist((set) => ({
   // Server-Daten (orders/users) und die Anmeldung kommen beim Start frisch vom Server
   // (Session-Cookie, apiRestore); sonst zeigte ein Reload veraltete Stände.
   name: API_MODE ? 'bk-zeiterfassung-api' : 'bk-zeiterfassung',
-  version: 12,
+  // 13: Mock-Timer der Bäckerei-Karte mit Startzeitpunkt geseedet (Codex-Review P3) → neu seeden.
+  version: 13,
   partialize: (s) => (API_MODE
     ? { besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, anforderungen: s.anforderungen }
     : { orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId, anforderungen: s.anforderungen }),

@@ -257,7 +257,7 @@ function NoteCard({ order, note }: { order: Order; note: Note }) {
               Freigeben
             </button>
           )}
-          {note.kind === 'review' && note.noteState === 'erledigt' && notePolicy.canApprove(role, note.kind) && (
+          {note.kind === 'review' && note.noteState === 'erledigt' && notePolicy.canReturnReview(role, note.kind) && (
             <button className="btn btn--ghost btn--sm" onClick={() => setNoteState(order.id, note.id, 'offen')}>
               Zurück an Mitarbeiter
             </button>
@@ -266,7 +266,7 @@ function NoteCard({ order, note }: { order: Order; note: Note }) {
       )}
 
       {/* Freigegebene Review-Note: Partner kann wieder öffnen */}
-      {locked && notePolicy.canApprove(role, note.kind) && (
+      {locked && notePolicy.canReturnReview(role, note.kind) && (
         <div className="note__actions">
           <button className="btn btn--ghost btn--sm" onClick={() => setNoteState(order.id, note.id, 'offen')}>
             Wieder öffnen

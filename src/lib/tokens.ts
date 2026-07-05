@@ -81,6 +81,8 @@ export const notePolicy = {
   canReopenFrage: (role: Role) => role === 'mitarbeiter',
   // nur Review-Notes durchlaufen eine Partner-Freigabe
   canApprove:    (role: Role, kind: NoteKind) => role === 'partner' && kind === 'review',
+  // Review „Zurück an Mitarbeiter" (erledigt -> offen) bzw. freigegebene Review wieder aufnehmen: Partner
+  canReturnReview: (role: Role, kind: NoteKind) => role === 'partner' && kind === 'review',
   // Fragen entfernt der Mitarbeiter (Urheber), Review-Notes der Partner
   canDelete:     (role: Role, kind: NoteKind) => (kind === 'frage' ? role === 'mitarbeiter' : role === 'partner'),
 };
