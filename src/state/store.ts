@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User, Aufwandsart, AuftragsAnforderung } from '@/lib/types';
-import { MOCK_ORDERS, MOCK_BESONDERHEITEN, HEUTE } from '@/mock/orders';
+import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
+import { heute } from '@/lib/heute';
 import { MOCK_USERS } from '@/mock/users';
 import { monatBounds } from '@/lib/monate';
 import { hasUnterlagenProzess } from '@/lib/art';
@@ -176,7 +177,7 @@ export function timerSeconds(o: Order, nowMs: number = Date.now()): number {
   return basis + Math.max(0, Math.floor((nowMs - o.timerStartedAt) / 1000));
 }
 
-export const useStore = create<AppState>()(persist((set) => ({
+export const useStore = create<AppState>()(persist((set, get) => ({
   // Server-Modus: leer starten — Nutzer/Aufträge kommen nach dem Login vom Server
   // (src/api/session.ts). Demo-Modus: wie gehabt mit Mock-Daten.
   orders: API_MODE ? [] : MOCK_ORDERS,
@@ -347,18 +348,21 @@ export const useStore = create<AppState>()(persist((set) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerRunning: false, timerSec: 0, timerStartedAt: undefined })),
   })),
   transferTimer: (orderId, notiz) => {
-    // Arbeitsdatum: im Demo-Modus der Stichtag HEUTE (einheitlich mit allen Auswertungen),
-    // im Server-Modus das echte heutige Datum (die DB soll das reale work_date führen).
-    const datum = API_MODE ? new Date().toISOString().slice(0, 10) : HEUTE;
+    // Arbeitsdatum: heute() — Demo: Stichtag HEUTE, Server-Modus: echtes Tagesdatum
+    // (die DB soll das reale work_date führen).
+    const datum = heute();
     const id = uid();
     const n = notiz?.trim() || undefined;
+    // Ownership: im Server-Modus gehört der Eintrag dem Angemeldeten (Server vergibt actor.id
+    // identisch); im Demo-Modus kein userId → Fallback über den Auftrags-Bearbeiter.
+    const userId = API_MODE ? get().currentUserId ?? undefined : undefined;
     let dauer = 0;
     set((s) => ({
       orders: mapOrder(s.orders, orderId, (o) => {
         const sec = timerSeconds(o);
         dauer = Math.round((sec / 3600) * 100) / 100;
         if (dauer <= 0) return { ...o, timerRunning: false, timerStartedAt: undefined };
-        const entry = { id, datum, dauer, status: 'erfasst' as const, notiz: n };
+        const entry = { id, userId, datum, dauer, status: 'erfasst' as const, notiz: n };
         return { ...o, times: [...o.times, entry], timerRunning: false, timerSec: 0, timerStartedAt: undefined };
       }),
     }));
@@ -370,9 +374,10 @@ export const useStore = create<AppState>()(persist((set) => ({
     if (!(dauer > 0) || !datum) return;
     const id = uid();
     const n = notiz?.trim() || undefined;
+    const userId = API_MODE ? get().currentUserId ?? undefined : undefined;
     set((s) => ({
       orders: mapOrder(s.orders, orderId, (o) => ({
-        ...o, times: [...o.times, { id, datum, dauer, status: 'erfasst', notiz: n, aufwandsart }],
+        ...o, times: [...o.times, { id, userId, datum, dauer, status: 'erfasst', notiz: n, aufwandsart }],
       })),
     }));
     if (API_MODE) write.bookTime(orderId, id, { orderId, datum, dauer, notiz: n, aufwandsart });

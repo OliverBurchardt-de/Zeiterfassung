@@ -3,7 +3,7 @@ import { X, Send, Trash2 } from 'lucide-react';
 import { useStore, useCurrentUser } from '@/state/store';
 import { useVisibleAnforderungen } from '@/state/selectors';
 import { ORDERTYPES, ORDERTYPE_GROUPS, ordertypeInfo } from '@/lib/ordertypes';
-import { HEUTE } from '@/mock/orders';
+import { heute } from '@/lib/heute';
 import type { AnforderungStatus } from '@/lib/types';
 
 /**
@@ -26,7 +26,7 @@ export function AnforderungModal({ onClose }: { onClose: () => void }) {
   const [mandant, setMandant] = useState('');
   const [mandantNr, setMandantNr] = useState('');
   const [ordertype, setOrdertype] = useState(ORDERTYPES[0]?.ordertype ?? '');
-  const [vj, setVj] = useState(Number(HEUTE.slice(0, 4)));
+  const [vj, setVj] = useState(Number(heute().slice(0, 4)));
   const [zeitraum, setZeitraum] = useState('');
   const [notiz, setNotiz] = useState('');
 

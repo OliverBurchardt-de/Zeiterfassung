@@ -84,6 +84,7 @@ export function mapBoardOrder(dto: ApiBoardOrder): Order {
     })),
     times: dto.times.map((t) => ({
       id: t.id,
+      userId: t.userId, // Ownership: Basis für „Meine Zeiten" + Freigeben/Löschen (Codex P2)
       datum: t.datum,
       dauer: t.dauer,
       status: t.status,

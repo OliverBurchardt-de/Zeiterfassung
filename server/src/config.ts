@@ -79,6 +79,12 @@ export function loadConfig(): Config {
   }
 
   const dbMode = (process.env.DB_MODE ?? 'memory') === 'mssql' ? 'mssql' : 'memory';
+  // Fail-Fast: Memory-Modus seedet fest verdrahtete Demo-Nutzer (burchardt/demo = Admin) und
+  // verliert alle Daten beim Neustart — in Produktion waere das ein offener Admin-Login auf
+  // echte DATEV-Auftraege (Codex-Review P1). Produktion verlangt deshalb immer DB_MODE=mssql.
+  if (nodeEnv === 'production' && dbMode !== 'mssql') {
+    throw new Error('DB_MODE=memory (Demo-Nutzer!) ist in Produktion verboten — DB_MODE=mssql setzen (siehe .env.example).');
+  }
   const dbUser = process.env.DB_USER ?? '';
   const dbPassword = process.env.DB_PASSWORD ?? '';
   // Fail-Fast: echte DB ohne Zugangsdaten wuerde nur Login-Fehler produzieren.

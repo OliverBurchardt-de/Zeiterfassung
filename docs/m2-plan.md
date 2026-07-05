@@ -145,9 +145,22 @@ bestätigten Annahmen, offenen Risiken und dem finalen Status-Mapping. Erst dana
 > serverseitige „Erledigt"-Gate auf echte, persistierte Punkte. Frontend optimistisch gekoppelt
 > (`toggleCheck`/`addCheck`/`removeCheck`/`ensureChecklist`). Verifiziert per Playwright (Seeding
 > idempotent über Reload, Gate sperrt/gibt frei, Abhaken/Hinzufügen/Entfernen persistiert).
+> ✅ **Codex-Review-Fixes Server-Modus (2×P1, 3×P2):** (1) Produktions-Fail-Fast — `NODE_ENV=production`
+> verlangt `DB_MODE=mssql`, sonst Startabbruch (Memory-Modus seedet Demo-Nutzer → offener
+> Admin-Login auf echte DATEV-Aufträge). (2) Zentraler `heute()`-Helfer (`src/lib/heute.ts`):
+> manuelle Buchungen/QuickTime/Laufende tragen im Server-Modus das echte Arbeitsdatum statt des
+> Mock-Stichtags; „Heute erfasst"/Überfällig rechnen konsistent. (3) Zeit-Ownership im Client-Modell
+> (`TimeEntry.userId`): „Meine Zeiten" und Freigeben/Zurückziehen/Löschen laufen über die
+> Zeit-Ownership statt über die Auftrags-Verantwortung (der Server erzwingt sie ohnehin).
+> (4) Planung im Server-Modus über echte DATEV-Employee-IDs (`me.datevId`; Admin-Auswahl aus den
+> sichtbaren Aufträgen). (5) „Erledigt"-Gate vor dem ersten Öffnen nicht mehr umgehbar: die
+> Status-Aktion seedet die server-seitige Default-Vorlage (`server/src/domain/checklistTemplates.ts`)
+> idempotent VOR der Gate-Prüfung. Verifiziert: Server 107 + Frontend 45 Tests, Playwright-Suiten
+> (Writes/Fehlerpfad/Checkliste/Codex-Fixes) + Demo-Regression grün.
+>
 > **Nächste Schritte (Etappe 3):** Umplanung/Planung/Anforderungen/Besonderheiten/Suborders/
-> Attachments + Nutzer-API als Frontend-Aktionen, Checklisten-Vorlagen serverseitig verwalten,
-> DATEV-Outbox-Sync-Job.
+> Attachments + Nutzer-API als Frontend-Aktionen, Checklisten-Vorlagen serverseitig verwalten
+> (löst die bewusste Vorlagen-Duplikation in `checklistTemplates.ts` ab), DATEV-Outbox-Sync-Job.
 
 - **Stack:** Node.js + TypeScript, **Fastify** (leichtgewichtig, gutes Schema/Validation), REST-API
   für die SPA. **MS SQL Server** (bestehende Instanz im ASP-Umfeld, eigene DB + eigener Benutzer);

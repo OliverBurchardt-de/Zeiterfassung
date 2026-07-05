@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import type { Order } from '@/lib/types';
-import { useStore } from '@/state/store';
-import { useVisibleOrders } from '@/state/selectors';
+import type { Order, TimeEntry } from '@/lib/types';
+import { useStore, useCurrentUser } from '@/state/store';
+import { useVisibleOrders, istEigeneZeit } from '@/state/selectors';
 import { ART, formatHours, erfassteStunden, artNeedsNotiz, isLaufendeArt, AUFWANDSARTEN, needsAufwandsart, TIME_STATUS } from '@/lib/art';
 import { rolePolicy } from '@/lib/tokens';
 import type { Aufwandsart } from '@/lib/types';
-import { HEUTE } from '@/mock/orders';
+import { heute } from '@/lib/heute';
 
 /**
  * Modul „Laufende Buchungen": Auftragsarten ohne Status-Flow (Laufende Steuerberatung,
@@ -51,7 +51,10 @@ export function LaufendeView() {
 
 function LaufendeOrder({ order }: { order: Order }) {
   const role = useStore((s) => s.role);
-  const darfFreigeben = rolePolicy.canReleaseOwnTime(role);
+  const me = useCurrentUser();
+  // Wie im TimePanel: Bedienen nur an eigenen Einträgen (Zeit-Ownership, Server erzwingt das).
+  const darfBedienen = (t: TimeEntry) =>
+    rolePolicy.canReleaseOwnTime(role) && !!me && istEigeneZeit(t, order, me);
   const addManual = useStore((s) => s.addManualTime);
   const releaseTime = useStore((s) => s.releaseTime);
   const withdrawTime = useStore((s) => s.withdrawTime);
@@ -71,7 +74,8 @@ function LaufendeOrder({ order }: { order: Order }) {
   function submit() {
     const v = parseFloat(dauer.replace(',', '.'));
     if (!isNaN(v) && v > 0 && notizOk && aufOk) {
-      addManual(order.id, HEUTE, v, notiz, aufwandsart || undefined);
+      // Arbeitsdatum = heute() — Demo: Stichtag HEUTE, Server-Modus: echtes Tagesdatum.
+      addManual(order.id, heute(), v, notiz, aufwandsart || undefined);
       setDauer('');
       setNotiz('');
       setAufwandsart('');
@@ -94,7 +98,7 @@ function LaufendeOrder({ order }: { order: Order }) {
               <span>{new Date(t.datum).toLocaleDateString('de-DE')}</span>
               <span className="tabular">{formatHours(t.dauer)}</span>
               <span className={`badge ${TIME_STATUS[t.status].badge}`}>{TIME_STATUS[t.status].label}</span>
-              {darfFreigeben && t.status === 'erfasst' && (
+              {darfBedienen(t) && t.status === 'erfasst' && (
                 <>
                   <button className="btn btn--success btn--sm" onClick={() => releaseTime(order.id, t.id)}>Freigeben</button>
                   <button className="icon-btn" onClick={() => deleteTime(order.id, t.id)}
@@ -103,7 +107,7 @@ function LaufendeOrder({ order }: { order: Order }) {
                   </button>
                 </>
               )}
-              {darfFreigeben && t.status === 'freigegeben' && (
+              {darfBedienen(t) && t.status === 'freigegeben' && (
                 <button className="btn btn--ghost btn--sm" onClick={() => withdrawTime(order.id, t.id)}>Zurückziehen</button>
               )}
             </div>

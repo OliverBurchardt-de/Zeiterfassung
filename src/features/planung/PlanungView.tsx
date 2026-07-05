@@ -9,17 +9,20 @@ import { useStore, useCurrentUser } from '@/state/store';
 import { useVisibleOrders, umplanungFreiMoeglich } from '@/state/selectors';
 import { rolePolicy } from '@/lib/tokens';
 import { ART, formatHours, erfassteStunden, isLaufendeArt } from '@/lib/art';
-import { arbeitstage } from '@/lib/monate';
+import { arbeitstage, monthRange } from '@/lib/monate';
 import { EMPLOYEES, DEMO_KALENDER } from '@/mock/orders';
+import { API_MODE } from '@/api/mode';
+import { heute } from '@/lib/heute';
 
 /**
  * Modul „Planung": oben der Pool noch nicht geplanter Aufträge, unten ein Kalender mit der
  * Monatskapazität. Per Drag & Drop wird ein Auftrag in einen Monat gezogen — dabei werden im
  * Hintergrund Anfangs-/Enddatum gesetzt (planOrder). Zurück in den Pool hebt die Planung auf.
  *
- * Kalenderbereich: zentraler Demo-Horizont aus mock/orders.ts (ab Jahresbeginn von HEUTE).
+ * Kalenderbereich: Demo-Horizont aus mock/orders.ts (ab Jahresbeginn von HEUTE); im Server-Modus
+ * ab Jahresbeginn des echten heutigen Datums (in Produktion später DATEV employeecapacities).
  */
-const KALENDER = DEMO_KALENDER;
+const KALENDER = API_MODE ? monthRange(Number(heute().slice(0, 4)), 0, 15) : DEMO_KALENDER;
 
 export function PlanungView() {
   const orders = useVisibleOrders();
@@ -35,17 +38,31 @@ export function PlanungView() {
   // der Umplanungs-Regel — zentral über rolePolicy, wie im OrderModal.
   const darfFreiVerschieben = istAdmin || rolePolicy.canApproveUmplanung(role);
 
-  // Nicht-Admins planen nur sich selbst; Admin wählt frei. Zuordnung Nutzer → Planungs-Profil
-  // über die Initialen; ohne Treffer (neu angelegter Nutzer) KEIN stiller Rückfall auf einen
-  // fremden Mitarbeiter — dann bleibt die Liste leer und die Kapazität kommt aus dem Nutzerprofil.
+  // Nicht-Admins planen nur sich selbst; Admin wählt frei. Die Planungs-ID ist die
+  // `bearbeiterId` der Aufträge: im Demo-Modus die Mock-EMPLOYEES-IDs (Zuordnung über die
+  // Initialen), im Server-Modus die DATEV-Employee-ID — eigene aus `me.datevId`, die
+  // Admin-Auswahl aus den sichtbaren Aufträgen (distinct Bearbeiter), bis die Nutzer-API
+  // echte Mitarbeiterlisten liefert (Codex-Review P2). Ohne Treffer KEIN stiller Rückfall
+  // auf einen fremden Mitarbeiter — dann bleibt die Liste leer.
   const meinEmp = me ? EMPLOYEES.find((e) => e.initials === me.initials) : undefined;
-  const [adminEmpId, setAdminEmpId] = useState('sw');
-  const empId = istAdmin ? adminEmpId : meinEmp?.id ?? '';
+  const mitarbeiterOptionen = useMemo(() => {
+    if (!API_MODE) return EMPLOYEES.map((e) => ({ id: e.id, name: e.name }));
+    const map = new Map<string, string>();
+    for (const o of orders) if (o.bearbeiterId) map.set(o.bearbeiterId, o.bearbeiter || o.bearbeiterId);
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  }, [orders]);
+  const [adminEmpId, setAdminEmpId] = useState(API_MODE ? '' : 'sw');
+  const adminId = adminEmpId || mitarbeiterOptionen[0]?.id || '';
+  const empId = istAdmin ? adminId : API_MODE ? me?.datevId ?? '' : meinEmp?.id ?? '';
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
-  const emp = EMPLOYEES.find((e) => e.id === empId);
-  const profil = istAdmin ? users.find((u) => u.initials === emp?.initials) : me;
+  // Kapazitätsprofil des Ausgewählten: Demo über die Initialen des Mock-Profils, Server-Modus
+  // über die DATEV-ID; ohne Treffer greifen die Defaults (echte Profile mit der Nutzer-API).
+  const profil = !istAdmin ? me
+    : API_MODE ? users.find((u) => u.datevId === empId)
+      : users.find((u) => u.initials === EMPLOYEES.find((e) => e.id === empId)?.initials);
   const tagessoll = profil?.tagessoll ?? 8;
   const tageProWoche = profil?.arbeitstageProWoche ?? 5;
   // Monatskapazität: Tagessoll × Arbeitstage (Mo–Fr), bei Teilzeit anteilig (Tage/Woche ÷ 5).
@@ -105,8 +122,8 @@ export function PlanungView() {
         <div className="field" style={{ marginBottom: 0, minWidth: 170 }}>
           <label>Mitarbeiter</label>
           {istAdmin ? (
-            <select className="input" value={adminEmpId} onChange={(e) => setAdminEmpId(e.target.value)}>
-              {EMPLOYEES.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+            <select className="input" value={adminId} onChange={(e) => setAdminEmpId(e.target.value)}>
+              {mitarbeiterOptionen.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
           ) : (
             <input className="input" value={me?.name ?? ''} readOnly />

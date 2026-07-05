@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import type { Order } from '@/lib/types';
-import { useStore, timerSeconds } from '@/state/store';
+import type { Order, TimeEntry } from '@/lib/types';
+import { useStore, timerSeconds, useCurrentUser } from '@/state/store';
+import { istEigeneZeit } from '@/state/selectors';
 import { formatTimer, formatHours, artNeedsNotiz, TIME_STATUS } from '@/lib/art';
 import { rolePolicy } from '@/lib/tokens';
-import { HEUTE } from '@/mock/orders';
+import { heute } from '@/lib/heute';
 
 export function TimePanel({ order }: { order: Order }) {
   const role = useStore((s) => s.role);
-  const darfFreigeben = rolePolicy.canReleaseOwnTime(role);
+  const me = useCurrentUser();
+  // Freigeben/Zurückziehen/Löschen nur an EIGENEN Einträgen (der Server erzwingt das ebenso) —
+  // ein Partner sieht auf seinen Mandaten auch fremde Zeiten, bedient sie aber nicht.
+  const darfBedienen = (t: TimeEntry) =>
+    rolePolicy.canReleaseOwnTime(role) && !!me && istEigeneZeit(t, order, me);
   const start = useStore((s) => s.startTimer);
   const pause = useStore((s) => s.pauseTimer);
   const reset = useStore((s) => s.resetTimer);
@@ -39,8 +44,8 @@ export function TimePanel({ order }: { order: Order }) {
   function submitManual() {
     const v = parseFloat(manualDauer.replace(',', '.'));
     if (!isNaN(v) && v > 0 && notizOk) {
-      // Arbeitsdatum = Demo-Stichtag HEUTE (einheitlich mit „Heute erfasst"/Controlling).
-      addManual(order.id, HEUTE, v, notiz);
+      // Arbeitsdatum = heute() — Demo: Stichtag HEUTE, Server-Modus: echtes Tagesdatum.
+      addManual(order.id, heute(), v, notiz);
       setManualDauer('');
       setNotiz('');
     }
@@ -112,7 +117,7 @@ export function TimePanel({ order }: { order: Order }) {
               <span>{new Date(t.datum).toLocaleDateString('de-DE')}</span>
               <span className="tabular">{formatHours(t.dauer)}</span>
               <span className={`badge ${TIME_STATUS[t.status].badge}`}>{TIME_STATUS[t.status].label}</span>
-              {darfFreigeben && t.status === 'erfasst' && (
+              {darfBedienen(t) && t.status === 'erfasst' && (
                 <>
                   <button className="btn btn--success btn--sm" onClick={() => releaseTime(order.id, t.id)}>Freigeben</button>
                   <button className="icon-btn" onClick={() => deleteTime(order.id, t.id)}
@@ -121,7 +126,7 @@ export function TimePanel({ order }: { order: Order }) {
                   </button>
                 </>
               )}
-              {darfFreigeben && t.status === 'freigegeben' && (
+              {darfBedienen(t) && t.status === 'freigegeben' && (
                 <button className="btn btn--ghost btn--sm" onClick={() => withdrawTime(order.id, t.id)}>Zurückziehen</button>
               )}
             </div>

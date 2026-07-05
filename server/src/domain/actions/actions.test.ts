@@ -12,9 +12,14 @@ const mitarbeiter: PublicUser = { id: 'u-wolf', username: 'wolf', name: 'S. Wolf
 const anderer: PublicUser = { id: 'u-klein', username: 'klein', name: 'M. Klein', role: 'mitarbeiter', admin: false, datevEmployeeId: 'emp-klein' };
 const partner: PublicUser = { id: 'u-burchardt', username: 'burchardt', name: 'O. Burchardt', role: 'partner', admin: true, datevEmployeeId: 'emp-burchardt' };
 
-/** Test-DATEV: 'o1' gehoert dem Mitarbeiter (Partner ist Admin) — 'anderer' (u-klein) sieht es NICHT. */
+/**
+ * Test-DATEV: 'o1' gehoert dem Mitarbeiter (Partner ist Admin) — 'anderer' (u-klein) sieht es NICHT.
+ * 'o2' ist ein Jahresabschluss (Ordertype 301) MIT Default-Checklisten-Vorlage — fuer das
+ * server-seitige Gate-Seeding (Codex-Review P2); 202 (Lohn) hat bewusst keine Vorlage.
+ */
 const ORDERS: OrderView[] = [
   { id: 'o1', orderNumber: 1, ordertype: '202', name: 'Testauftrag', status: 'started', clientId: 'c1', responsibleId: 'emp-wolf', partnerId: 'emp-burchardt', isInternal: false, plannedHours: 10 },
+  { id: 'o2', orderNumber: 2, ordertype: '301', name: 'Jahresabschluss', status: 'started', clientId: 'c1', responsibleId: 'emp-wolf', partnerId: 'emp-burchardt', isInternal: false, plannedHours: 20 },
 ];
 const datev: DatevPort = {
   health: async () => true,
@@ -195,9 +200,34 @@ describe('Status-Aktionen', () => {
     expect(overlay.boardStatus).toBe('er');
   });
 
-  it('ohne Checkliste ist "Erledigt" moeglich', async () => {
+  it('Ordertype ohne Vorlage: leere Checkliste blockiert "Erledigt" nicht (202 Lohn)', async () => {
     const overlay = await actions.status.setStatus(mitarbeiter, 'o1', 'er');
     expect(overlay.boardStatus).toBe('er');
+  });
+
+  it('Ordertype mit Vorlage: "Erledigt" vor dem ersten Oeffnen seedet die Vorlage und blockt (Codex P2)', async () => {
+    // o2 (301 Jahresabschluss) wurde nie geoeffnet — Checkliste ist leer. Der direkte Sprung auf
+    // "er" (Board-Drag/API) darf das Gate NICHT umgehen: Vorlage wird geseedet, Wechsel abgelehnt.
+    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o2', 'er'), 'conflict');
+    const items = await repos.checklists.listByOrder('o2');
+    expect(items.length).toBe(3); // JA-Vorlage instanziiert
+    expect(items.every((i) => !i.done)).toBe(true);
+  });
+
+  it('Ordertype mit Vorlage: nach Abhaken aller geseedeten Punkte ist "Erledigt" moeglich', async () => {
+    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o2', 'er'), 'conflict');
+    for (const i of await repos.checklists.listByOrder('o2')) await repos.checklists.setDone(i.id, true);
+    const overlay = await actions.status.setStatus(mitarbeiter, 'o2', 'er');
+    expect(overlay.boardStatus).toBe('er');
+  });
+
+  it('Gate-Seed ist idempotent: bestehende Client-Checkliste wird nicht ueberschrieben', async () => {
+    // Erst per Client-ensure mit eigenen (admin-editierten) Labels instanziieren …
+    await actions.checklist.ensure(mitarbeiter, 'o2', ['Einziger Punkt']);
+    // … dann "er" versuchen: das Gate darf KEINE Default-Vorlage dazuseeden.
+    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o2', 'er'), 'conflict');
+    const items = await repos.checklists.listByOrder('o2');
+    expect(items.map((i) => i.label)).toEqual(['Einziger Punkt']);
   });
 });
 

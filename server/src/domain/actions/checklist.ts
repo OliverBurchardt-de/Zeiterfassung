@@ -14,6 +14,29 @@ import { DomainError } from '../errors';
  * es haengt an der serverseitigen Vorlagen-Verwaltung, die als eigener Schritt folgt. Bis dahin
  * pflegt der Nutzer die Punkte manuell (add/remove), was hier persistiert wird.
  */
+
+/**
+ * Instanziiert die Checkliste eines Auftrags EINMALIG aus Vorlagen-Labels. Idempotent: existieren
+ * bereits Punkte, bleibt alles unveraendert (kein Doppel-Seed) — auch bei gleichzeitigen Aufrufen
+ * der sicherste Fall. Gemeinsame Mechanik von `ensure` (Client-Vorlagen beim ersten Oeffnen) und
+ * dem „Erledigt"-Gate in status.ts (Server-Default-Vorlage vor der Gate-Pruefung).
+ */
+export async function seedChecklist(
+  repos: Repositories,
+  clock: Clock,
+  orderId: string,
+  labels: string[]
+): Promise<ChecklistItem[]> {
+  const existing = await repos.checklists.listByOrder(orderId);
+  if (existing.length > 0) return existing;
+  const items: ChecklistItem[] = labels
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((label, i) => ({ id: clock.newId(), orderId, label, done: false, position: i }));
+  if (items.length) await repos.checklists.insertMany(items);
+  return items;
+}
+
 export function createChecklistActions(repos: Repositories, clock: Clock, requireVisibleOrder: RequireVisibleOrder) {
   /** Laedt den Punkt und stellt sicher, dass er zum genannten Auftrag gehoert. */
   async function itemInOrder(orderId: string, itemId: string): Promise<ChecklistItem> {
@@ -24,20 +47,12 @@ export function createChecklistActions(repos: Repositories, clock: Clock, requir
 
   return {
     /**
-     * Instanziiert die Checkliste eines Auftrags EINMALIG aus Vorlagen-Labels (vom Client, da die
-     * Vorlagen dort admin-gepflegt sind). Idempotent: existieren bereits Punkte, bleibt alles
-     * unveraendert (kein Doppel-Seed) — auch bei gleichzeitigen Aufrufen der sicherste Fall.
+     * Checkliste einmalig aus Client-Vorlagen-Labels instanziieren (die Vorlagen sind dort
+     * admin-gepflegt) — Mechanik und Idempotenz siehe `seedChecklist`.
      */
     async ensure(actor: PublicUser, orderId: string, labels: string[]): Promise<ChecklistItem[]> {
       await requireVisibleOrder(actor, orderId);
-      const existing = await repos.checklists.listByOrder(orderId);
-      if (existing.length > 0) return existing;
-      const items: ChecklistItem[] = labels
-        .map((l) => l.trim())
-        .filter(Boolean)
-        .map((label, i) => ({ id: clock.newId(), orderId, label, done: false, position: i }));
-      if (items.length) await repos.checklists.insertMany(items);
-      return items;
+      return seedChecklist(repos, clock, orderId, labels);
     },
 
     async add(actor: PublicUser, orderId: string, label: string): Promise<ChecklistItem> {

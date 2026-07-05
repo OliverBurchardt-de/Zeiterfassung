@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { Order, Note, TimeEntry, User, AuftragsAnforderung } from '@/lib/types';
 import { useStore, noteOffen } from './store';
 import { erfassteStunden, isLaufendeArt } from '@/lib/art';
-import { HEUTE } from '@/mock/orders';
+import { heute } from '@/lib/heute';
 
 // ---- Sichtbarkeit / Zugriff ---------------------------------------------
 
@@ -69,10 +69,19 @@ export function offeneReviewFreigaben(orders: Order[]): ReviewFreigabe[] {
   return out;
 }
 
-/** Zeitbuchungen eines Bearbeiters (Modul „Meine Zeiten"). */
-export function zeitenVon(orders: Order[], autor: string): ZeitRow[] {
+/**
+ * Gehört der Zeiteintrag dem Nutzer? Server-Modus: über die Zeit-Ownership (`t.userId`, vom
+ * Server geliefert und dort erzwungen). Demo-Mock hat kein userId → Fallback: alle Einträge
+ * eines Auftrags gehören dessen Bearbeiter.
+ */
+export function istEigeneZeit(t: TimeEntry, o: Order, user: { id: string; name: string }): boolean {
+  return t.userId ? t.userId === user.id : o.bearbeiter === user.name;
+}
+
+/** Zeitbuchungen eines Nutzers (Modul „Meine Zeiten") — kind-genau über die Zeit-Ownership. */
+export function zeitenVon(orders: Order[], user: { id: string; name: string }): ZeitRow[] {
   const out: ZeitRow[] = [];
-  for (const o of orders) if (o.bearbeiter === autor) for (const t of o.times) out.push({ order: o, time: t });
+  for (const o of orders) for (const t of o.times) if (istEigeneZeit(t, o, user)) out.push({ order: o, time: t });
   return out;
 }
 
@@ -105,11 +114,11 @@ export function auslastungPct(o: Order): number {
   return erfassteStunden(o.times) / o.soll;
 }
 
-/** Überfällig: Fristende liegt vor dem Stichtag und der Auftrag ist nicht erledigt. */
+/** Überfällig: Fristende liegt vor dem Stichtag (heute) und der Auftrag ist nicht erledigt. */
 export function istUeberfaellig(o: Order): boolean {
   // Ungeplante Aufträge haben leeres Fristende ('') → nicht als überfällig werten (Review-Hinweis 5.2).
   if (!o.fristEnde) return false;
-  return o.fristEnde < HEUTE && o.status !== 'er';
+  return o.fristEnde < heute() && o.status !== 'er';
 }
 
 /**
@@ -153,7 +162,7 @@ export function kpis(orders: Order[]) {
   return { zugeteilt, inBearbeitung, zeitenOffen, reviewNotes };
 }
 
-/** Heute (Stichtag HEUTE) erfasste Stunden der gefilterten Aufträge — unabhängig vom Freigabestatus. */
+/** Heute erfasste Stunden der gefilterten Aufträge — unabhängig vom Freigabestatus. */
 export const TAGES_SOLL = 8.0;
 
 export function heuteErfasst(orders: Order[]): { gesamt: number; perMandant: { mandant: string; stunden: number }[] } {
@@ -161,8 +170,9 @@ export function heuteErfasst(orders: Order[]): { gesamt: number; perMandant: { m
   // Top 5 nach Stunden zeigen — sonst doppelte Zeilen/React-Keys und ein zufälliges „Top 5".
   const map = new Map<string, number>();
   let gesamt = 0;
+  const stichtag = heute();
   for (const o of orders) {
-    const h = erfassteStunden(o.times.filter((t) => t.datum === HEUTE));
+    const h = erfassteStunden(o.times.filter((t) => t.datum === stichtag));
     if (h > 0) {
       gesamt += h;
       map.set(o.mandant, (map.get(o.mandant) ?? 0) + h);

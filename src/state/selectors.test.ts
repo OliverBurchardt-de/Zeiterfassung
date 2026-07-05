@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canComplete, istUeberfaellig, auslastungPct, heuteErfasst, sichtbareAuftraege, umplanungFreiMoeglich } from './selectors';
+import { canComplete, istUeberfaellig, auslastungPct, heuteErfasst, sichtbareAuftraege, umplanungFreiMoeglich, zeitenVon, istEigeneZeit } from './selectors';
 import { HEUTE, MOCK_ORDERS } from '@/mock/orders';
 import type { Order, User } from '@/lib/types';
 
@@ -66,6 +66,31 @@ describe('umplanungFreiMoeglich (JA/ESt-Regel)', () => {
   });
   it('andere Arten: Umplanung nie ohne Freigabe', () => {
     expect(umplanungFreiMoeglich(make({ artKey: 'fibu', monat: 'Mär 2025', umplanungenVerbraucht: 0 }))).toBe(false);
+  });
+});
+
+describe('zeitenVon / istEigeneZeit (Zeit-Ownership)', () => {
+  const wolf = { id: 'u-wolf', name: 'S. Wolf' };
+
+  it('ohne userId (Demo-Mock): Fallback über den Auftrags-Bearbeiter', () => {
+    const eigen = make({ id: 'a', bearbeiter: 'S. Wolf', times: [{ id: 't1', datum: HEUTE, dauer: 1, status: 'erfasst' }] });
+    const fremd = make({ id: 'b', bearbeiter: 'M. Klein', times: [{ id: 't2', datum: HEUTE, dauer: 2, status: 'erfasst' }] });
+    expect(zeitenVon([eigen, fremd], wolf).map((z) => z.time.id)).toEqual(['t1']);
+  });
+
+  it('mit userId (Server-Modus): Ownership zählt, nicht der Auftrags-Bearbeiter', () => {
+    // Fremder Eintrag auf dem EIGENEN Auftrag (z. B. Partner hat dort gebucht) → nicht meiner;
+    // eigener Eintrag auf einem fremden, aber sichtbaren Auftrag → meiner (Codex P2).
+    const eigenerAuftrag = make({ id: 'a', bearbeiter: 'S. Wolf', times: [{ id: 't1', userId: 'u-klein', datum: HEUTE, dauer: 1, status: 'erfasst' }] });
+    const fremderAuftrag = make({ id: 'b', bearbeiter: 'M. Klein', times: [{ id: 't2', userId: 'u-wolf', datum: HEUTE, dauer: 2, status: 'erfasst' }] });
+    expect(zeitenVon([eigenerAuftrag, fremderAuftrag], wolf).map((z) => z.time.id)).toEqual(['t2']);
+  });
+
+  it('istEigeneZeit: userId hat Vorrang vor dem Bearbeiter-Fallback', () => {
+    const o = make({ bearbeiter: 'S. Wolf' });
+    expect(istEigeneZeit({ id: 't', userId: 'u-wolf', datum: HEUTE, dauer: 1, status: 'erfasst' }, o, wolf)).toBe(true);
+    expect(istEigeneZeit({ id: 't', userId: 'u-klein', datum: HEUTE, dauer: 1, status: 'erfasst' }, o, wolf)).toBe(false);
+    expect(istEigeneZeit({ id: 't', datum: HEUTE, dauer: 1, status: 'erfasst' }, o, wolf)).toBe(true);
   });
 });
 

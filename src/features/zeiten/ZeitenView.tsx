@@ -18,7 +18,9 @@ export function ZeitenView() {
   const meName = me?.name ?? '';
   const releaseTime = useStore((s) => s.releaseTime);
   const withdrawTime = useStore((s) => s.withdrawTime);
-  const alle = useMemo(() => zeitenVon(orders, meName), [orders, meName]);
+  // Eigene Zeiten über die Zeit-Ownership (Server-Modus: t.userId; Demo: Auftrags-Bearbeiter) —
+  // damit sind alle Zeilen hier garantiert eigene, und Freigeben/Zurückziehen trifft nie fremde.
+  const alle = useMemo(() => (me ? zeitenVon(orders, me) : []), [orders, me]);
 
   const offen = alle.filter((z) => z.time.status === 'erfasst');
   const frei = alle.filter((z) => z.time.status !== 'erfasst');

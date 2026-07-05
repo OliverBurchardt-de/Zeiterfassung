@@ -56,6 +56,12 @@ export type TimeStatus = 'erfasst' | 'freigegeben' | 'uebertragen';
 
 export interface TimeEntry {
   id: string;
+  /**
+   * Eigentümer des Eintrags (App-Nutzer-ID) — im Server-Modus vom Server geliefert und Basis
+   * für „Meine Zeiten" und die Freigeben-/Löschen-Bedienelemente (der Server erzwingt Ownership).
+   * Demo-Mock hat kein userId → Fallback über den Auftrags-Bearbeiter.
+   */
+  userId?: string;
   datum: string; // ISO-Datum (entspricht DATEV work_date — Arbeitsdatum, nicht entry_date)
   dauer: number; // Stunden (dezimal)
   status: TimeStatus;

@@ -149,6 +149,20 @@ jetzt auf echte, persistierte Punkte. Instanziierung: das Frontend seedet die Ch
 Öffnen einmalig aus den (admin-gepflegten) Vorlagen-Labels über `POST …/checklist/ensure`, der
 Server legt sie **idempotent** an (nur wenn noch keine existieren; In-Flight-Schutz im Client gegen
 Doppel-Seed). Store-Aktionen `toggleCheck`/`addCheck`/`removeCheck`/`ensureChecklist` sind wie in
-Etappe 2 optimistisch an `src/api/write.ts` gekoppelt. Als Nächstes (Etappe 3): restliche Aktionen
-(Umplanung/Planung/Anforderungen/Besonderheiten/Suborders/Attachments/Nutzer-API), Checklisten-
-Vorlagen serverseitig verwalten + DATEV-Outbox-Sync-Job.
+Etappe 2 optimistisch an `src/api/write.ts` gekoppelt. **Codex-Review-Fixes Server-Modus
+(umgesetzt):** (1) Produktions-Fail-Fast in `server/src/config.ts` — `NODE_ENV=production`
+verlangt `DB_MODE=mssql` (Memory-Modus seedet Demo-Nutzer). (2) Zentraler Helper `heute()`
+(`src/lib/heute.ts`): Demo = Stichtag `HEUTE`, Server-Modus = echtes Tagesdatum — einzige Quelle
+für Arbeitsdatum von Buchungen, „Heute erfasst", Überfällig-Stichtag, VJ-Default. (3) **Zeit-
+Ownership:** `TimeEntry.userId` (Server-Modus; Demo-Fallback über Auftrags-Bearbeiter) — „Meine
+Zeiten" (`zeitenVon`) und Freigeben/Zurückziehen/Löschen laufen über `istEigeneZeit`
+(`selectors.ts`); der Server erzwingt Ownership ohnehin. (4) **Planung im Server-Modus:** eigene
+Planungs-ID aus `me.datevId`, Admin-Auswahl aus den sichtbaren Aufträgen (distinct Bearbeiter),
+Kalenderhorizont aus `heute()` — Demo weiter über Mock-`EMPLOYEES`. (5) **„Erledigt"-Gate nicht
+mehr umgehbar:** die Status-Aktion seedet vor der Gate-Prüfung idempotent die server-seitige
+Default-Vorlage (`server/src/domain/checklistTemplates.ts`, Spiegel der Frontend-Defaults;
+gemeinsame Mechanik `seedChecklist` in `actions/checklist.ts`) — ein Board-Drag auf „Erledigt"
+vor dem ersten Öffnen wird abgelehnt und die Pflichtpunkte existieren danach. Als Nächstes
+(Etappe 3): restliche Aktionen (Umplanung/Planung/Anforderungen/Besonderheiten/Suborders/
+Attachments/Nutzer-API), Checklisten-Vorlagen serverseitig verwalten (löst die bewusste
+Vorlagen-Duplikation ab) + DATEV-Outbox-Sync-Job.

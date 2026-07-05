@@ -5,6 +5,8 @@ import type { Clock } from '../clock';
 import type { RequireVisibleOrder } from './access';
 import { DomainError } from '../errors';
 import { canCompleteOrder } from '../rules';
+import { defaultChecklistLabels } from '../checklistTemplates';
+import { seedChecklist } from './checklist';
 
 function isStatusId(v: string): v is StatusId {
   return (STATUS_IDS as string[]).includes(v);
@@ -25,14 +27,18 @@ export function createStatusActions(repos: Repositories, clock: Clock, requireVi
       boardPosition?: number
     ): Promise<OrderOverlay> {
       // Nur sichtbare/zugewiesene Auftraege umschalten (Review-Befund 2).
-      await requireVisibleOrder(actor, orderId);
+      const order = await requireVisibleOrder(actor, orderId);
       if (!isStatusId(toStatus)) throw new DomainError('invalid', `unbekannter Status: ${toStatus}`);
 
       const current = await repos.overlays.get(orderId);
       const fromStatus = current?.boardStatus;
 
       if (toStatus === 'er') {
-        const items = await repos.checklists.listByOrder(orderId);
+        // Pflicht-Checkliste VOR der Gate-Pruefung sicherstellen: ohne dies waere „Erledigt"
+        // per Board-Drag/API-Aufruf moeglich, bevor die Checkliste je instanziiert wurde —
+        // eine leere Liste gilt als vollstaendig (Codex-Review P2). Idempotent: existieren
+        // bereits Punkte (Client-`ensure` beim ersten Oeffnen), passiert hier nichts.
+        const items = await seedChecklist(repos, clock, orderId, defaultChecklistLabels(order.ordertype));
         if (!canCompleteOrder(items)) {
           throw new DomainError('conflict', 'Checkliste ist noch nicht vollstaendig');
         }

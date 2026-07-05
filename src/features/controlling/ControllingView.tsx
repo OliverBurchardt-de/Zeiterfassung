@@ -3,7 +3,7 @@ import type { Order } from '@/lib/types';
 import { ART, formatHours, erfassteStunden, isLaufendeArt } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
 import { istUeberfaellig, istNichtAbgerechnet, auslastungPct, useVisibleOrders } from '@/state/selectors';
-import { HEUTE } from '@/mock/orders';
+import { heute } from '@/lib/heute';
 
 /**
  * Modul „Controlling" — Auftragsüberwachung für Partner/Leitung:
@@ -21,7 +21,7 @@ export function ControllingView() {
       <div className="eyebrow" style={{ color: 'var(--bk-blue)' }}>Controlling</div>
       <h1 style={{ fontSize: 'var(--bk-fs-h1)', marginBottom: 4 }}>Controlling</h1>
       <p className="muted" style={{ marginBottom: 18 }}>
-        Auftragsüberwachung zum Stichtag {new Date(HEUTE).toLocaleDateString('de-DE')}.
+        Auftragsüberwachung zum Stichtag {new Date(heute()).toLocaleDateString('de-DE')}.
       </p>
 
       <div className="ctrl-kpis">
