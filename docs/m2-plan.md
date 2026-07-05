@@ -136,9 +136,18 @@ bestätigten Annahmen, offenen Risiken und dem finalen Status-Mapping. Erst dana
 > Update → API-Write → bei Neuanlagen Abgleich temporäre ↔ echte ID (Idempotenz-Key = temporäre ID);
 > Fehler → Hinweisleiste (`syncError`/`SyncBanner`) + frischer `GET /api/board` (Revert). Verifiziert
 > per Playwright im Server-Modus (buchen/freigeben/zurückziehen/löschen, Notiz, Statuswechsel je über
-> einen Reload persistiert; Fehlerpfad mit Banner + Revert). **Nächste Schritte (Etappe 3):**
-> Umplanung/Planung/Checklisten/Anforderungen/Besonderheiten/Suborders/Attachments + Nutzer-API als
-> Frontend-Aktionen, DATEV-Outbox-Sync-Job.
+> einen Reload persistiert; Fehlerpfad mit Banner + Revert).
+>
+> ✅ **Frontend-Anbindung Etappe 3 — Checklisten:** Domain-Aktion + Routen
+> (`server/src/{domain/actions,routes}/checklist.ts`) für Abhaken/Hinzufügen/Entfernen sowie ein
+> idempotentes `ensure` zum einmaligen Seeden aus Vorlagen-Labels (der Client liefert die
+> admin-gepflegten Labels, der Server legt sie nur an, wenn noch keine existieren). Damit greift das
+> serverseitige „Erledigt"-Gate auf echte, persistierte Punkte. Frontend optimistisch gekoppelt
+> (`toggleCheck`/`addCheck`/`removeCheck`/`ensureChecklist`). Verifiziert per Playwright (Seeding
+> idempotent über Reload, Gate sperrt/gibt frei, Abhaken/Hinzufügen/Entfernen persistiert).
+> **Nächste Schritte (Etappe 3):** Umplanung/Planung/Anforderungen/Besonderheiten/Suborders/
+> Attachments + Nutzer-API als Frontend-Aktionen, Checklisten-Vorlagen serverseitig verwalten,
+> DATEV-Outbox-Sync-Job.
 
 - **Stack:** Node.js + TypeScript, **Fastify** (leichtgewichtig, gutes Schema/Validation), REST-API
   für die SPA. **MS SQL Server** (bestehende Instanz im ASP-Umfeld, eigene DB + eigener Benutzer);

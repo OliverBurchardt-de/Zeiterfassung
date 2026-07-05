@@ -135,6 +135,11 @@ interface AppState {
   resetChecklistTemplate: (ordertype: string) => void; // zurück auf die voreingestellte Vorlage
 
   // Checkliste
+  /**
+   * Server-Modus: Checkliste eines Auftrags einmalig aus Vorlagen-Labels instanziieren
+   * (idempotent serverseitig). Demo-Modus: No-Op (Aufträge tragen ihre Checkliste bereits).
+   */
+  ensureChecklist: (orderId: string, labels: string[]) => void;
   toggleCheck: (orderId: string, itemId: string) => void;
   addCheck: (orderId: string, label: string) => void;
   removeCheck: (orderId: string, itemId: string) => void;
@@ -472,17 +477,36 @@ export const useStore = create<AppState>()(persist((set) => ({
     checklistTemplates: { ...s.checklistTemplates, [ordertype]: [...(CHECKLIST_TEMPLATES_BY_ORDERTYPE[ordertype] ?? [])] },
   })),
 
-  toggleCheck: (orderId, itemId) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => ({
-      ...o, checklist: o.checklist.map((c) => (c.id === itemId ? { ...c, done: !c.done } : c)),
-    })),
-  })),
-  addCheck: (orderId, label) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => ({ ...o, checklist: [...o.checklist, { id: uid(), label, done: false }] })),
-  })),
-  removeCheck: (orderId, itemId) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => ({ ...o, checklist: o.checklist.filter((c) => c.id !== itemId) })),
-  })),
+  ensureChecklist: (orderId, labels) => {
+    if (API_MODE) write.ensureChecklist(orderId, labels);
+  },
+  toggleCheck: (orderId, itemId) => {
+    let target: boolean | undefined;
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => ({
+        ...o,
+        checklist: o.checklist.map((c) => {
+          if (c.id !== itemId) return c;
+          target = !c.done;
+          return { ...c, done: target };
+        }),
+      })),
+    }));
+    if (API_MODE && target !== undefined) write.toggleCheck(orderId, itemId, target);
+  },
+  addCheck: (orderId, label) => {
+    const id = uid();
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => ({ ...o, checklist: [...o.checklist, { id, label, done: false }] })),
+    }));
+    if (API_MODE) write.addCheck(orderId, id, label);
+  },
+  removeCheck: (orderId, itemId) => {
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => ({ ...o, checklist: o.checklist.filter((c) => c.id !== itemId) })),
+    }));
+    if (API_MODE) write.removeCheck(orderId, itemId);
+  },
 
   addNote: (orderId, text, role, author, attachments = []) => {
     const id = uid();

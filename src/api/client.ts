@@ -1,4 +1,4 @@
-import type { ApiUser, ApiBoardOrder, ApiTimeEntry, ApiBookTimeInput, ApiWithId } from './types';
+import type { ApiUser, ApiBoardOrder, ApiTimeEntry, ApiBookTimeInput, ApiWithId, ApiChecklistItem } from './types';
 
 /**
  * Dünner HTTP-Client für die Server-API. Same-Origin (Vite-Proxy in Entwicklung,
@@ -75,4 +75,14 @@ export const api = {
   commentNote: (id: string, text: string) =>
     request<ApiWithId>(`/api/notes/${id}/comments`, { method: 'POST', body: JSON.stringify({ text }) }),
   deleteNote: (id: string) => request<{ ok: boolean }>(`/api/notes/${id}`, { method: 'DELETE' }),
+
+  // --- Etappe 3: Schreib-Endpunkte (Checkliste) ---------------------------
+  checkEnsure: (orderId: string, labels: string[]) =>
+    request<ApiChecklistItem[]>(`/api/orders/${orderId}/checklist/ensure`, { method: 'POST', body: JSON.stringify({ labels }) }),
+  checkAdd: (orderId: string, label: string) =>
+    request<ApiWithId>(`/api/orders/${orderId}/checklist`, { method: 'POST', body: JSON.stringify({ label }) }),
+  checkToggle: (orderId: string, itemId: string, done: boolean) =>
+    request<ApiWithId>(`/api/orders/${orderId}/checklist/${itemId}/done`, { method: 'POST', body: JSON.stringify({ done }) }),
+  checkRemove: (orderId: string, itemId: string) =>
+    request<{ ok: boolean }>(`/api/orders/${orderId}/checklist/${itemId}`, { method: 'DELETE' }),
 };

@@ -10,6 +10,7 @@ import { QuickTimeDialog } from '@/features/time/QuickTimeDialog';
 import { NotesSection } from '@/features/notes/NotesSection';
 import { CardFlyout, type FlyoutKind } from '@/features/board/CardFlyout';
 import { canComplete, offeneChecklist, umplanungFreiMoeglich, umplanungRegelGilt, freieUmplanungenRest } from '@/state/selectors';
+import { CHECKLIST_TEMPLATES_BY_ORDERTYPE } from '@/lib/checklists';
 import { DEMO_KALENDER, EMPLOYEES } from '@/mock/orders';
 
 export function OrderModal({ orderId }: { orderId: string }) {
@@ -24,6 +25,8 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const approveUmplanung = useStore((s) => s.approveUmplanung);
   const rejectUmplanung = useStore((s) => s.rejectUmplanung);
   const dismissAblehnung = useStore((s) => s.dismissUmplanungAblehnung);
+  const ensureChecklist = useStore((s) => s.ensureChecklist);
+  const checklistTemplates = useStore((s) => s.checklistTemplates);
   const [zielMonat, setZielMonat] = useState('');
   const [quickOpen, setQuickOpen] = useState(false);
   // Checkliste/Besonderheiten klappen als eigenständiges Panel neben dem Detail aus (nicht als
@@ -43,6 +46,18 @@ export function OrderModal({ orderId }: { orderId: string }) {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [closeCard, quickOpen, flyout]);
+
+  // Server-Modus: die Checkliste beim ersten Öffnen aus der (admin-gepflegten) Vorlage
+  // instanziieren, falls der Auftrag serverseitig noch keine trägt. Demo-Modus: No-Op
+  // (ensureChecklist ist API-gated). Nur bei Auftragswechsel, nicht bei jedem Render.
+  const orderIdForSeed = order?.id;
+  const checklistLeer = (order?.checklist.length ?? 0) === 0;
+  useEffect(() => {
+    if (!orderIdForSeed || !checklistLeer) return;
+    const labels = checklistTemplates[order!.ordertype] ?? CHECKLIST_TEMPLATES_BY_ORDERTYPE[order!.ordertype] ?? [];
+    if (labels.length > 0) ensureChecklist(orderIdForSeed, labels);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderIdForSeed]);
 
   if (!order) return null;
   const art = ART[order.artKey];

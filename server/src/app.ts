@@ -11,6 +11,7 @@ import { boardRoutes } from './routes/board';
 import { timeRoutes } from './routes/time';
 import { noteRoutes } from './routes/notes';
 import { statusRoutes } from './routes/status';
+import { checklistRoutes } from './routes/checklist';
 
 export interface AppDeps extends AuthDeps {
   datev: DatevPort;
@@ -41,6 +42,7 @@ export function buildApp(config: Config, deps: AppDeps): FastifyInstance {
     timeRoutes(instance, deps.actions);
     noteRoutes(instance, deps.actions);
     statusRoutes(instance, deps.actions);
+    checklistRoutes(instance, deps.actions);
   });
 
   // Zentrale Fehlerbehandlung (ADR-11): keine internen Details nach aussen — auch bei 4xx nicht

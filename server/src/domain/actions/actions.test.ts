@@ -224,3 +224,64 @@ describe('Auftrags-Sichtbarkeit (IDOR-Schutz, Review-Befunde 1-5)', () => {
     await expectDomainError(() => actions.notes.deleteNote(anderer, frage.id), 'not_found');
   });
 });
+
+describe('Checklisten-Aktionen', () => {
+  it('seedet die Checkliste einmalig aus Vorlagen-Labels (idempotent)', async () => {
+    const items = await actions.checklist.ensure(mitarbeiter, 'o1', ['  A  ', '', 'B']);
+    expect(items.map((i) => i.label)).toEqual(['A', 'B']); // getrimmt, leere raus
+    expect(items.map((i) => i.position)).toEqual([0, 1]);
+    // Zweiter Aufruf mit anderen Labels aendert nichts (existiert bereits).
+    const again = await actions.checklist.ensure(mitarbeiter, 'o1', ['C', 'D', 'E']);
+    expect(again).toHaveLength(2);
+    expect(await repos.checklists.listByOrder('o1')).toHaveLength(2);
+  });
+
+  it('seedet nur fuer sichtbare Auftraege', async () => {
+    await expectDomainError(() => actions.checklist.ensure(anderer, 'o1', ['A']), 'not_found');
+  });
+
+  it('legt einen Punkt an (offen, aufsteigende Position) und listet ihn', async () => {
+    const a = await actions.checklist.add(mitarbeiter, 'o1', '  Beleg pruefen  ');
+    expect(a).toMatchObject({ orderId: 'o1', label: 'Beleg pruefen', done: false, position: 0 });
+    const b = await actions.checklist.add(mitarbeiter, 'o1', 'ELSTER');
+    expect(b.position).toBe(1);
+    expect(await repos.checklists.listByOrder('o1')).toHaveLength(2);
+  });
+
+  it('lehnt einen leeren Punkt ab', async () => {
+    await expectDomainError(() => actions.checklist.add(mitarbeiter, 'o1', '   '), 'invalid');
+  });
+
+  it('hakt einen Punkt ab und wieder ab (idempotent)', async () => {
+    const item = await actions.checklist.add(mitarbeiter, 'o1', 'Beleg');
+    expect((await actions.checklist.setDone(mitarbeiter, 'o1', item.id, true)).done).toBe(true);
+    // erneut auf denselben Wert -> idempotent, kein Fehler
+    expect((await actions.checklist.setDone(mitarbeiter, 'o1', item.id, true)).done).toBe(true);
+    expect((await actions.checklist.setDone(mitarbeiter, 'o1', item.id, false)).done).toBe(false);
+  });
+
+  it('entfernt einen Punkt', async () => {
+    const item = await actions.checklist.add(mitarbeiter, 'o1', 'Beleg');
+    await actions.checklist.remove(mitarbeiter, 'o1', item.id);
+    expect(await repos.checklists.listByOrder('o1')).toHaveLength(0);
+  });
+
+  it('schaltet das "Erledigt"-Gate ueber add + setDone (integrativ)', async () => {
+    const item = await actions.checklist.add(mitarbeiter, 'o1', 'Beleg');
+    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o1', 'er'), 'conflict');
+    await actions.checklist.setDone(mitarbeiter, 'o1', item.id, true);
+    expect((await actions.status.setStatus(mitarbeiter, 'o1', 'er')).boardStatus).toBe('er');
+  });
+
+  it('blockt Checklisten-Zugriff auf fremden Auftrag (not_found)', async () => {
+    const item = await actions.checklist.add(mitarbeiter, 'o1', 'Beleg');
+    await expectDomainError(() => actions.checklist.add(anderer, 'o1', 'x'), 'not_found');
+    await expectDomainError(() => actions.checklist.setDone(anderer, 'o1', item.id, true), 'not_found');
+    await expectDomainError(() => actions.checklist.remove(anderer, 'o1', item.id), 'not_found');
+  });
+
+  it('meldet not_found fuer einen unbekannten Punkt auf einem sichtbaren Auftrag', async () => {
+    await expectDomainError(() => actions.checklist.setDone(mitarbeiter, 'o1', 'gibtsnicht', true), 'not_found');
+    await expectDomainError(() => actions.checklist.remove(mitarbeiter, 'o1', 'gibtsnicht'), 'not_found');
+  });
+});

@@ -20,6 +20,9 @@ import type { ApiBookTimeInput } from './types';
  * UI-Reaktion, der Fehlerfall wird hier zentral behandelt.
  */
 
+/** Aufträge, für die gerade ein Checklisten-Seeding läuft — verhindert parallele Doppel-Anlage. */
+const ensuring = new Set<string>();
+
 function fail(was: string) {
   return async (err: unknown): Promise<void> => {
     const msg = err instanceof ApiError ? err.message : 'unbekannter Fehler';
@@ -48,6 +51,16 @@ function reconcileNote(orderId: string, tempId: string, realId: string): void {
   useStore.setState((s) => ({
     orders: s.orders.map((o) => (o.id === orderId
       ? { ...o, notes: o.notes.map((n) => (n.id === tempId ? { ...n, id: realId } : n)) }
+      : o)),
+  }));
+}
+
+/** Temporäre ID eines neuen Checklistenpunkts gegen die echte Server-ID tauschen. */
+function reconcileCheck(orderId: string, tempId: string, realId: string): void {
+  if (tempId === realId) return;
+  useStore.setState((s) => ({
+    orders: s.orders.map((o) => (o.id === orderId
+      ? { ...o, checklist: o.checklist.map((c) => (c.id === tempId ? { ...c, id: realId } : c)) }
       : o)),
   }));
 }
@@ -112,5 +125,38 @@ export const write = {
   },
   deleteNote(id: string): void {
     void api.deleteNote(id).catch(fail('Löschen der Notiz'));
+  },
+
+  // --- Checkliste ---------------------------------------------------------
+  /**
+   * Checkliste einmalig aus Vorlagen-Labels instanziieren (Server ist idempotent, wenn schon
+   * Punkte existieren). Best effort: schlägt es fehl, bleibt die Checkliste leer — kein Banner,
+   * da rein aufbauend. Der In-Flight-Schutz verhindert Doppel-Seed bei parallelen Aufrufen
+   * (React-StrictMode-Doppel-Effekt / rasches Wieder-Öffnen).
+   */
+  ensureChecklist(orderId: string, labels: string[]): void {
+    if (ensuring.has(orderId)) return;
+    ensuring.add(orderId);
+    void api.checkEnsure(orderId, labels)
+      .then((items) => {
+        useStore.setState((s) => ({
+          orders: s.orders.map((o) => (o.id === orderId
+            ? { ...o, checklist: items.map((i) => ({ id: i.id, label: i.label, done: i.done })) }
+            : o)),
+        }));
+      })
+      .catch(() => { /* Seeding ist optional — Fehler still schlucken */ })
+      .finally(() => ensuring.delete(orderId));
+  },
+  addCheck(orderId: string, tempId: string, label: string): void {
+    void api.checkAdd(orderId, label)
+      .then((c) => reconcileCheck(orderId, tempId, c.id))
+      .catch(fail('Anlegen des Checklistenpunkts'));
+  },
+  toggleCheck(orderId: string, itemId: string, done: boolean): void {
+    void api.checkToggle(orderId, itemId, done).catch(fail('Abhaken des Checklistenpunkts'));
+  },
+  removeCheck(orderId: string, itemId: string): void {
+    void api.checkRemove(orderId, itemId).catch(fail('Löschen des Checklistenpunkts'));
   },
 };

@@ -4,6 +4,7 @@ import { createOrderAccess } from './access';
 import { createTimeActions } from './time';
 import { createNoteActions } from './notes';
 import { createStatusActions } from './status';
+import { createChecklistActions } from './checklist';
 import { createBoardActions } from './board';
 
 /**
@@ -18,6 +19,7 @@ export function createActions(repos: Repositories, datev: DatevPort, clock: Cloc
     time: createTimeActions(repos, clock, requireVisibleOrder),
     notes: createNoteActions(repos, clock, requireVisibleOrder),
     status: createStatusActions(repos, clock, requireVisibleOrder),
+    checklist: createChecklistActions(repos, clock, requireVisibleOrder),
     // Board-Liste: Sichtbarkeit steckt in der Aktion selbst (visibleOrders ueber alle Auftraege).
     board: createBoardActions(repos, datev),
   };
@@ -28,4 +30,5 @@ export type Actions = ReturnType<typeof createActions>;
 export type { BookTimeInput, TimeActions } from './time';
 export type { CreateNoteInput, NoteThread, NoteActions } from './notes';
 export type { StatusActions } from './status';
+export type { ChecklistActions } from './checklist';
 export type { BoardActions, BoardOrder, BoardNote, BoardComment } from './board';

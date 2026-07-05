@@ -114,12 +114,22 @@ export function createMemoryChecklistRepository(items: ChecklistItem[] = []): Ch
     async listByOrder(orderId) {
       return items.filter((i) => i.orderId === orderId).sort((a, b) => a.position - b.position);
     },
+    async findById(id) {
+      return items.find((i) => i.id === id);
+    },
     async insertMany(neue) {
       for (const item of neue) items.push({ ...item });
+    },
+    async insert(item) {
+      items.push({ ...item });
     },
     async setDone(id, done) {
       const item = items.find((i) => i.id === id);
       if (item) item.done = done;
+    },
+    async remove(id) {
+      const i = items.findIndex((x) => x.id === id);
+      if (i >= 0) items.splice(i, 1);
     },
   };
 }

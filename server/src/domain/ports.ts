@@ -56,8 +56,12 @@ export interface OverlayRepository {
 /** Checklisten-Instanz je Auftrag (aus der Vorlage instanziiert, dann nur noch abgehakt). */
 export interface ChecklistRepository {
   listByOrder(orderId: string): Promise<ChecklistItem[]>;
+  findById(id: string): Promise<ChecklistItem | undefined>;
   insertMany(items: ChecklistItem[]): Promise<void>;
+  /** Einzelnen Punkt anlegen (manuelles Hinzufuegen im Detail). */
+  insert(item: ChecklistItem): Promise<void>;
   setDone(id: string, done: boolean): Promise<void>;
+  remove(id: string): Promise<void>;
 }
 
 export interface StatusHistoryRepository {

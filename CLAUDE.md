@@ -141,5 +141,14 @@ mappt auf `done`/`approve`/`reopen`. Fehler landen in `syncError` (Hinweisleiste
 lösen einen frischen `GET /api/board` aus, der das optimistische Update verwirft. Aktionen, deren
 lokaler Guard strenger ist als der Server (ua/uv-Status, Löschen nur `erfasst`), feuern nur bei
 tatsächlicher lokaler Änderung. Anhänge bleiben vorerst lokal. Demo-Modus unverändert (kein
-`API_MODE` → keine API-Aufrufe). Als Nächstes (Etappe 3): restliche Aktionen (Umplanung/Planung/
-Checklisten/Anforderungen/Besonderheiten/Suborders/Attachments/Nutzer-API) + DATEV-Outbox-Sync-Job.
+`API_MODE` → keine API-Aufrufe). **Frontend-Anbindung Etappe 3 begonnen — Checklisten:** server-
+seitige Domain-Aktion + Routen (`server/src/domain/actions/checklist.ts`,
+`server/src/routes/checklist.ts`) für Abhaken/Hinzufügen/Entfernen (jeweils `requireVisibleOrder` +
+Punkt-gehört-zum-Auftrag-Prüfung) — damit greift das serverseitige „Erledigt"-Gate (`canComplete`)
+jetzt auf echte, persistierte Punkte. Instanziierung: das Frontend seedet die Checkliste beim ersten
+Öffnen einmalig aus den (admin-gepflegten) Vorlagen-Labels über `POST …/checklist/ensure`, der
+Server legt sie **idempotent** an (nur wenn noch keine existieren; In-Flight-Schutz im Client gegen
+Doppel-Seed). Store-Aktionen `toggleCheck`/`addCheck`/`removeCheck`/`ensureChecklist` sind wie in
+Etappe 2 optimistisch an `src/api/write.ts` gekoppelt. Als Nächstes (Etappe 3): restliche Aktionen
+(Umplanung/Planung/Anforderungen/Besonderheiten/Suborders/Attachments/Nutzer-API), Checklisten-
+Vorlagen serverseitig verwalten + DATEV-Outbox-Sync-Job.
