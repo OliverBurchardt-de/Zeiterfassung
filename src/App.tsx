@@ -13,6 +13,7 @@ import { ZeitenView } from '@/features/zeiten/ZeitenView';
 import { VerwaltungView } from '@/features/verwaltung/VerwaltungView';
 import { UserModal } from '@/features/verwaltung/UserModal';
 import { LoginView } from '@/features/auth/LoginView';
+import { SyncBanner } from '@/app/SyncBanner';
 import { useStore } from '@/state/store';
 import { API_MODE } from '@/api/mode';
 import { apiRestore } from '@/api/session';
@@ -44,6 +45,7 @@ export function App() {
 
   return (
     <div>
+      <SyncBanner />
       <TopBar module={module} onModule={setModule} />
 
       {module === 'board' && (

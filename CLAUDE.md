@@ -130,6 +130,16 @@ Notes + Checkliste + Anzeige-Namen in einer Antwort). Frontend-Seite: `src/api/`
 (`mode`/`client`/`types`/`mapping`/`session`) — DTO→`Order`-Mapping macht der Client
 (art/artKey aus dem Ordertype, Monat aus `plannedEnd`); Store startet im Server-Modus leer,
 persistiert keine Server-Daten (eigener Key `bk-zeiterfassung-api`). Demo-Modus (`npm run dev`)
-bleibt unverändert. Als Nächstes (Etappe 2): Schreib-Aktionen des Frontends an die API
-(Zeit/Notes/Status), dann Etappe 3: restliche Aktionen (Umplanung/Planung/Checklisten/
-Anforderungen/Besonderheiten/Nutzer-API) + DATEV-Outbox-Sync-Job.
+bleibt unverändert. **Frontend-Anbindung Etappe 2 umgesetzt:** die Schreib-Aktionen für
+Zeit/Notes/Status schreiben im Server-Modus serverseitig fest. Muster: der Store macht zuerst ein
+**optimistisches** lokales Update, danach koppelt `src/api/write.ts` die Aktion an die API
+(`src/api/client.ts`: `bookTime`/`releaseTime`/`withdrawTime`/`deleteTime`, `setStatus`,
+`createNote`/`editNote`/`noteDone`/`noteReopen`/`noteApprove`/`commentNote`/`deleteNote`) — bei
+Neuanlagen wird die temporäre Client-ID gegen die echte Server-ID getauscht (der Idempotenz-Key
+der Buchung IST diese temporäre ID → kein Doppelbuchen bei Retry), der Zielzustand einer Note
+mappt auf `done`/`approve`/`reopen`. Fehler landen in `syncError` (Hinweisleiste `SyncBanner`) und
+lösen einen frischen `GET /api/board` aus, der das optimistische Update verwirft. Aktionen, deren
+lokaler Guard strenger ist als der Server (ua/uv-Status, Löschen nur `erfasst`), feuern nur bei
+tatsächlicher lokaler Änderung. Anhänge bleiben vorerst lokal. Demo-Modus unverändert (kein
+`API_MODE` → keine API-Aufrufe). Als Nächstes (Etappe 3): restliche Aktionen (Umplanung/Planung/
+Checklisten/Anforderungen/Besonderheiten/Suborders/Attachments/Nutzer-API) + DATEV-Outbox-Sync-Job.

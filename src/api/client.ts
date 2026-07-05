@@ -1,4 +1,4 @@
-import type { ApiUser, ApiBoardOrder } from './types';
+import type { ApiUser, ApiBoardOrder, ApiTimeEntry, ApiBookTimeInput, ApiWithId } from './types';
 
 /**
  * Dünner HTTP-Client für die Server-API. Same-Origin (Vite-Proxy in Entwicklung,
@@ -49,4 +49,30 @@ export const api = {
   logout: () => request<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
   me: () => request<ApiUser>('/api/auth/me'),
   board: () => request<ApiBoardOrder[]>('/api/board'),
+
+  // --- Etappe 2: Schreib-Endpunkte (Zeit) ---------------------------------
+  bookTime: (input: ApiBookTimeInput) =>
+    request<ApiTimeEntry>('/api/time', { method: 'POST', body: JSON.stringify(input) }),
+  releaseTime: (id: string) => request<ApiTimeEntry>(`/api/time/${id}/release`, { method: 'POST' }),
+  withdrawTime: (id: string) => request<ApiTimeEntry>(`/api/time/${id}/withdraw`, { method: 'POST' }),
+  deleteTime: (id: string) => request<{ ok: boolean }>(`/api/time/${id}`, { method: 'DELETE' }),
+
+  // --- Etappe 2: Schreib-Endpunkte (Status) -------------------------------
+  setStatus: (orderId: string, status: string, position?: number) =>
+    request<ApiWithId>(`/api/orders/${orderId}/status`, {
+      method: 'POST',
+      body: JSON.stringify(position === undefined ? { status } : { status, position }),
+    }),
+
+  // --- Etappe 2: Schreib-Endpunkte (Review-Notes / Fragen) ----------------
+  createNote: (orderId: string, text: string) =>
+    request<ApiWithId>(`/api/orders/${orderId}/notes`, { method: 'POST', body: JSON.stringify({ text }) }),
+  editNote: (id: string, text: string) =>
+    request<ApiWithId>(`/api/notes/${id}`, { method: 'PATCH', body: JSON.stringify({ text }) }),
+  noteDone: (id: string) => request<ApiWithId>(`/api/notes/${id}/done`, { method: 'POST' }),
+  noteReopen: (id: string) => request<ApiWithId>(`/api/notes/${id}/reopen`, { method: 'POST' }),
+  noteApprove: (id: string) => request<ApiWithId>(`/api/notes/${id}/approve`, { method: 'POST' }),
+  commentNote: (id: string, text: string) =>
+    request<ApiWithId>(`/api/notes/${id}/comments`, { method: 'POST', body: JSON.stringify({ text }) }),
+  deleteNote: (id: string) => request<{ ok: boolean }>(`/api/notes/${id}`, { method: 'DELETE' }),
 };

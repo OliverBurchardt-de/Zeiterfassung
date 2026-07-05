@@ -9,6 +9,7 @@ import { umplanungFreiMoeglich } from '@/lib/regeln';
 import { CHECKLIST_TEMPLATES_BY_ORDERTYPE } from '@/lib/checklists';
 import { notePolicy } from '@/lib/tokens';
 import { API_MODE } from '@/api/mode';
+import { write } from '@/api/write';
 
 /**
  * Schlüssel der Besonderheiten: Mandantennummer + **Ordertype** (period-unabhängig).
@@ -51,6 +52,13 @@ interface AppState {
   filters: Filters;
   openCardId: string | null;
   besonderheiten: Record<string, Besonderheit[]>;
+
+  /**
+   * Letzte fehlgeschlagene Server-Schreibaktion (nur Server-Modus) — wird als Hinweisleiste
+   * angezeigt und beim nächsten erfolgreichen Board-Reload/Klick verworfen. Null = kein Fehler.
+   */
+  syncError: string | null;
+  setSyncError: (msg: string | null) => void;
 
   // Nutzerverwaltung (Modul „Verwaltung")
   users: User[];
@@ -181,6 +189,9 @@ export const useStore = create<AppState>()(persist((set) => ({
   openCardId: null,
   besonderheiten: API_MODE ? {} : MOCK_BESONDERHEITEN,
 
+  syncError: null,
+  setSyncError: (msg) => set({ syncError: msg }),
+
   users: API_MODE ? [] : MOCK_USERS,
   userEditId: null,
   openUserEdit: (id) => set({ userEditId: id }),
@@ -233,13 +244,21 @@ export const useStore = create<AppState>()(persist((set) => ({
   // Domänen-Guard (SSOT): die in der UI durchgesetzten Kernregeln auch im Store absichern, damit
   // kein anderer Aufruf (Tests, künftige API) einen unzulässigen Zustand erzeugt. Vollständige
   // Übergangs-/Rollenvalidierung folgt serverseitig in M2 (Review P1.1).
-  setStatus: (orderId, status) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => {
-      if (status === 'er' && o.checklist.some((c) => !c.done)) return o; // „Erledigt" erst bei vollständiger Checkliste
-      if ((status === 'ua' || status === 'uv') && !hasUnterlagenProzess(o.ordertype)) return o; // ua/uv nur mit Unterlagen-Prozess
-      return { ...o, status };
-    }),
-  })),
+  setStatus: (orderId, status) => {
+    let changed = false;
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => {
+        if (o.status === status) return o; // keine Änderung → nichts historisieren/senden
+        if (status === 'er' && o.checklist.some((c) => !c.done)) return o; // „Erledigt" erst bei vollständiger Checkliste
+        if ((status === 'ua' || status === 'uv') && !hasUnterlagenProzess(o.ordertype)) return o; // ua/uv nur mit Unterlagen-Prozess
+        changed = true;
+        return { ...o, status };
+      }),
+    }));
+    // Nur den tatsächlich durchgeführten Wechsel serverseitig festschreiben (Server prüft
+    // die „Erledigt"-Checklistensperre erneut; ua/uv-Regel greift bereits oben).
+    if (API_MODE && changed) write.setStatus(orderId, status);
+  },
 
   assignOrder: (orderId, bearbeiterId, bearbeiter) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({ ...o, bearbeiterId, bearbeiter })),
@@ -322,45 +341,82 @@ export const useStore = create<AppState>()(persist((set) => ({
   resetTimer: (orderId) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({ ...o, timerRunning: false, timerSec: 0, timerStartedAt: undefined })),
   })),
-  transferTimer: (orderId, notiz) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => {
-      const sec = timerSeconds(o);
-      const dauer = Math.round((sec / 3600) * 100) / 100;
-      if (dauer <= 0) return { ...o, timerRunning: false, timerStartedAt: undefined };
-      // Arbeitsdatum = Demo-Stichtag HEUTE (einheitlich mit allen Auswertungen); in Produktion echtes Datum.
-      const entry = { id: uid(), datum: HEUTE, dauer, status: 'erfasst' as const, notiz: notiz?.trim() || undefined };
-      return { ...o, times: [...o.times, entry], timerRunning: false, timerSec: 0, timerStartedAt: undefined };
-    }),
-  })),
-  addManualTime: (orderId, datum, dauer, notiz, aufwandsart) => set((s) => {
+  transferTimer: (orderId, notiz) => {
+    // Arbeitsdatum: im Demo-Modus der Stichtag HEUTE (einheitlich mit allen Auswertungen),
+    // im Server-Modus das echte heutige Datum (die DB soll das reale work_date führen).
+    const datum = API_MODE ? new Date().toISOString().slice(0, 10) : HEUTE;
+    const id = uid();
+    const n = notiz?.trim() || undefined;
+    let dauer = 0;
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => {
+        const sec = timerSeconds(o);
+        dauer = Math.round((sec / 3600) * 100) / 100;
+        if (dauer <= 0) return { ...o, timerRunning: false, timerStartedAt: undefined };
+        const entry = { id, datum, dauer, status: 'erfasst' as const, notiz: n };
+        return { ...o, times: [...o.times, entry], timerRunning: false, timerSec: 0, timerStartedAt: undefined };
+      }),
+    }));
+    if (API_MODE && dauer > 0) write.bookTime(orderId, id, { orderId, datum, dauer, notiz: n });
+  },
+  addManualTime: (orderId, datum, dauer, notiz, aufwandsart) => {
     // Guard (SSOT): ungültige Eingaben verwerfen — die UI validiert zusätzlich. Vollständige
     // Validierung (Obergrenze, Pflicht-Notiz/Aufwandsart, Erfasser) folgt serverseitig in M2 (Review P1.5).
-    if (!(dauer > 0) || !datum) return {};
-    return {
+    if (!(dauer > 0) || !datum) return;
+    const id = uid();
+    const n = notiz?.trim() || undefined;
+    set((s) => ({
       orders: mapOrder(s.orders, orderId, (o) => ({
-        ...o, times: [...o.times, { id: uid(), datum, dauer, status: 'erfasst', notiz: notiz?.trim() || undefined, aufwandsart }],
+        ...o, times: [...o.times, { id, datum, dauer, status: 'erfasst', notiz: n, aufwandsart }],
       })),
-    };
-  }),
+    }));
+    if (API_MODE) write.bookTime(orderId, id, { orderId, datum, dauer, notiz: n, aufwandsart });
+  },
   // V2-Hook: vor der Freigabe wird die Notiz per API an eine KI gegeben (Kategorie/Rechtschreibung/
   // Aussagekraft prüfen) — siehe src/lib/ki.ts (pruefeNotizKI). Aktuell nur technisch vorgesehen.
-  releaseTime: (orderId, timeId) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => ({
-      ...o, times: o.times.map((t) => (t.id === timeId && t.status === 'erfasst' ? { ...t, status: 'freigegeben' } : t)),
-    })),
-  })),
-  withdrawTime: (orderId, timeId) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => ({
-      ...o, times: o.times.map((t) => (t.id === timeId && t.status === 'freigegeben' ? { ...t, status: 'erfasst' } : t)),
-    })),
-  })),
-  deleteTime: (orderId, timeId) => set((s) => ({
+  releaseTime: (orderId, timeId) => {
+    let changed = false;
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => ({
+        ...o,
+        times: o.times.map((t) => {
+          if (t.id === timeId && t.status === 'erfasst') { changed = true; return { ...t, status: 'freigegeben' }; }
+          return t;
+        }),
+      })),
+    }));
+    if (API_MODE && changed) write.releaseTime(timeId);
+  },
+  withdrawTime: (orderId, timeId) => {
+    let changed = false;
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => ({
+        ...o,
+        times: o.times.map((t) => {
+          if (t.id === timeId && t.status === 'freigegeben') { changed = true; return { ...t, status: 'erfasst' }; }
+          return t;
+        }),
+      })),
+    }));
+    if (API_MODE && changed) write.withdrawTime(timeId);
+  },
+  deleteTime: (orderId, timeId) => {
     // Guard (SSOT): nur 'erfasst' ist löschbar — freigegeben erst zurückziehen, 'uebertragen'
     // ist unantastbar (Korrektur dann nur in DATEV EO; die API kennt kein DELETE).
-    orders: mapOrder(s.orders, orderId, (o) => ({
-      ...o, times: o.times.filter((t) => !(t.id === timeId && t.status === 'erfasst')),
-    })),
-  })),
+    let changed = false;
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => ({
+        ...o,
+        times: o.times.filter((t) => {
+          if (t.id === timeId && t.status === 'erfasst') { changed = true; return false; }
+          return true;
+        }),
+      })),
+    }));
+    // Nur den lokal gelöschten (erfassten) Eintrag serverseitig entfernen — der Server ließe auch
+    // 'freigegeben' löschen; hier bewusst an die engere lokale Regel gebunden.
+    if (API_MODE && changed) write.deleteTime(timeId);
+  },
 
   setSuborderDone: (orderId, suborderId, done) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({
@@ -428,30 +484,49 @@ export const useStore = create<AppState>()(persist((set) => ({
     orders: mapOrder(s.orders, orderId, (o) => ({ ...o, checklist: o.checklist.filter((c) => c.id !== itemId) })),
   })),
 
-  addNote: (orderId, text, role, author, attachments = []) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => ({
-      ...o,
-      notes: [...o.notes, {
-        id: uid(), text, author, comments: [], attachments,
-        kind: notePolicy.canCreateKind(role),
-        noteState: 'offen',
-      }],
-    })),
-  })),
-  editNoteText: (orderId, noteId, text) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => mapNote(o, noteId, (n) => ({ ...n, text }))),
-  })),
-  addComment: (orderId, noteId, text, role, author) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => mapNote(o, noteId, (n) => ({
-      ...n, comments: [...n.comments, { id: uid(), text, author, role }],
-    }))),
-  })),
-  setNoteState: (orderId, noteId, state) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => mapNote(o, noteId, (n) => ({ ...n, noteState: state }))),
-  })),
-  deleteNote: (orderId, noteId) => set((s) => ({
-    orders: mapOrder(s.orders, orderId, (o) => ({ ...o, notes: o.notes.filter((n) => n.id !== noteId) })),
-  })),
+  addNote: (orderId, text, role, author, attachments = []) => {
+    const id = uid();
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => ({
+        ...o,
+        notes: [...o.notes, {
+          id, text, author, comments: [], attachments,
+          kind: notePolicy.canCreateKind(role),
+          noteState: 'offen',
+        }],
+      })),
+    }));
+    // Server leitet die Art (frage/review) aus der Rolle ab (wie notePolicy.canCreateKind); der
+    // Text genügt. Anhänge bleiben vorerst lokal (Attachment-API folgt in Etappe 3).
+    if (API_MODE) write.createNote(orderId, id, text);
+  },
+  editNoteText: (orderId, noteId, text) => {
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => mapNote(o, noteId, (n) => ({ ...n, text }))),
+    }));
+    if (API_MODE) write.editNote(noteId, text);
+  },
+  addComment: (orderId, noteId, text, role, author) => {
+    const id = uid();
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => mapNote(o, noteId, (n) => ({
+        ...n, comments: [...n.comments, { id, text, author, role }],
+      }))),
+    }));
+    if (API_MODE) write.comment(orderId, noteId, id, text);
+  },
+  setNoteState: (orderId, noteId, state) => {
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => mapNote(o, noteId, (n) => ({ ...n, noteState: state }))),
+    }));
+    if (API_MODE) write.setNoteState(noteId, state);
+  },
+  deleteNote: (orderId, noteId) => {
+    set((s) => ({
+      orders: mapOrder(s.orders, orderId, (o) => ({ ...o, notes: o.notes.filter((n) => n.id !== noteId) })),
+    }));
+    if (API_MODE) write.deleteNote(noteId);
+  },
   addAttachments: (orderId, noteId, attachments) => set((s) => ({
     orders: mapOrder(s.orders, orderId, (o) => mapNote(o, noteId, (n) => ({
       ...n, attachments: [...n.attachments, ...attachments],

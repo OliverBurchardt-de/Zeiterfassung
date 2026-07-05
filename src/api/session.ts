@@ -15,6 +15,7 @@ async function hydrate(u: ApiUser): Promise<void> {
     currentUserId: u.id,
     role: u.role,
     isAdmin: u.admin,
+    syncError: null,
     // Der angemeldete Nutzer ersetzt einen etwaigen alten Eintrag; weitere Nutzer kommen mit der Nutzer-API.
     users: [mapApiUser(u), ...s.users.filter((x) => x.id !== u.id)],
     orders: board.map(mapBoardOrder),
@@ -45,7 +46,7 @@ export async function apiLogout(): Promise<void> {
   } catch {
     // Server nicht erreichbar → trotzdem lokal abmelden.
   } finally {
-    useStore.setState({ currentUserId: null, role: 'mitarbeiter', isAdmin: false, orders: [] });
+    useStore.setState({ currentUserId: null, role: 'mitarbeiter', isAdmin: false, orders: [], syncError: null });
   }
 }
 

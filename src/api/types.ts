@@ -29,6 +29,27 @@ export interface ApiTimeEntry {
   createdAt: string;
 }
 
+/** Eingabe der Zeitbuchung (POST /api/time) — Spiegel von server BookTimeInput. */
+export interface ApiBookTimeInput {
+  orderId: string;
+  suborderId?: string;
+  datum: string; // ISO "JJJJ-MM-TT"
+  dauer: number;
+  notiz?: string;
+  aufwandsart?: 'mehraufwand' | 'dumm';
+  /** Verhindert Doppelbuchung bei Retry; hier zugleich die temporäre Client-ID des Eintrags. */
+  idempotencyKey?: string;
+}
+
+/**
+ * Server-Antworten der Schreib-Endpunkte, soweit das Frontend sie auswertet. Wir brauchen im
+ * optimistischen Modell nur die vergebene ID (Abgleich temporäre ↔ echte ID); den Rest liefert
+ * der nächste `GET /api/board`.
+ */
+export interface ApiWithId {
+  id: string;
+}
+
 export interface ApiComment {
   id: string;
   text: string;

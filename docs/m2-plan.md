@@ -126,9 +126,19 @@ bestätigten Annahmen, offenen Risiken und dem finalen Status-Mapping. Erst dana
 > serverseitig verbindlich: eigene Zeiten selbst freigeben (keine Partner-Freigabe, übertragene
 > gesperrt), `notePolicy` (Frage vs. Review) gespiegelt, „Erledigt" durch Checklisten-Gate
 > gesperrt, jeder Statuswechsel historisiert. Idempotenz bei Zeitbuchung; `DomainError`→HTTP-Status
-> zentral. **75 Tests grün** (Aktionen + API-Integration). **Nächste Schritte:** Frontend an die
-> API anschließen (Mock-Store ersetzen), Umplanung/Anforderungen/Besonderheiten als Aktionen,
-> DATEV-Outbox-Sync-Job.
+> zentral. **75 Tests grün** (Aktionen + API-Integration).
+>
+> ✅ **Frontend-Anbindung Etappe 1:** Server-Modus (`npm run dev:api`), echter Login und Aufträge
+> über das Board-Aggregat `GET /api/board` (`src/api/*`; Details in der Repo-`CLAUDE.md`).
+>
+> ✅ **Frontend-Anbindung Etappe 2:** Schreib-Aktionen für **Zeit/Notes/Status** an die API
+> gekoppelt (`src/api/write.ts` + Endpunkte in `src/api/client.ts`). Muster: optimistisches lokales
+> Update → API-Write → bei Neuanlagen Abgleich temporäre ↔ echte ID (Idempotenz-Key = temporäre ID);
+> Fehler → Hinweisleiste (`syncError`/`SyncBanner`) + frischer `GET /api/board` (Revert). Verifiziert
+> per Playwright im Server-Modus (buchen/freigeben/zurückziehen/löschen, Notiz, Statuswechsel je über
+> einen Reload persistiert; Fehlerpfad mit Banner + Revert). **Nächste Schritte (Etappe 3):**
+> Umplanung/Planung/Checklisten/Anforderungen/Besonderheiten/Suborders/Attachments + Nutzer-API als
+> Frontend-Aktionen, DATEV-Outbox-Sync-Job.
 
 - **Stack:** Node.js + TypeScript, **Fastify** (leichtgewichtig, gutes Schema/Validation), REST-API
   für die SPA. **MS SQL Server** (bestehende Instanz im ASP-Umfeld, eigene DB + eigener Benutzer);
