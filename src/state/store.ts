@@ -18,15 +18,6 @@ import { API_MODE } from '@/api/mode';
  */
 export const besKey = (mandantNr: string, ordertype: string) => `${mandantNr}::${ordertype}`;
 
-/** Kontext des geöffneten Besonderheiten-Dialogs */
-export interface BesContext {
-  mandantNr: string;
-  mandant: string;
-  ordertype: string; // Schlüssel-Bestandteil
-  artKey: ArtKey; // nur Anzeige (Badge-Farbe)
-  art: string;
-}
-
 /**
  * Single Source of Truth: orders[].
  * Alle Mutationen laufen immutabel über das jeweilige Order-Objekt.
@@ -59,9 +50,7 @@ interface AppState {
   isAdmin: boolean; // Admin-Zusatzrecht → Modul „Verwaltung" sichtbar (beim Login aus dem Nutzer)
   filters: Filters;
   openCardId: string | null;
-  checklistOpenId: string | null;
   besonderheiten: Record<string, Besonderheit[]>;
-  besOpen: BesContext | null;
 
   // Nutzerverwaltung (Modul „Verwaltung")
   users: User[];
@@ -81,12 +70,8 @@ interface AppState {
   toggleQuick: (key: 'nurOffeneZeiten' | 'freigabeAusstehend') => void;
   openCard: (id: string) => void;
   closeCard: () => void;
-  openChecklist: (id: string) => void;
-  closeChecklist: () => void;
 
-  // Mandantenbesonderheiten (je Mandant + Auftragsart)
-  openBesonderheiten: (o: Order) => void;
-  closeBesonderheiten: () => void;
+  // Mandantenbesonderheiten (je Mandant + Auftragsart) — Bedienung im Detail-Flyout
   addBesonderheit: (key: string, text: string, author: string) => void;
   editBesonderheit: (key: string, id: string, text: string) => void;
   removeBesonderheit: (key: string, id: string) => void;
@@ -194,9 +179,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   isAdmin: false,
   filters: { employeeId: 'team', monat: 'alle', vj: 'alle', arten: [], nurOffeneZeiten: false, freigabeAusstehend: false, suche: '' },
   openCardId: null,
-  checklistOpenId: null,
   besonderheiten: API_MODE ? {} : MOCK_BESONDERHEITEN,
-  besOpen: null,
 
   users: API_MODE ? [] : MOCK_USERS,
   userEditId: null,
@@ -227,11 +210,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   toggleQuick: (key) => set((s) => ({ filters: { ...s.filters, [key]: !s.filters[key] } })),
   openCard: (id) => set({ openCardId: id }),
   closeCard: () => set({ openCardId: null }),
-  openChecklist: (id) => set({ checklistOpenId: id }),
-  closeChecklist: () => set({ checklistOpenId: null }),
 
-  openBesonderheiten: (o) => set({ besOpen: { mandantNr: o.mandantNr, mandant: o.mandant, ordertype: o.ordertype, artKey: o.artKey, art: o.art } }),
-  closeBesonderheiten: () => set({ besOpen: null }),
   addBesonderheit: (key, text, author) => set((s) => ({
     besonderheiten: {
       ...s.besonderheiten,

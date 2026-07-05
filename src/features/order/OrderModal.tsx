@@ -8,6 +8,7 @@ import type { Order } from '@/lib/types';
 import { TimePanel } from '@/features/time/TimePanel';
 import { QuickTimeDialog } from '@/features/time/QuickTimeDialog';
 import { NotesSection } from '@/features/notes/NotesSection';
+import { CardFlyout, type FlyoutKind } from '@/features/board/CardFlyout';
 import { canComplete, offeneChecklist, umplanungFreiMoeglich, umplanungRegelGilt, freieUmplanungenRest } from '@/state/selectors';
 import { DEMO_KALENDER, EMPLOYEES } from '@/mock/orders';
 
@@ -23,22 +24,22 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const approveUmplanung = useStore((s) => s.approveUmplanung);
   const rejectUmplanung = useStore((s) => s.rejectUmplanung);
   const dismissAblehnung = useStore((s) => s.dismissUmplanungAblehnung);
-  const openBes = useStore((s) => s.openBesonderheiten);
-  const openChecklist = useStore((s) => s.openChecklist);
-  const checklistOpen = useStore((s) => s.checklistOpenId);
-  const besOpen = useStore((s) => s.besOpen);
-
   const [zielMonat, setZielMonat] = useState('');
   const [quickOpen, setQuickOpen] = useState(false);
+  // Checkliste/Besonderheiten klappen als Flyout am jeweiligen Knopf aus (nicht als eigenes Modal).
+  const [flyout, setFlyout] = useState<{ kind: FlyoutKind; anchor: HTMLElement } | null>(null);
+
+  const toggleFlyout = (kind: FlyoutKind, anchor: HTMLElement) =>
+    setFlyout((prev) => (prev?.kind === kind ? null : { kind, anchor }));
 
   // Esc schließt das Detail – aber nur, wenn kein anderes Overlay darüber liegt (das schließt zuerst)
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !quickOpen && !checklistOpen && !besOpen) closeCard();
+      if (e.key === 'Escape' && !quickOpen && !flyout) closeCard();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [closeCard, quickOpen, checklistOpen, besOpen]);
+  }, [closeCard, quickOpen, flyout]);
 
   if (!order) return null;
   const art = ART[order.artKey];
@@ -79,12 +80,12 @@ export function OrderModal({ orderId }: { orderId: string }) {
             {order.art} · VJ {order.vj}
             <span className="modal__sub-actions">
               {order.checklist.length > 0 && (
-                <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={() => openChecklist(order.id)}>
+                <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={(e) => toggleFlyout('checkliste', e.currentTarget)}>
                   <ListChecks size={13} /> Checkliste ({order.checklist.length - offenCheck}/{order.checklist.length})
                 </button>
               )}
               {hasBesonderheiten(order.ordertype) && (
-                <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={() => openBes(order)}>
+                <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={(e) => toggleFlyout('besonderheiten', e.currentTarget)}>
                   <Info size={13} /> Besonderheiten
                 </button>
               )}
@@ -254,6 +255,9 @@ export function OrderModal({ orderId }: { orderId: string }) {
       </div>
 
       {quickOpen && <QuickTimeDialog order={order} onClose={() => setQuickOpen(false)} />}
+      {flyout && (
+        <CardFlyout anchorEl={flyout.anchor} kind={flyout.kind} order={order} onClose={() => setFlyout(null)} />
+      )}
     </div>
   );
 }

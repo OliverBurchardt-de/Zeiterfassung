@@ -41,8 +41,10 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
 - **Spalten `ua`/`uv`** nur für Ordertypes mit Unterlagen-Prozess (`hasUnterlagenProzess`).
 - **Checkliste je Auftragsart** über Vorlagen (`CHECKLIST_TEMPLATES`/`checklistFor` in
   `src/lib/checklists.ts`); „Erledigt" ist gesperrt bis vollständig (`canComplete` in
-  `src/state/selectors.ts`), durchgesetzt in `OrderModal.tsx` **und** `Board.tsx`. Bedienung in
-  eigenem Panel (`ChecklistModal`, Button neben „Besonderheiten").
+  `src/state/selectors.ts`), durchgesetzt in `OrderModal.tsx` **und** `Board.tsx`. Bedienung
+  **nur im Auftrags-Detail**: Checkliste **und** Besonderheiten klappen dort als **Flyout** am
+  jeweiligen Knopf aus (`CardFlyout` + `ChecklistBody`/`BesonderheitenBody`) — auf den
+  Board-Karten bewusst nicht sichtbar (kompakte Kacheln).
 - **Laufende Arten** (Beratung/Mehraufwand, `LAUFENDE_ARTEN`) nicht im Board, sondern im Modul
   „Laufende Buchungen" — Zeitbuchung mit Pflicht-Notiz (`artNeedsNotiz`). Schnellbuchung aus dem
   Auftrag heraus (`QuickTimeDialog`) bucht über Mandant+Art aufs passende laufende Order.

@@ -12,8 +12,6 @@ import { FreigabenView } from '@/features/freigaben/FreigabenView';
 import { ZeitenView } from '@/features/zeiten/ZeitenView';
 import { VerwaltungView } from '@/features/verwaltung/VerwaltungView';
 import { UserModal } from '@/features/verwaltung/UserModal';
-import { BesonderheitenModal } from '@/features/besonderheiten/BesonderheitenModal';
-import { ChecklistModal } from '@/features/checklist/ChecklistModal';
 import { LoginView } from '@/features/auth/LoginView';
 import { useStore } from '@/state/store';
 import { API_MODE } from '@/api/mode';
@@ -71,8 +69,6 @@ export function App() {
       {module === 'freigaben' && <FreigabenView />}
 
       {openCardId && <OrderModal orderId={openCardId} />}
-      <BesonderheitenModal />
-      <ChecklistModal />
       <UserModal />
     </div>
   );
