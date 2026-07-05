@@ -2,6 +2,7 @@ import type { PublicUser, OrderOverlay, StatusChange, StatusId } from '../types'
 import { STATUS_IDS } from '../types';
 import type { Repositories } from '../ports';
 import type { Clock } from '../clock';
+import type { RequireVisibleOrder } from './access';
 import { DomainError } from '../errors';
 import { canCompleteOrder } from '../rules';
 
@@ -15,7 +16,7 @@ function isStatusId(v: string): v is StatusId {
  * (canComplete) — dieselbe Regel wie im Frontend, hier serverseitig verbindlich.
  * Jeder Wechsel schreibt einen Eintrag in die Status-Historie (Basis fuer den DATEV-Writeback).
  */
-export function createStatusActions(repos: Repositories, clock: Clock) {
+export function createStatusActions(repos: Repositories, clock: Clock, requireVisibleOrder: RequireVisibleOrder) {
   return {
     async setStatus(
       actor: PublicUser,
@@ -23,6 +24,8 @@ export function createStatusActions(repos: Repositories, clock: Clock) {
       toStatus: string,
       boardPosition?: number
     ): Promise<OrderOverlay> {
+      // Nur sichtbare/zugewiesene Auftraege umschalten (Review-Befund 2).
+      await requireVisibleOrder(actor, orderId);
       if (!isStatusId(toStatus)) throw new DomainError('invalid', `unbekannter Status: ${toStatus}`);
 
       const current = await repos.overlays.get(orderId);
@@ -58,7 +61,9 @@ export function createStatusActions(repos: Repositories, clock: Clock) {
       return overlay;
     },
 
-    async history(orderId: string): Promise<StatusChange[]> {
+    async history(actor: PublicUser, orderId: string): Promise<StatusChange[]> {
+      // Historie (Akteure/Zeitpunkte) nur fuer sichtbare Auftraege (Review-Befund 3).
+      await requireVisibleOrder(actor, orderId);
       return repos.statusHistory.listByOrder(orderId);
     },
   };

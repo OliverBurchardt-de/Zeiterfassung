@@ -21,8 +21,9 @@ export function statusRoutes(app: FastifyInstance, actions: Actions): void {
     return overlay ?? reply;
   });
 
-  app.get('/api/orders/:orderId/status-history', { preHandler: requireAuth }, async (req) => {
+  app.get('/api/orders/:orderId/status-history', { preHandler: requireAuth }, async (req, reply) => {
     const { orderId } = req.params as { orderId: string };
-    return actions.status.history(orderId);
+    const hist = await runAction(reply, () => actions.status.history(req.currentUser!, orderId));
+    return hist ?? reply;
   });
 }

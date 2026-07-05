@@ -8,9 +8,10 @@ const TextBody = z.object({ text: z.string().min(1) });
 
 /** Review-Notes/Fragen — Workflow + Rechte in den Aktionen (notePolicy), nicht hier. */
 export function noteRoutes(app: FastifyInstance, actions: Actions): void {
-  app.get('/api/orders/:orderId/notes', { preHandler: requireAuth }, async (req) => {
+  app.get('/api/orders/:orderId/notes', { preHandler: requireAuth }, async (req, reply) => {
     const { orderId } = req.params as { orderId: string };
-    return actions.notes.listByOrder(orderId);
+    const threads = await runAction(reply, () => actions.notes.listByOrder(req.currentUser!, orderId));
+    return threads ?? reply;
   });
 
   app.post('/api/orders/:orderId/notes', { preHandler: requireAuth }, async (req, reply) => {

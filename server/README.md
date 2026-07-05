@@ -65,6 +65,11 @@ Schema versioniert in `db/schema.sql` (reines T-SQL; Änderungen als weitere ide
 Fachfehler antworten mit passendem HTTP-Status (400/403/404/409) und einer kurzen,
 unbedenklichen Meldung (`DomainError` → `httpStatusFor`).
 
+**Auftrags-Sichtbarkeit:** Jede auftragsbezogene Aktion durchläuft `requireVisibleOrder`
+(`domain/actions/access.ts`) — lädt den Auftrag über den DATEV-Port und erzwingt `canAccessOrder`
+(`domain/visibility.ts`), dieselbe Regel wie `GET /api/orders`. Fehlender Zugriff antwortet
+bewusst mit **404** (nicht 403), damit die API nicht verrät, ob eine Auftrags-ID existiert.
+
 ## Aufbau (3 Schichten, ADR-01)
 ```
 src/

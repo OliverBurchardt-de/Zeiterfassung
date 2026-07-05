@@ -1,6 +1,7 @@
 import type { PublicUser, TimeEntry, Aufwandsart } from '../types';
 import type { Repositories } from '../ports';
 import type { Clock } from '../clock';
+import type { RequireVisibleOrder } from './access';
 import { DomainError } from '../errors';
 import { isValidTimeDuration } from '../rules';
 
@@ -24,7 +25,7 @@ export interface BookTimeInput {
  * es gibt KEINE Partner-Freigabe — der Erfasser gibt selbst frei (CLAUDE.md, TimeStatus).
  * Bereits nach DATEV uebertragene Zeiten (status 'uebertragen') sind gesperrt.
  */
-export function createTimeActions(repos: Repositories, clock: Clock) {
+export function createTimeActions(repos: Repositories, clock: Clock, requireVisibleOrder: RequireVisibleOrder) {
   /** Laedt den Eintrag und stellt sicher, dass er dem Handelnden gehoert. */
   async function ownEntry(actor: PublicUser, id: string): Promise<TimeEntry> {
     const entry = await repos.times.findById(id);
@@ -35,6 +36,9 @@ export function createTimeActions(repos: Repositories, clock: Clock) {
 
   return {
     async bookTime(actor: PublicUser, input: BookTimeInput): Promise<TimeEntry> {
+      // Nur auf sichtbare/zugewiesene Auftraege buchen — sonst landeten (nach Freigabe/Sync)
+      // Aufwandsbuchungen auf fremden Mandaten (Review-Befund 5).
+      await requireVisibleOrder(actor, input.orderId);
       if (!isValidTimeDuration(input.dauer)) throw new DomainError('invalid', 'Dauer muss groesser 0 sein');
 
       // Idempotenz: gleicher Client-Key -> vorhandene Buchung zurueckgeben, keine Dublette.

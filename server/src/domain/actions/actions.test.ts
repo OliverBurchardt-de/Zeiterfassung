@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { createMemoryRepositories } from '../../infra/memory/repos';
-import type { Repositories } from '../ports';
-import type { PublicUser, User } from '../types';
+import type { Repositories, DatevPort } from '../ports';
+import type { PublicUser, User, OrderView } from '../types';
 import type { Clock } from '../clock';
 import { createActions, type Actions } from './index';
 import { isDomainError } from '../errors';
@@ -9,6 +9,17 @@ import { isDomainError } from '../errors';
 const mitarbeiter: PublicUser = { id: 'u-wolf', username: 'wolf', name: 'S. Wolf', role: 'mitarbeiter', admin: false };
 const anderer: PublicUser = { id: 'u-klein', username: 'klein', name: 'M. Klein', role: 'mitarbeiter', admin: false };
 const partner: PublicUser = { id: 'u-burchardt', username: 'burchardt', name: 'O. Burchardt', role: 'partner', admin: true };
+
+/** Test-DATEV: 'o1' gehoert dem Mitarbeiter (Partner ist Admin) — 'anderer' (u-klein) sieht es NICHT. */
+const ORDERS: OrderView[] = [
+  { id: 'o1', orderNumber: 1, ordertype: '202', name: 'Testauftrag', status: 'started', clientId: 'c1', responsibleId: 'u-wolf', partnerId: 'u-burchardt', isInternal: false, plannedHours: 10 },
+];
+const datev: DatevPort = {
+  health: async () => true,
+  getOrders: async () => ORDERS,
+  getOrder: async (id) => ORDERS.find((o) => o.id === id),
+  postExpensePosting: async () => ({ id: 'mock' }),
+};
 
 /** Deterministische Uhr: fortlaufende IDs, feste (monoton steigende) Zeit. */
 function testClock(): Clock {
@@ -28,7 +39,7 @@ let actions: Actions;
 
 beforeEach(() => {
   repos = createMemoryRepositories(usersOf([mitarbeiter, anderer, partner]));
-  actions = createActions(repos, testClock());
+  actions = createActions(repos, datev, testClock());
 });
 
 /** Kleiner Helfer: erwartet, dass ein Aufruf mit dem gegebenen DomainError-Code fehlschlaegt. */
@@ -127,7 +138,7 @@ describe('Note-Aktionen', () => {
   it('Kommentieren fuegt Kommentar hinzu; leerer Text abgewiesen', async () => {
     const frage = await actions.notes.createNote(mitarbeiter, { orderId: 'o1', text: 'x' });
     await actions.notes.comment(partner, frage.id, 'Nachfrage');
-    const [thread] = await actions.notes.listByOrder('o1');
+    const [thread] = await actions.notes.listByOrder(mitarbeiter, 'o1');
     expect(thread.comments).toHaveLength(1);
     await expectDomainError(() => actions.notes.comment(partner, frage.id, '   '), 'invalid');
   });
@@ -143,7 +154,7 @@ describe('Status-Aktionen', () => {
   it('setzt Status und schreibt Historie', async () => {
     await actions.status.setStatus(mitarbeiter, 'o1', 'bb');
     expect((await repos.overlays.get('o1'))?.boardStatus).toBe('bb');
-    const hist = await actions.status.history('o1');
+    const hist = await actions.status.history(mitarbeiter, 'o1');
     expect(hist).toHaveLength(1);
     expect(hist[0]).toMatchObject({ fromStatus: undefined, toStatus: 'bb', actorId: 'u-wolf' });
   });
@@ -155,7 +166,7 @@ describe('Status-Aktionen', () => {
   it('reine Positionsverschiebung erzeugt keinen Historien-Eintrag', async () => {
     await actions.status.setStatus(mitarbeiter, 'o1', 'bb', 1);
     await actions.status.setStatus(mitarbeiter, 'o1', 'bb', 2);
-    expect(await actions.status.history('o1')).toHaveLength(1);
+    expect(await actions.status.history(mitarbeiter, 'o1')).toHaveLength(1);
     expect((await repos.overlays.get('o1'))?.boardPosition).toBe(2);
   });
 
@@ -172,5 +183,29 @@ describe('Status-Aktionen', () => {
   it('ohne Checkliste ist "Erledigt" moeglich', async () => {
     const overlay = await actions.status.setStatus(mitarbeiter, 'o1', 'er');
     expect(overlay.boardStatus).toBe('er');
+  });
+});
+
+describe('Auftrags-Sichtbarkeit (IDOR-Schutz, Review-Befunde 1-5)', () => {
+  it('blockt Zugriff eines nicht zugewiesenen Nutzers auf fremden Auftrag (not_found)', async () => {
+    // 'anderer' (u-klein) ist bei 'o1' weder Bearbeiter noch Partner -> darf nichts.
+    await expectDomainError(() => actions.time.bookTime(anderer, { orderId: 'o1', datum: '2026-07-01', dauer: 1 }), 'not_found');
+    await expectDomainError(() => actions.status.setStatus(anderer, 'o1', 'bb'), 'not_found');
+    await expectDomainError(() => actions.status.history(anderer, 'o1'), 'not_found');
+    await expectDomainError(() => actions.notes.createNote(anderer, { orderId: 'o1', text: 'x' }), 'not_found');
+    await expectDomainError(() => actions.notes.listByOrder(anderer, 'o1'), 'not_found');
+  });
+
+  it('blockt auch unbekannte Auftrags-IDs (kein Enumerations-Orakel)', async () => {
+    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'gibtsnicht', 'bb'), 'not_found');
+    await expectDomainError(() => actions.notes.listByOrder(mitarbeiter, 'gibtsnicht'), 'not_found');
+  });
+
+  it('verhindert Mutation einer Note ueber ihre ID, wenn der Auftrag nicht sichtbar ist', async () => {
+    // Mitarbeiter legt auf seinem Auftrag eine Frage an; 'anderer' kennt die ID, darf aber nicht ran.
+    const frage = await actions.notes.createNote(mitarbeiter, { orderId: 'o1', text: 'x' });
+    await expectDomainError(() => actions.notes.markDone(anderer, frage.id), 'not_found');
+    await expectDomainError(() => actions.notes.comment(anderer, frage.id, 'hi'), 'not_found');
+    await expectDomainError(() => actions.notes.deleteNote(anderer, frage.id), 'not_found');
   });
 });

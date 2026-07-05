@@ -18,11 +18,12 @@ async function main(): Promise<void> {
     config.db.mode === 'mssql'
       ? createMssqlRepositories(await createPool(config.db))
       : createMemoryRepositories(await seedDemoUsers());
+  const datev = createDatevAdapter(config);
   const deps = {
     sessions: createMemorySessionStore(config.sessionTtlMs),
     users: repos.users,
-    datev: createDatevAdapter(config),
-    actions: createActions(repos),
+    datev,
+    actions: createActions(repos, datev),
   };
   const app = buildApp(config, deps);
   await app.listen({ port: config.port, host: config.host });

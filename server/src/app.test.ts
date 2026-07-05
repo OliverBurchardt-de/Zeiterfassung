@@ -9,13 +9,14 @@ import { createMockDatevAdapter } from './datev/mockAdapter';
 
 async function makeApp() {
   const repos = createMemoryRepositories(await seedDemoUsers());
+  const datev = createMockDatevAdapter();
   return buildApp(
     { ...loadConfig(), nodeEnv: 'test', cookieSecret: 'test-secret-für-tests' },
     {
       sessions: createMemorySessionStore(),
       users: repos.users,
-      datev: createMockDatevAdapter(),
-      actions: createActions(repos),
+      datev,
+      actions: createActions(repos, datev),
     },
   );
 }
@@ -196,6 +197,47 @@ describe('Status-API', () => {
     const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
     const res = await app.inject({ method: 'POST', url: '/api/orders/9993/status', headers: { cookie: cookieHeader }, payload: { status: 'xx' } });
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('IDOR-Schutz: Auftrags-Sichtbarkeit auf allen Fach-Routen', () => {
+  // Mock-DATEV: 9993 gehoert wolf, 9001 gehoert klein; beide Partner burchardt (Admin sieht beide).
+  it('Mitarbeiter kommt nicht an Notes/Status/Historie eines fremden Auftrags (404)', async () => {
+    const app = await makeApp();
+    const { cookieHeader } = await loginCookie(app, 'klein', 'demo'); // klein != Bearbeiter von 9993
+    const h = { cookie: cookieHeader };
+    const paths = [
+      { method: 'GET' as const, url: '/api/orders/9993/notes' },
+      { method: 'POST' as const, url: '/api/orders/9993/notes', payload: { text: 'x' } },
+      { method: 'GET' as const, url: '/api/orders/9993/status-history' },
+      { method: 'POST' as const, url: '/api/orders/9993/status', payload: { status: 'bb' } },
+    ];
+    for (const p of paths) {
+      const res = await app.inject({ method: p.method, url: p.url, headers: h, payload: p.payload });
+      expect(res.statusCode, `${p.method} ${p.url}`).toBe(404);
+    }
+  });
+
+  it('Zeit kann nicht auf einen fremden Auftrag gebucht werden (404)', async () => {
+    const app = await makeApp();
+    const { cookieHeader } = await loginCookie(app, 'klein', 'demo');
+    const res = await app.inject({ method: 'POST', url: '/api/time', headers: { cookie: cookieHeader }, payload: { orderId: '9993', datum: '2026-07-01', dauer: 1 } });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('interner Auftrag ist auch fuer den Admin nicht bebuchbar (404)', async () => {
+    const app = await makeApp();
+    const { cookieHeader } = await loginCookie(app, 'burchardt', 'demo');
+    const res = await app.inject({ method: 'POST', url: '/api/orders/8476/status', headers: { cookie: cookieHeader }, payload: { status: 'bb' } });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('positive Kontrolle: auf dem EIGENEN Auftrag ist der Zugriff erlaubt', async () => {
+    const app = await makeApp();
+    const { cookieHeader } = await loginCookie(app, 'klein', 'demo'); // klein IST Bearbeiter von 9001
+    const res = await app.inject({ method: 'POST', url: '/api/orders/9001/status', headers: { cookie: cookieHeader }, payload: { status: 'bb' } });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().boardStatus).toBe('bb');
   });
 });
 
