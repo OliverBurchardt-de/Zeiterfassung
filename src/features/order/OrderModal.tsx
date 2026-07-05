@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Info, ListChecks, Clock } from 'lucide-react';
 import { useStore } from '@/state/store';
 import { STATUS, STATUS_ORDER, rolePolicy, type StatusId } from '@/lib/tokens';
@@ -26,7 +26,10 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const dismissAblehnung = useStore((s) => s.dismissUmplanungAblehnung);
   const [zielMonat, setZielMonat] = useState('');
   const [quickOpen, setQuickOpen] = useState(false);
-  // Checkliste/Besonderheiten klappen als Flyout am jeweiligen Knopf aus (nicht als eigenes Modal).
+  // Checkliste/Besonderheiten klappen als eigenständiges Panel neben dem Detail aus (nicht als
+  // eigenes Modal) — positioniert am Detail-Fenster (modalRef), nicht am Knopf: sonst würde das
+  // Panel über die Eingabefelder des Details ragen und sie blockieren.
+  const modalRef = useRef<HTMLDivElement>(null);
   const [flyout, setFlyout] = useState<{ kind: FlyoutKind; anchor: HTMLElement } | null>(null);
 
   const toggleFlyout = (kind: FlyoutKind, anchor: HTMLElement) =>
@@ -65,7 +68,7 @@ export function OrderModal({ orderId }: { orderId: string }) {
 
   return (
     <div className="overlay" onClick={closeCard}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
         <div className="modal__head">
           <button className="modal__close" onClick={closeCard} aria-label="Schließen"><X size={18} /></button>
           <div className="modal__title">
@@ -256,7 +259,13 @@ export function OrderModal({ orderId }: { orderId: string }) {
 
       {quickOpen && <QuickTimeDialog order={order} onClose={() => setQuickOpen(false)} />}
       {flyout && (
-        <CardFlyout anchorEl={flyout.anchor} kind={flyout.kind} order={order} onClose={() => setFlyout(null)} />
+        <CardFlyout
+          anchorEl={flyout.anchor}
+          boundsEl={modalRef.current}
+          kind={flyout.kind}
+          order={order}
+          onClose={() => setFlyout(null)}
+        />
       )}
     </div>
   );
