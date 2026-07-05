@@ -116,5 +116,9 @@ außerhalb des ASP** (`docs/datev-connect-handoff.md`, §12). Stand: echter HTTP
 (`DATEV_MODE=http`, Basic + NTLM) und **alle Fach-Repositories** (Nutzer, Zeiten, Notes,
 Board-Overlay, Checklisten, Status-Historie, Outbox, Anforderungen, Besonderheiten) als Memory-
 **und** MS-SQL-Variante hinter denselben Ports (`Repositories` in `server/src/domain/ports.ts`,
-Umschaltung per `DB_MODE`); Default bleibt in-memory + Schein-DATEV (Tests grün). Als Nächstes:
-Domain-Aktionen (Status/Zeit/Note) + API-Routen auf den Repos, dann Frontend anschließen.
+Umschaltung per `DB_MODE`); Default bleibt in-memory + Schein-DATEV (Tests grün). Dazu
+**Domain-Aktionen + API-Routen** für Zeit/Note/Status (`server/src/domain/actions/*`,
+`server/src/routes/{time,notes,status}.ts`) mit serverseitig verbindlichem Rollen-/Workflow-Gating
+(eigene Zeiten selbst freigeben, `notePolicy`, „Erledigt"-Checklisten-Gate, Status-Historie;
+`DomainError`→HTTP zentral). Als Nächstes: Frontend an die API anschließen (Mock-Store ersetzen),
+restliche Aktionen (Umplanung/Anforderungen/Besonderheiten) + DATEV-Outbox-Sync-Job.

@@ -5,6 +5,7 @@ import { seedDemoUsers } from './infra/memory/users';
 import { createMemoryRepositories } from './infra/memory/repos';
 import { createPool } from './infra/mssql/db';
 import { createMssqlRepositories } from './infra/mssql';
+import { createActions } from './domain/actions';
 import { createDatevAdapter } from './datev';
 
 /**
@@ -21,6 +22,7 @@ async function main(): Promise<void> {
     sessions: createMemorySessionStore(config.sessionTtlMs),
     users: repos.users,
     datev: createDatevAdapter(config),
+    actions: createActions(repos),
   };
   const app = buildApp(config, deps);
   await app.listen({ port: config.port, host: config.host });

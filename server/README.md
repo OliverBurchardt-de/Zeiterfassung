@@ -8,7 +8,9 @@ Server der App: REST-API, eigener Login, eigene Persistenz, DATEV-Adapter. Archi
 > **echte DATEVconnect-Adapter** (`DATEV_MODE=http`) und die **MS-SQL-Persistenz**
 > (`DB_MODE=mssql`; **alle** Fach-Repositories: Nutzer, Zeiten, Notes, Board-Overlay, Checklisten,
 > Status-Historie, Outbox, Anforderungen, Besonderheiten) — `buildApp` bleibt gleich.
-> Die Domain-Aktionen/Routen auf diesen Repos folgen als nächster Schritt.
+> Darauf setzen die **Fach-Aktionen + API-Routen** für Zeit, Note und Status
+> (`/api/time*`, `/api/orders/:id/notes`, `/api/notes/:id/*`, `/api/orders/:id/status*`)
+> mit serverseitig verbindlichem Rollen-/Workflow-Gating. Nächster Schritt: Frontend anschließen.
 
 ## Schnellstart
 ```bash
@@ -49,6 +51,19 @@ Schema versioniert in `db/schema.sql` (reines T-SQL; Änderungen als weitere ide
 | POST | `/api/auth/logout` | Session beenden |
 | GET | `/api/auth/me` | aktueller Nutzer (erfordert Login) |
 | GET | `/api/orders` | sichtbare Aufträge (Rollen-gefiltert) |
+| GET | `/api/time/mine` | eigene Zeiteinträge |
+| POST | `/api/time` | Zeit buchen (`{ orderId, datum, dauer, … }`) → 201 |
+| POST | `/api/time/:id/release` · `/withdraw` | eigene Zeit freigeben / zurücknehmen |
+| DELETE | `/api/time/:id` | eigene, nicht übertragene Zeit löschen |
+| GET · POST | `/api/orders/:orderId/notes` | Notes lesen / anlegen (Art aus Rolle) |
+| PATCH · DELETE | `/api/notes/:id` | Text ändern / löschen (nach `notePolicy`) |
+| POST | `/api/notes/:id/done` · `/reopen` · `/approve` | Note-Workflow (Frage/Review) |
+| POST | `/api/notes/:id/comments` | Kommentar anhängen → 201 |
+| POST | `/api/orders/:orderId/status` | Board-Status setzen (`{ status, position? }`) |
+| GET | `/api/orders/:orderId/status-history` | Status-Historie |
+
+Fachfehler antworten mit passendem HTTP-Status (400/403/404/409) und einer kurzen,
+unbedenklichen Meldung (`DomainError` → `httpStatusFor`).
 
 ## Aufbau (3 Schichten, ADR-01)
 ```

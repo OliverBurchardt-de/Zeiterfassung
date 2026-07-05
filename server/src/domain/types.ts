@@ -2,6 +2,10 @@
 
 export type Role = 'mitarbeiter' | 'partner';
 
+/** Die 10 Kanban-Board-Status (App-intern; Spiegel von src/lib/tokens.ts StatusId). 'er' = Erledigt. */
+export type StatusId = 'av' | 'ua' | 'uv' | 'bb' | 'rf' | 'rn' | 'fg' | 'am' | 'fa' | 'er';
+export const STATUS_IDS: StatusId[] = ['av', 'ua', 'uv', 'bb', 'rf', 'rn', 'fg', 'am', 'fa', 'er'];
+
 export type TimeStatus = 'erfasst' | 'freigegeben' | 'uebertragen';
 export type Aufwandsart = 'mehraufwand' | 'dumm';
 export type NoteKind = 'frage' | 'review';

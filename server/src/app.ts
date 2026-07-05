@@ -3,12 +3,18 @@ import cookie from '@fastify/cookie';
 import type { Config } from './config';
 import { type AuthDeps, registerAuth } from './plugins/auth';
 import type { DatevPort } from './domain/ports';
+import type { Actions } from './domain/actions';
 import { healthRoutes } from './routes/health';
 import { authRoutes } from './routes/auth';
 import { orderRoutes } from './routes/orders';
+import { timeRoutes } from './routes/time';
+import { noteRoutes } from './routes/notes';
+import { statusRoutes } from './routes/status';
 
 export interface AppDeps extends AuthDeps {
   datev: DatevPort;
+  /** Serverseitige Fach-Aktionen (Zeit/Note/Status) ueber den Repositories. */
+  actions: Actions;
 }
 
 /**
@@ -30,6 +36,9 @@ export function buildApp(config: Config, deps: AppDeps): FastifyInstance {
       sessionTtlMs: config.sessionTtlMs,
     });
     orderRoutes(instance, deps.datev);
+    timeRoutes(instance, deps.actions);
+    noteRoutes(instance, deps.actions);
+    statusRoutes(instance, deps.actions);
   });
 
   // Zentrale Fehlerbehandlung (ADR-11): keine internen Details nach aussen — auch bei 4xx nicht

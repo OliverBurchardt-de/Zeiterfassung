@@ -120,8 +120,15 @@ bestätigten Annahmen, offenen Risiken und dem finalen Status-Mapping. Erst dana
 > (+Kommentare), Board-Overlay, Checklisten, Status-Historie, Outbox, Anforderungen,
 > Besonderheiten — jeweils als **Memory**- und **MS-SQL**-Variante hinter denselben Ports
 > (`Repositories`-Bündel in `src/domain/ports.ts`; Verdrahtung per `DB_MODE` in `server.ts`).
-> **48 Tests grün.** **Nächste Schritte:** Domain-Aktionen (Status/Zeit/Note) serverseitig auf
-> die Repos setzen, API-Routen ergänzen, Frontend anschließen.
+>
+> ✅ **Fortschritt (05.07.2026):** **Domain-Aktionen + API-Routen** für Zeit, Note und Status
+> (`src/domain/actions/*`, `src/routes/{time,notes,status}.ts`). Rechte-/Workflow-Regeln
+> serverseitig verbindlich: eigene Zeiten selbst freigeben (keine Partner-Freigabe, übertragene
+> gesperrt), `notePolicy` (Frage vs. Review) gespiegelt, „Erledigt" durch Checklisten-Gate
+> gesperrt, jeder Statuswechsel historisiert. Idempotenz bei Zeitbuchung; `DomainError`→HTTP-Status
+> zentral. **75 Tests grün** (Aktionen + API-Integration). **Nächste Schritte:** Frontend an die
+> API anschließen (Mock-Store ersetzen), Umplanung/Anforderungen/Besonderheiten als Aktionen,
+> DATEV-Outbox-Sync-Job.
 
 - **Stack:** Node.js + TypeScript, **Fastify** (leichtgewichtig, gutes Schema/Validation), REST-API
   für die SPA. **MS SQL Server** (bestehende Instanz im ASP-Umfeld, eigene DB + eigener Benutzer);
