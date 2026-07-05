@@ -1,0 +1,188 @@
+// Datenmodell der eigenen App-Persistenz (alles, was DATEV nicht abbildet).
+// Datenbank: bestehende MS-SQL-Server-Instanz, eigene Datenbank (siehe ADR-04).
+//
+// STATUS: NUR NOCH DESIGN-REFERENZ (02.07.2026). Prisma wurde durch das reine
+// JavaScript-Paket `mssql` ersetzt (Engine-Binaerdateien nicht installierbar, s.
+// ADR-04-Aenderungsvermerk). MASSGEBLICH ist jetzt server/db/schema.sql
+// (idempotentes DDL, angewendet via `npm run db:setup`). Diese Datei bleibt als
+// kommentierte Modell-Uebersicht erhalten; Aenderungen zuerst in schema.sql.
+//
+// Noch offen (siehe docs/m2-plan.md): attachments (Datei-Ablage P2.4), umplanungen
+// (Freigabe-Workflow inkl. zielMonat), checklist_templates, ordertype_config, reminder_log.
+//
+// Hinweis MS SQL: Prisma unterstuetzt beim sqlserver-Provider keine nativen Enums —
+// Status-/Rollenwerte sind bewusst String-Spalten mit dokumentierten Wertebereichen.
+// Freitexte/JSON-Payloads brauchen @db.NVarChar(Max), sonst gilt der Default NVARCHAR(1000).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id
+  username        String   @unique
+  /** E-Mail: Ziel des M2-Reminders (Auftraege ohne Zeit / nicht freigegebene Zeiten). */
+  email           String   @unique
+  name            String
+  role            String // 'mitarbeiter' | 'partner'
+  admin           Boolean  @default(false)
+  passwordHash    String
+  datevEmployeeId String?
+  tagessoll       Decimal? @db.Decimal(5, 2)
+  tageProWoche    Int?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  timeEntries   TimeEntry[]
+  notes         Note[]
+  noteComments  NoteComment[]
+  statusChanges StatusHistory[]
+  anforderungen Anforderung[]
+}
+
+// App-Zusatzdaten je DATEV-Auftrag (DATEV-Stammdaten NICHT duplizieren — nur Overlay + Cache).
+model OrderOverlay {
+  orderId       String @id
+  boardStatus   String? // 10er-Kanban-Status (av/ua/uv/bb/rf/rn/fg/am/fa/er)
+  boardPosition Int?
+  // Verbrauchte freie Umplanungen. Invariante (wie im Frontend, src/lib/types.ts):
+  // 1 DATEV-Auftrag traegt genau 1 Veranlagungsjahr → der Zaehler am Auftrag IST der
+  // VJ-Zaehler; ein neues VJ = neuer DATEV-Auftrag = frischer Zaehler. Kein separater Reset noetig.
+  umplanungenVerbraucht Int      @default(0)
+  updatedAt             DateTime @updatedAt
+}
+
+// Checklisten-INSTANZ je Auftrag (Done-Status) — Grundlage der serverseitig durchzusetzenden
+// Regel „Erledigt erst bei vollstaendiger Checkliste" (canComplete). Vorlagen kommen spaeter
+// in eine eigene checklist_templates-Tabelle (je Ordertype).
+model ChecklistItem {
+  id       String  @id @default(uuid())
+  orderId  String
+  label    String
+  done     Boolean @default(false)
+  position Int     @default(0)
+
+  @@index([orderId])
+}
+
+model TimeEntry {
+  id         String  @id @default(uuid())
+  userId     String
+  orderId    String
+  suborderId String?
+  workDate   DateTime
+  hours      Decimal @db.Decimal(9, 2)
+  note       String? @db.NVarChar(Max)
+  status     String // 'erfasst' | 'freigegeben' | 'uebertragen'
+  // Aufwandsart ('mehraufwand' | 'dumm') und die daraus gemappte DATEV-cost_position —
+  // Pflichtfeld des expensepostings-POST; ohne sie kann der Sync den Eintrag nicht buchen.
+  aufwandsart    String?
+  costPosition   String?
+  datevPostingId String?
+  idempotencyKey String   @unique
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([userId])
+  @@index([orderId])
+}
+
+model Note {
+  id        String        @id @default(uuid())
+  orderId   String
+  kind      String // 'frage' | 'review'
+  noteState String // 'offen' | 'erledigt' | 'freigegeben'
+  text      String        @db.NVarChar(Max)
+  authorId  String
+  createdAt DateTime      @default(now())
+  comments  NoteComment[]
+
+  author User @relation(fields: [authorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([orderId])
+}
+
+model NoteComment {
+  id        String   @id @default(uuid())
+  noteId    String
+  authorId  String
+  text      String   @db.NVarChar(Max)
+  createdAt DateTime @default(now())
+  note      Note     @relation(fields: [noteId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([noteId])
+}
+
+model StatusHistory {
+  id         String   @id @default(uuid())
+  orderId    String
+  fromStatus String?
+  toStatus   String
+  actorId    String
+  createdAt  DateTime @default(now())
+
+  actor User @relation(fields: [actorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([orderId])
+}
+
+// Ausstehende Rueckschreibungen nach DATEV (Status/Plandaten/Zeitbuchungen).
+// Idempotenz-Schluessel verhindert Dubletten beim nicht-idempotenten expensepostings-POST.
+model Outbox {
+  id             String    @id @default(uuid())
+  kind           String // 'order-put' | 'suborder-put' | 'expense-posting'
+  payload        String    @db.NVarChar(Max) // JSON (Read-Modify-Write-Bodies koennen gross sein)
+  idempotencyKey String    @unique
+  status         String    @default("offen") // 'offen' | 'uebertragen' | 'fehler'
+  attempts       Int       @default(0)
+  lastError      String?   @db.NVarChar(Max)
+  createdAt      DateTime  @default(now())
+  processedAt    DateTime?
+
+  @@index([status]) // der Outbox-Job pollt auf status = 'offen'
+}
+
+model Anforderung {
+  id        String  @id @default(uuid())
+  mandant   String
+  mandantNr String
+  ordertype String
+  vj        Int
+  zeitraum  String?
+  notiz     String  @db.NVarChar(Max)
+  // Anzeigename + Nutzer-Referenz getrennt (wie im Frontend): die ID traegt die
+  // „eigene Anforderungen"-Sichtbarkeit, der Name bleibt auch nach Nutzer-Umbenennung lesbar.
+  erstelltVon   String
+  erstelltVonId String
+  status        String    @default("angefordert") // 'angefordert' | 'angelegt' | 'abgelehnt'
+  grund         String?
+  createdAt     DateTime  @default(now())
+  erledigtAm    DateTime?
+
+  ersteller User @relation(fields: [erstelltVonId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([erstelltVonId])
+}
+
+// Mandantenbesonderheiten, period-unabhaengig am Schluessel client_id + ordertype —
+// mehrere Eintraege je Schluessel (Liste mit Autor/Datum, wie im Frontend), daher
+// KEIN @@unique, sondern ein Index. Uebernahme in Folgeauftraege ergibt sich aus dem
+// period-unabhaengigen Schluessel (DATEV verlinkt Vorgaenger/Nachfolger zusaetzlich explizit).
+model Besonderheit {
+  id        String   @id @default(uuid())
+  clientId  String
+  ordertype String
+  text      String   @db.NVarChar(Max)
+  author    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, ordertype])
+}

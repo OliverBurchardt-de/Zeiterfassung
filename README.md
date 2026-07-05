@@ -30,7 +30,8 @@ Weitere Skripte: `npm run build`, `npm run preview`, `npm run typecheck`, `npm r
   (offene Zeiten / Freigabe ausstehend).
 - **KPIs** und rechte Übersicht (heute erfasst, offene Zeiten, Review Notes).
 - **Karten-Detail-Modal:** Stammdaten, Status-Leiste, Stunden-Fortschritt, Plandaten,
-  **Umplanung** (Freigabe-Anfrage), **Zeiterfassung** (Live-Timer + manuell + Freigabe),
+  **Umplanung** (Freigabe-Anfrage an Partner), **Zeiterfassung** (Live-Timer + manuell +
+  Status `erfasst → freigegeben → übertragen`, Selbst-Freigabe durch den Mitarbeiter),
   **Unterlagen-Checkliste**, **Review-Notes-Thread** mit Rollen-Workflow.
 - **Rollen-Umschalter** (Mitarbeiter / Partner) — schaltet Aktionen frei (Demo).
 
@@ -45,13 +46,35 @@ src/
   state/          Zustand-Store + Selektoren
   lib/            Typen, Design-Tokens, Helfer (Auftragsart/Formatierung)
   mock/           Beispieldaten (ersetzbar durch DATEV-EO/API)
+server/           Backend (M2, begonnen): Fastify-API, Login, Domain, DATEV-Adapter (siehe server/README.md)
 docs/             Architektur, DATEV-Integration, Lastenheft
 design_handoff_zeiterfassung/   verbindliche Design-Referenz (Prototyp, Screenshots, Tokens)
 ```
 
+> **Backend (M2):** Erstes Gerüst liegt in `server/` (läuft in-memory + Schein-DATEV, Tests grün).
+> Details: `server/README.md`, Architektur: `docs/architektur-entscheidungen.md`.
+
 ## Dokumentation
-- `CLAUDE.md` — Projektkontext & Konventionen
-- `docs/architektur.md` — Zielarchitektur (Frontend, Backend, DATEV-Adapter, Persistenz)
-- `docs/datev-integration.md` — Feld-Mapping & Rückschreibung nach EO Comfort
+
+**Kontext & Anforderungen**
+- `CLAUDE.md` — Projektkontext & Konventionen (zentrale Datei für KI-gestützte Entwicklung)
 - `docs/lastenheft.md` — Flow, Regeln, offene Punkte
 - `design_handoff_zeiterfassung/README.md` — vollständige Design-Spezifikation
+
+**Architektur**
+- `docs/architektur.md` — Zielarchitektur (Frontend, Backend, DATEV-Adapter, Persistenz)
+- `docs/architektur-entscheidungen.md` — begründete Architektur-Entscheidungen fürs M2-Backend (ADR-Stil)
+
+**DATEV-Anbindung**
+- `docs/datev-integration.md` — Feld-Mapping & Rückschreibung nach EO Comfort
+- `docs/datev-connect-handoff.md` — projektunabhängige, verifizierte DATEVconnect-Mechanik (zur Wiederverwendung)
+- `docs/datev-connect-asp-zugriff.md` — DATEVconnect unter ASP: Anbindungswege, Voraussetzungen, Test (Pull/Writeback)
+- `docs/datev-developer-portal.md` — Developer-Portal: Onboarding, Cloud vs. On-Premise, Auth, Links
+- `docs/datev-test-anleitung.md` — Schritt-für-Schritt-Test auf dem ASP-Server
+- `docs/datev-asp-anfrage.md` — versandfertige Hosting-Anfrage an den DATEV-/ASP-Partner
+
+**Planung, Abnahme & Qualität**
+- `docs/m2-plan.md` — Fahrplan von M1 (Mock) zu M2 (Backend + DATEV)
+- `docs/ideen-backlog.md` — Ideen-/Aufgaben-Backlog
+- `docs/m1-abnahme.md` — M1-Abnahme-Checkliste
+- `docs/reviews/` — Review-Protokolle (Eigen-, UI-, externe Code-Reviews)

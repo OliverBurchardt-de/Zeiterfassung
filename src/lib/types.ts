@@ -3,8 +3,16 @@ import type { StatusId, NoteKind, NoteState, Role } from './tokens';
 
 export type { StatusId, NoteKind, NoteState, Role };
 
-/** Auftragsart-Kürzel für Badge + Farbe */
-export type ArtKey = 'ja' | 'ust' | 'lohn' | 'est' | 'fibu' | 'beratung' | 'mehraufwand';
+/**
+ * Grober Farb-/Workflow-**Bucket** (Badge-Kürzel + Board-Farbe) — NICHT die Auftragsidentität (das ist
+ * der `ordertype`). Bildet die DATEV-Auftragsartengruppen (Live-Katalog Burchardt & Kollegen) ab;
+ * `lfd_beratung`/`mehraufwand` sind die ordertype-genauen „laufend"-Container (aus den Gruppen
+ * Steuerliche Beratung bzw. FiBu/Lohn herausgelöst). Ableitung aus dem Ordertype in `src/lib/ordertypes.ts`.
+ */
+export type ArtKey =
+  | 'fibu' | 'lohn' | 'ja' | 'est' | 'beratung'
+  | 'wirtschaft' | 'hausverwaltung' | 'vorbehalt'
+  | 'mehraufwand' | 'lfd_beratung';
 
 export interface Comment {
   id: string;
@@ -13,7 +21,10 @@ export interface Comment {
   role: Role;
 }
 
-/** Datei-Anhang an einer Note (Mock: url = Object-URL; im Backend später echte Datei-URL). */
+/**
+ * Datei-Anhang an einer Note. Mock: `url` = data-URL (überlebt Reloads, kein Speicher-Leak);
+ * begrenzt auf kleine Dateien. Im Backend (M2) später Storage-Key + echte Datei-URL.
+ */
 export interface Attachment {
   id: string;
   name: string;
@@ -34,11 +45,26 @@ export interface Note {
 /** Aufwandsart hinter „Mehraufwand / Dumm gelaufen" — mappt auf Aufwandsarten in DATEV EO Comfort. */
 export type Aufwandsart = 'mehraufwand' | 'dumm';
 
+/**
+ * Lebenszyklus eines Zeiteintrags (keine Partner-Freigabe!):
+ *  erfasst     – vom Mitarbeiter gebucht, noch änderbar.
+ *  freigegeben – vom Mitarbeiter selbst freigegeben → gesperrt und bereit für den DATEV-Sync.
+ *  uebertragen – per Sync als Aufwandsbuchung nach DATEV EO geschrieben (M2; in M1 nur im Modell).
+ * Nur freigegebene/übertragene Zeiten gelten als gültig (abrechenbar).
+ */
+export type TimeStatus = 'erfasst' | 'freigegeben' | 'uebertragen';
+
 export interface TimeEntry {
   id: string;
-  datum: string; // ISO-Datum
+  /**
+   * Eigentümer des Eintrags (App-Nutzer-ID) — im Server-Modus vom Server geliefert und Basis
+   * für „Meine Zeiten" und die Freigeben-/Löschen-Bedienelemente (der Server erzwingt Ownership).
+   * Demo-Mock hat kein userId → Fallback über den Auftrags-Bearbeiter.
+   */
+  userId?: string;
+  datum: string; // ISO-Datum (entspricht DATEV work_date — Arbeitsdatum, nicht entry_date)
   dauer: number; // Stunden (dezimal)
-  freigegeben: boolean;
+  status: TimeStatus;
   notiz?: string; // optionale Notiz zur Buchung (Pflicht bei Beratung/Mehraufwand)
   aufwandsart?: Aufwandsart; // nur bei Mehraufwand/Dumm gelaufen: gewählte EO-Aufwandsart
 }
@@ -75,6 +101,8 @@ export interface Suborder {
 export interface Umplanung {
   zielMonat: string; // z. B. "Apr 2025"
   freigabeAusstehend: boolean;
+  /** Partner hat die Anfrage abgelehnt — als Hinweis für den Mitarbeiter sichtbar, bis er ihn wegklickt. */
+  abgelehnt?: boolean;
 }
 
 export interface Order {
@@ -82,8 +110,14 @@ export interface Order {
   mandant: string;
   mandantNr: string;
   auftragsNr: string;
-  art: string; // ausgeschriebene Auftragsart (z. B. "Jahresabschluss")
-  artKey: ArtKey; // Kürzel/Farbe
+  /**
+   * DATEV-Ordertype (Kurz-Code, z. B. "106", "JAP") — die **fachliche Identität** des Auftrags und
+   * die einzige bebuchbare Auftragsart-Ebene. `art`/`artKey` sind hieraus abgeleitete Projektionen
+   * (Anzeigename bzw. grober Farb-/Workflow-Bucket); siehe `src/lib/ordertypes.ts`.
+   */
+  ordertype: string;
+  art: string; // ausgeschriebener Ordertype-Name (DATEV ordertype_name, z. B. "Monatliche Finanzbuchführung")
+  artKey: ArtKey; // grober Bucket (Board-Farbe/Workflow), abgeleitet aus ordertype via artKeyForOrdertype()
   vj: number; // Veranlagungsjahr (DATEV EO: assessment_year)
   fristStart: string; // ISO
   fristEnde: string; // ISO
@@ -102,15 +136,51 @@ export interface Order {
   notes: Note[];
   times: TimeEntry[];
   umplanung?: Umplanung | null;
-  /** läuft gerade ein Timer auf dieser Karte (Demo-State) */
+  /**
+   * Anzahl bereits verbrauchter Umplanungen im Veranlagungsjahr (nach der Erstplanung). Für JA/ESt
+   * ist die erste Umplanung pro VJ frei, jede weitere erfordert die Partner-Freigabe. Da jeder
+   * DATEV-Auftrag genau ein `vj` trägt, ist der Zähler am Auftrag zugleich der VJ-Zähler.
+   */
+  umplanungenVerbraucht?: number;
+  /**
+   * Live-Timer: `timerSec` = eingefrorene Basis (Sekunden), `timerStartedAt` = Epoch-ms des
+   * letzten Starts. Der aktuelle Stand ist `timerSeconds(order)` (Basis + Echtzeit seit Start) —
+   * so läuft die Zeit auch bei geschlossenem Detail und über Reloads korrekt weiter.
+   */
   timerSec?: number;
   timerRunning?: boolean;
+  timerStartedAt?: number;
 }
 
 export interface Employee {
   id: string;
   name: string;
   initials: string;
+}
+
+/**
+ * Auftrags-Anforderung (Workflow-Mock): Da DATEV kein `POST /orders` kennt, können Aufträge nicht
+ * per API angelegt werden. Der Mitarbeiter fordert einen fehlenden Auftrag an; das Backoffice legt
+ * ihn manuell in DATEV EO an und meldet ihn hier als „angelegt" zurück (in M2 löst „angefordert"
+ * eine E-Mail aus, „angelegt" kommt per Sync). Siehe docs/m2-plan.md (Phase 0.1).
+ */
+export type AnforderungStatus = 'angefordert' | 'angelegt' | 'abgelehnt';
+
+export interface AuftragsAnforderung {
+  id: string;
+  mandant: string;
+  mandantNr: string;
+  ordertype: string; // gewählte Auftragsart (DATEV-Code)
+  art: string; // Anzeigename der Auftragsart
+  vj: number; // Veranlagungsjahr
+  zeitraum?: string; // optionaler Freitext (z. B. Monat/Quartal)
+  notiz: string;
+  erstelltVon: string; // Anzeigename des anfordernden Nutzers
+  erstelltVonId: string; // userId (für „eigene" Sicht)
+  erstelltAm: string; // ISO
+  status: AnforderungStatus;
+  grund?: string; // Begründung bei Ablehnung
+  erledigtAm?: string; // ISO (angelegt/abgelehnt)
 }
 
 /**
@@ -127,5 +197,6 @@ export interface User {
   admin: boolean; // Zusatz-Recht: Nutzerverwaltung + Konfiguration
   aktiv: boolean; // deaktiviert statt gelöscht
   datevId: string; // DATEV-Mitarbeiter-ID
-  tagessoll: number; // Stunden/Tag
+  tagessoll: number; // Stunden pro Arbeitstag
+  arbeitstageProWoche: number; // Arbeitstage/Woche (Teilzeit: < 5) — Basis der Kapazität
 }

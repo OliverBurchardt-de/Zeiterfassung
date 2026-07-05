@@ -1,17 +1,40 @@
 import { Check } from 'lucide-react';
 import { useStore } from '@/state/store';
+import { useVisibleOrders } from '@/state/selectors';
 import { EMPLOYEES } from '@/mock/orders';
-import { ART } from '@/lib/art';
-import type { ArtKey } from '@/lib/types';
+import { ART, isLaufendeArt } from '@/lib/art';
+import { ORDERTYPE_GROUPS } from '@/lib/ordertypes';
+import type { ArtKey, Employee, Order } from '@/lib/types';
+import { API_MODE } from '@/api/mode';
+import { initialenAus } from '@/api/mapping';
 
-const ART_FILTER: ArtKey[] = ['ja', 'ust', 'lohn', 'est', 'fibu'];
+/**
+ * Server-Modus: Die Mitarbeiter-Liste aus den sichtbaren Aufträgen ableiten (Bearbeiter-IDs
+ * kommen vom Server), statt aus der Mock-Liste — bis die Nutzer-API sie liefert (Etappe 3).
+ */
+function employeesFrom(orders: Order[]): Employee[] {
+  const seen = new Map<string, Employee>();
+  for (const o of orders) {
+    if (o.bearbeiterId && o.bearbeiter && !seen.has(o.bearbeiterId)) {
+      seen.set(o.bearbeiterId, { id: o.bearbeiterId, name: o.bearbeiter, initials: initialenAus(o.bearbeiter) });
+    }
+  }
+  return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+}
+
+// Board-Filter = nicht-interne DATEV-Gruppen (laufende Arten leben im Modul „Laufende Buchungen").
+const ART_FILTER: ArtKey[] = ORDERTYPE_GROUPS.filter((g) => !g.internal && g.art).map((g) => g.art as ArtKey);
 const ART_LABEL: Record<ArtKey, string> = {
-  ja: 'Jahresabschluss', ust: 'Umsatzsteuer', lohn: 'Lohn', est: 'Einkommensteuer', fibu: 'Finanzbuchhaltung',
-  beratung: 'Steuerberatung', mehraufwand: 'Mehraufwand',
+  fibu: 'Finanzbuchhaltung', lohn: 'Lohnbuchführung', ja: 'Jahresabschluss', est: 'Private Steuern',
+  beratung: 'Steuerliche Beratung', wirtschaft: 'Wirtschaftliche Beratung', hausverwaltung: 'Hausverwaltung',
+  vorbehalt: 'Vorbehaltsaufgaben', lfd_beratung: 'Laufende Steuerberatung', mehraufwand: 'Mehraufwand',
 };
 
 export function FilterSidebar() {
-  const orders = useStore((s) => s.orders);
+  // Dieselbe Basis wie das Board: sichtbare Aufträge ohne laufende Arten — sonst zeigen die
+  // Zähler Zahlen, die der Nutzer gar nicht sehen darf bzw. die dem Board widersprechen.
+  const visible = useVisibleOrders();
+  const orders = visible.filter((o) => !isLaufendeArt(o.artKey));
   const filters = useStore((s) => s.filters);
   const setEmployee = useStore((s) => s.setEmployee);
   const setMonat = useStore((s) => s.setMonat);
@@ -19,7 +42,7 @@ export function FilterSidebar() {
   const toggleArt = useStore((s) => s.toggleArt);
   const toggleQuick = useStore((s) => s.toggleQuick);
 
-  const monate = ['alle', ...Array.from(new Set(orders.map((o) => o.monat)))];
+  const monate = ['alle', ...Array.from(new Set(orders.map((o) => o.monat).filter(Boolean)))];
   const jahre = Array.from(new Set(orders.map((o) => o.vj))).sort((a, b) => b - a);
   const countFor = (id: string) => orders.filter((o) => o.bearbeiterId === id).length;
 
@@ -30,7 +53,7 @@ export function FilterSidebar() {
 
         <div className="filter-group">
           <div className="section-label">Mitarbeiter</div>
-          {EMPLOYEES.map((e) => (
+          {(API_MODE ? employeesFrom(orders) : EMPLOYEES).map((e) => (
             <button
               key={e.id}
               className={`emp-row${filters.employeeId === e.id ? ' is-active' : ''}`}

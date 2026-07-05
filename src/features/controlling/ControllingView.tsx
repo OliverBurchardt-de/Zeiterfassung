@@ -1,17 +1,16 @@
 import { AlertTriangle, Gauge, Receipt } from 'lucide-react';
 import type { Order } from '@/lib/types';
-import { useStore } from '@/state/store';
 import { ART, formatHours, erfassteStunden, isLaufendeArt } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
-import { istUeberfaellig, istNichtAbgerechnet, auslastungPct } from '@/state/selectors';
-import { HEUTE } from '@/mock/orders';
+import { istUeberfaellig, istNichtAbgerechnet, auslastungPct, useVisibleOrders } from '@/state/selectors';
+import { heute } from '@/lib/heute';
 
 /**
  * Modul „Controlling" — Auftragsüberwachung für Partner/Leitung:
  * überfällige Aufträge, Planwert-Ausschöpfung und noch nicht abgerechnete Aufträge.
  */
 export function ControllingView() {
-  const orders = useStore((s) => s.orders.filter((o) => !isLaufendeArt(o.artKey)));
+  const orders = useVisibleOrders().filter((o) => !isLaufendeArt(o.artKey));
 
   const ueberfaellig = orders.filter(istUeberfaellig);
   const planwert = orders.filter((o) => auslastungPct(o) >= 0.8).sort((a, b) => auslastungPct(b) - auslastungPct(a));
@@ -22,7 +21,7 @@ export function ControllingView() {
       <div className="eyebrow" style={{ color: 'var(--bk-blue)' }}>Controlling</div>
       <h1 style={{ fontSize: 'var(--bk-fs-h1)', marginBottom: 4 }}>Controlling</h1>
       <p className="muted" style={{ marginBottom: 18 }}>
-        Auftragsüberwachung zum Stichtag {new Date(HEUTE).toLocaleDateString('de-DE')}.
+        Auftragsüberwachung zum Stichtag {new Date(heute()).toLocaleDateString('de-DE')}.
       </p>
 
       <div className="ctrl-kpis">
@@ -101,7 +100,7 @@ function Row({ o, children }: { o: Order; children: React.ReactNode }) {
     <div className="ctrl-row">
       <span className="art-badge" style={{ background: art.color }}>{art.label}</span>
       <span className="ctrl-row__mandant">{o.mandant}</span>
-      <span className="muted ctrl-row__meta">{o.monat} · {o.bearbeiter}</span>
+      <span className="muted ctrl-row__meta">{o.monat || 'ungeplant'} · {o.bearbeiter}</span>
       <span className="status-pill" style={{ color: st.color, background: st.soft }}>
         <span className="dot" style={{ background: st.color }} />{st.label}
       </span>

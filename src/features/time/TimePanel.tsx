@@ -1,17 +1,27 @@
 import { useEffect, useState } from 'react';
-import type { Order } from '@/lib/types';
-import { useStore } from '@/state/store';
-import { formatTimer, formatHours, artNeedsNotiz } from '@/lib/art';
+import { Trash2 } from 'lucide-react';
+import type { Order, TimeEntry } from '@/lib/types';
+import { useStore, timerSeconds, useCurrentUser } from '@/state/store';
+import { istEigeneZeit } from '@/state/selectors';
+import { formatTimer, formatHours, artNeedsNotiz, TIME_STATUS } from '@/lib/art';
+import { rolePolicy } from '@/lib/tokens';
+import { heute } from '@/lib/heute';
 
 export function TimePanel({ order }: { order: Order }) {
   const role = useStore((s) => s.role);
+  const me = useCurrentUser();
+  // Freigeben/Zurückziehen/Löschen nur an EIGENEN Einträgen (der Server erzwingt das ebenso) —
+  // ein Partner sieht auf seinen Mandaten auch fremde Zeiten, bedient sie aber nicht.
+  const darfBedienen = (t: TimeEntry) =>
+    rolePolicy.canReleaseOwnTime(role) && !!me && istEigeneZeit(t, order, me);
   const start = useStore((s) => s.startTimer);
   const pause = useStore((s) => s.pauseTimer);
   const reset = useStore((s) => s.resetTimer);
-  const tick = useStore((s) => s.tick);
   const transfer = useStore((s) => s.transferTimer);
   const addManual = useStore((s) => s.addManualTime);
-  const approveTime = useStore((s) => s.approveTime);
+  const releaseTime = useStore((s) => s.releaseTime);
+  const withdrawTime = useStore((s) => s.withdrawTime);
+  const deleteTime = useStore((s) => s.deleteTime);
 
   const [manualDauer, setManualDauer] = useState('');
   const [notiz, setNotiz] = useState('');
@@ -19,20 +29,23 @@ export function TimePanel({ order }: { order: Order }) {
   const notizPflicht = artNeedsNotiz(order.artKey);
   const notizOk = !notizPflicht || notiz.trim().length > 0;
 
-  // Timer-Tick (1 s) nur wenn laufend
+  // Der Timer-Stand kommt aus dem Start-Zeitstempel (timerSeconds) — das Intervall hier dient
+  // nur der Anzeige-Aktualisierung; die Zeit läuft auch bei geschlossenem Panel korrekt weiter.
+  const [, setNow] = useState(0);
   useEffect(() => {
     if (!order.timerRunning) return;
-    const iv = setInterval(() => tick(order.id), 1000);
+    const iv = setInterval(() => setNow((n) => n + 1), 1000);
     return () => clearInterval(iv);
-  }, [order.timerRunning, order.id, tick]);
+  }, [order.timerRunning]);
 
-  const sec = order.timerSec ?? 0;
+  const sec = timerSeconds(order);
   const laufStunden = Math.round((sec / 3600) * 100) / 100;
 
   function submitManual() {
     const v = parseFloat(manualDauer.replace(',', '.'));
     if (!isNaN(v) && v > 0 && notizOk) {
-      addManual(order.id, new Date().toISOString().slice(0, 10), v, notiz);
+      // Arbeitsdatum = heute() — Demo: Stichtag HEUTE, Server-Modus: echtes Tagesdatum.
+      addManual(order.id, heute(), v, notiz);
       setManualDauer('');
       setNotiz('');
     }
@@ -103,11 +116,18 @@ export function TimePanel({ order }: { order: Order }) {
             <div className="time-row">
               <span>{new Date(t.datum).toLocaleDateString('de-DE')}</span>
               <span className="tabular">{formatHours(t.dauer)}</span>
-              <span className={`badge ${t.freigegeben ? 'badge--ok' : 'badge--notok'}`}>
-                {t.freigegeben ? 'Freigegeben' : 'Nicht freigegeben'}
-              </span>
-              {!t.freigegeben && role === 'partner' && (
-                <button className="btn btn--success btn--sm" onClick={() => approveTime(order.id, t.id)}>Freigeben</button>
+              <span className={`badge ${TIME_STATUS[t.status].badge}`}>{TIME_STATUS[t.status].label}</span>
+              {darfBedienen(t) && t.status === 'erfasst' && (
+                <>
+                  <button className="btn btn--success btn--sm" onClick={() => releaseTime(order.id, t.id)}>Freigeben</button>
+                  <button className="icon-btn" onClick={() => deleteTime(order.id, t.id)}
+                    aria-label="Fehlbuchung löschen" title="Fehlbuchung löschen (nur solange nicht freigegeben)">
+                    <Trash2 size={15} />
+                  </button>
+                </>
+              )}
+              {darfBedienen(t) && t.status === 'freigegeben' && (
+                <button className="btn btn--ghost btn--sm" onClick={() => withdrawTime(order.id, t.id)}>Zurückziehen</button>
               )}
             </div>
             {t.notiz && <div className="time-row__notiz">{t.notiz}</div>}

@@ -1,0 +1,34 @@
+import type { Repositories, DatevPort } from '../ports';
+import { type Clock, systemClock } from '../clock';
+import { createOrderAccess } from './access';
+import { createTimeActions } from './time';
+import { createNoteActions } from './notes';
+import { createStatusActions } from './status';
+import { createChecklistActions } from './checklist';
+import { createBoardActions } from './board';
+
+/**
+ * Buendelt die serverseitigen Fach-Aktionen ueber den Repositories. Der DATEV-Port liefert die
+ * Auftrags-Stammdaten fuer die Zugriffspruefung (`requireVisibleOrder`), die JEDE auftragsbezogene
+ * Aktion durchlaeuft. Uhr/ID-Erzeugung sind einspeisbar (Tests deterministisch). Die API-Routen
+ * rufen nur diese Aktionen — die gesamte Fachlogik/Rechtepruefung liegt hier, nicht in der Route.
+ */
+export function createActions(repos: Repositories, datev: DatevPort, clock: Clock = systemClock) {
+  const requireVisibleOrder = createOrderAccess(datev);
+  return {
+    time: createTimeActions(repos, clock, requireVisibleOrder),
+    notes: createNoteActions(repos, clock, requireVisibleOrder),
+    status: createStatusActions(repos, clock, requireVisibleOrder),
+    checklist: createChecklistActions(repos, clock, requireVisibleOrder),
+    // Board-Liste: Sichtbarkeit steckt in der Aktion selbst (visibleOrders ueber alle Auftraege).
+    board: createBoardActions(repos, datev),
+  };
+}
+
+export type Actions = ReturnType<typeof createActions>;
+
+export type { BookTimeInput, TimeActions } from './time';
+export type { CreateNoteInput, NoteThread, NoteActions } from './notes';
+export type { StatusActions } from './status';
+export type { ChecklistActions } from './checklist';
+export type { BoardActions, BoardOrder, BoardNote, BoardComment } from './board';

@@ -1,21 +1,63 @@
-import type { Order, Note, TimeEntry } from '@/lib/types';
+import { useMemo } from 'react';
+import type { Order, Note, TimeEntry, User, AuftragsAnforderung } from '@/lib/types';
 import { useStore, noteOffen } from './store';
 import { erfassteStunden, isLaufendeArt } from '@/lib/art';
-import { HEUTE } from '@/mock/orders';
+import { heute } from '@/lib/heute';
 
-// ---- Freigaben (Partner-Cockpit) ---------------------------------------
+// ---- Sichtbarkeit / Zugriff ---------------------------------------------
 
-export interface ZeitFreigabe { order: Order; time: TimeEntry }
-export interface ReviewFreigabe { order: Order; note: Note }
-
-/** Alle noch nicht freigegebenen Zeitbuchungen (über alle Aufträge). */
-export function offeneZeitFreigaben(orders: Order[]): ZeitFreigabe[] {
-  const out: ZeitFreigabe[] = [];
-  for (const o of orders) for (const t of o.times) if (!t.freigegeben) out.push({ order: o, time: t });
-  return out;
+/**
+ * Aufträge, die ein Nutzer sehen darf („nur eigene zugewiesene"):
+ * - Admin: alle. - Partner: seine verantworteten Mandate (+ eigene Bearbeitung).
+ * - Mitarbeiter: nur Aufträge, bei denen er Bearbeiter ist.
+ * HINWEIS: reine Frontend-Sicht (Mock-Preview). Verbindlich erst serverseitig in M2.
+ */
+export function sichtbareAuftraege(orders: Order[], user?: User): Order[] {
+  if (!user) return [];
+  if (user.admin) return orders;
+  if (user.role === 'partner') return orders.filter((o) => o.partner === user.name || o.bearbeiter === user.name);
+  return orders.filter((o) => o.bearbeiter === user.name);
 }
 
-/** Aufträge mit ausstehender Umplanungs-Freigabe. */
+/** Hook: die für den angemeldeten Nutzer sichtbaren Aufträge. */
+export function useVisibleOrders(): Order[] {
+  const orders = useStore((s) => s.orders);
+  const user = useStore((s) => s.users.find((u) => u.id === s.currentUserId));
+  return useMemo(() => sichtbareAuftraege(orders, user), [orders, user]);
+}
+
+// ---- Umplanungs-Regeln (JA/ESt) -----------------------------------------
+// Reine Regeln leben in src/lib/regeln.ts (auch der Store-Guard nutzt sie);
+// hier nur re-exportiert, damit bestehende Importe stabil bleiben.
+export { FREIE_UMPLANUNGEN_PRO_JAHR, umplanungRegelGilt, umplanungFreiMoeglich, freieUmplanungenRest } from '@/lib/regeln';
+
+// ---- Auftrags-Anforderungen ---------------------------------------------
+
+/** Anforderungen, die ein Nutzer sehen darf: Admin/Backoffice alle, sonst nur eigene. */
+export function sichtbareAnforderungen(items: AuftragsAnforderung[], user?: User): AuftragsAnforderung[] {
+  if (!user) return [];
+  if (user.admin) return items;
+  return items.filter((a) => a.erstelltVonId === user.id);
+}
+
+/** Hook: für den angemeldeten Nutzer sichtbare Anforderungen (eigene bzw. alle für Admin). */
+export function useVisibleAnforderungen(): AuftragsAnforderung[] {
+  const items = useStore((s) => s.anforderungen);
+  const user = useStore((s) => s.users.find((u) => u.id === s.currentUserId));
+  return useMemo(() => sichtbareAnforderungen(items, user), [items, user]);
+}
+
+// ---- Zeiten & Freigaben -------------------------------------------------
+
+export interface ZeitRow { order: Order; time: TimeEntry }
+export interface ReviewFreigabe { order: Order; note: Note }
+
+/** Gilt die Zeit als gültig (freigegeben oder bereits nach DATEV übertragen)? */
+export function istFreigegeben(t: TimeEntry): boolean {
+  return t.status !== 'erfasst';
+}
+
+/** Aufträge mit ausstehender Umplanungs-Freigabe (Partner-Cockpit). */
 export function offeneUmplanungen(orders: Order[]): Order[] {
   return orders.filter((o) => o.umplanung?.freigabeAusstehend);
 }
@@ -27,16 +69,25 @@ export function offeneReviewFreigaben(orders: Order[]): ReviewFreigabe[] {
   return out;
 }
 
-/** Zeitbuchungen eines Bearbeiters (Modul „Meine Zeiten"). */
-export function zeitenVon(orders: Order[], autor: string): ZeitFreigabe[] {
-  const out: ZeitFreigabe[] = [];
-  for (const o of orders) if (o.bearbeiter === autor) for (const t of o.times) out.push({ order: o, time: t });
+/**
+ * Gehört der Zeiteintrag dem Nutzer? Server-Modus: über die Zeit-Ownership (`t.userId`, vom
+ * Server geliefert und dort erzwungen). Demo-Mock hat kein userId → Fallback: alle Einträge
+ * eines Auftrags gehören dessen Bearbeiter.
+ */
+export function istEigeneZeit(t: TimeEntry, o: Order, user: { id: string; name: string }): boolean {
+  return t.userId ? t.userId === user.id : o.bearbeiter === user.name;
+}
+
+/** Zeitbuchungen eines Nutzers (Modul „Meine Zeiten") — kind-genau über die Zeit-Ownership. */
+export function zeitenVon(orders: Order[], user: { id: string; name: string }): ZeitRow[] {
+  const out: ZeitRow[] = [];
+  for (const o of orders) for (const t of o.times) if (istEigeneZeit(t, o, user)) out.push({ order: o, time: t });
   return out;
 }
 
-/** Hat der Auftrag offene (nicht freigegebene) Zeiten? */
+/** Hat der Auftrag noch nicht freigegebene (erfasste) Zeiten? */
 export function hasOffeneZeiten(o: Order): boolean {
-  return o.times.some((t) => !t.freigegeben);
+  return o.times.some((t) => t.status === 'erfasst');
 }
 
 /** Anzahl noch offener Checklisten-Punkte */
@@ -63,9 +114,11 @@ export function auslastungPct(o: Order): number {
   return erfassteStunden(o.times) / o.soll;
 }
 
-/** Überfällig: Fristende liegt vor dem Stichtag und der Auftrag ist nicht erledigt. */
+/** Überfällig: Fristende liegt vor dem Stichtag (heute) und der Auftrag ist nicht erledigt. */
 export function istUeberfaellig(o: Order): boolean {
-  return o.fristEnde < HEUTE && o.status !== 'er';
+  // Ungeplante Aufträge haben leeres Fristende ('') → nicht als überfällig werten (Review-Hinweis 5.2).
+  if (!o.fristEnde) return false;
+  return o.fristEnde < heute() && o.status !== 'er';
 }
 
 /**
@@ -73,12 +126,13 @@ export function istUeberfaellig(o: Order): boolean {
  * (erfasste Zeiten/Leistungen). In Produktion liefert dies ein Hintergrund-API-Pull aus DATEV.
  */
 export function istNichtAbgerechnet(o: Order): boolean {
-  return !o.fakturiert && o.times.length > 0;
+  // Nur freigegebene Zeiten gelten als abrechenbar — erfasste Buchungen sind noch kein Rückstand.
+  return !o.fakturiert && o.times.some(istFreigegeben);
 }
 
 /** Auftragsliste nach den aktuellen Filtern (ohne Status — der ergibt die Spalte) */
 export function useFilteredOrders(): Order[] {
-  const orders = useStore((s) => s.orders);
+  const orders = useVisibleOrders();
   const f = useStore((s) => s.filters);
 
   return orders.filter((o) => {
@@ -108,18 +162,25 @@ export function kpis(orders: Order[]) {
   return { zugeteilt, inBearbeitung, zeitenOffen, reviewNotes };
 }
 
-/** Heute erfasste Stunden (Demo: noch nicht freigegebene Zeiten der gefilterten Aufträge) */
+/** Heute erfasste Stunden der gefilterten Aufträge — unabhängig vom Freigabestatus. */
 export const TAGES_SOLL = 8.0;
 
 export function heuteErfasst(orders: Order[]): { gesamt: number; perMandant: { mandant: string; stunden: number }[] } {
-  const perMandant: { mandant: string; stunden: number }[] = [];
+  // Pro Mandant aggregieren (mehrere Aufträge desselben Mandanten → eine Zeile) und die
+  // Top 5 nach Stunden zeigen — sonst doppelte Zeilen/React-Keys und ein zufälliges „Top 5".
+  const map = new Map<string, number>();
   let gesamt = 0;
+  const stichtag = heute();
   for (const o of orders) {
-    const h = erfassteStunden(o.times.filter((t) => !t.freigegeben));
+    const h = erfassteStunden(o.times.filter((t) => t.datum === stichtag));
     if (h > 0) {
       gesamt += h;
-      perMandant.push({ mandant: o.mandant, stunden: h });
+      map.set(o.mandant, (map.get(o.mandant) ?? 0) + h);
     }
   }
-  return { gesamt, perMandant: perMandant.slice(0, 5) };
+  const perMandant = Array.from(map.entries())
+    .map(([mandant, stunden]) => ({ mandant, stunden }))
+    .sort((a, b) => b.stunden - a.stunden)
+    .slice(0, 5);
+  return { gesamt, perMandant };
 }

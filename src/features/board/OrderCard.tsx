@@ -1,22 +1,21 @@
+import { memo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { Info, ListChecks } from 'lucide-react';
 import type { Order } from '@/lib/types';
-import { ART, formatTimer, formatHours, erfassteStunden, hasBesonderheiten } from '@/lib/art';
+import { ART, formatTimer, formatHours, erfassteStunden } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
-import { offeneNotes, useStore, besKey } from '@/state/store';
+import { offeneNotes, useStore, timerSeconds } from '@/state/store';
 import { hasOffeneZeiten } from '@/state/selectors';
 
-/** Reine Darstellung einer Karte – wird sowohl im Board als auch im Drag-Overlay genutzt. */
+/**
+ * Reine Darstellung einer Karte – wird sowohl im Board als auch im Drag-Overlay genutzt.
+ * Bewusst OHNE Checkliste/Besonderheiten: die Karte bleibt kompakt; beide sind erst im
+ * Auftrags-Detail (Klick auf die Kachel) als Flyout erreichbar.
+ */
 function CardInner({ order }: { order: Order }) {
   const art = ART[order.artKey];
   const timerLaufend = order.timerRunning;
   const offeneZeit = !timerLaufend && hasOffeneZeiten(order);
   const reviewCount = offeneNotes(order);
-  const openBes = useStore((s) => s.openBesonderheiten);
-  const openChecklist = useStore((s) => s.openChecklist);
-  const besCount = useStore((s) => (s.besonderheiten[besKey(order.mandantNr, order.artKey)] ?? []).length);
-  const checkOffen = order.checklist.filter((c) => !c.done).length;
-  const checkGesamt = order.checklist.length;
 
   return (
     <>
@@ -38,7 +37,7 @@ function CardInner({ order }: { order: Order }) {
         {timerLaufend && (
           <div className="state-line" style={{ color: 'var(--bk-blood-orange)', fontWeight: 600 }}>
             <span className="dot dot--pulse" style={{ background: 'var(--bk-blood-orange)' }} />
-            {formatTimer(order.timerSec ?? 0)} h läuft
+            {formatTimer(timerSeconds(order))} läuft
           </div>
         )}
         {offeneZeit && (
@@ -64,33 +63,12 @@ function CardInner({ order }: { order: Order }) {
           </div>
         )}
       </div>
-
-      {(hasBesonderheiten(order.artKey) || checkGesamt > 0) && (
-        <div className="card__foot">
-          {checkGesamt > 0 && (
-            <button
-              className="btn btn--ghost btn--sm card__bes"
-              onClick={(e) => { e.stopPropagation(); openChecklist(order.id); }}
-            >
-              <ListChecks size={13} /> Checkliste ({checkGesamt - checkOffen}/{checkGesamt})
-            </button>
-          )}
-          {hasBesonderheiten(order.artKey) && (
-            <button
-              className="btn btn--ghost btn--sm card__bes"
-              onClick={(e) => { e.stopPropagation(); openBes(order); }}
-            >
-              <Info size={13} /> Besonderheiten{besCount > 0 ? ` (${besCount})` : ''}
-            </button>
-          )}
-        </div>
-      )}
     </>
   );
 }
 
 /** Ziehbare Karte im Board. Klick öffnet das Detail, Ziehen verschiebt den Status. */
-export function OrderCard({ order }: { order: Order }) {
+export const OrderCard = memo(function OrderCard({ order }: { order: Order }) {
   const openCard = useStore((s) => s.openCard);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: order.id });
 
@@ -116,7 +94,7 @@ export function OrderCard({ order }: { order: Order }) {
       <CardInner order={order} />
     </div>
   );
-}
+});
 
 /** Visuelle Kopie, die beim Ziehen dem Cursor folgt (kein Klick, kein Drag-Hook). */
 export function OrderCardOverlay({ order }: { order: Order }) {

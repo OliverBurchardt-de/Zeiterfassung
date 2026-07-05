@@ -1,27 +1,63 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Info, ListChecks, Clock } from 'lucide-react';
 import { useStore } from '@/state/store';
-import { STATUS, STATUS_ORDER, type StatusId } from '@/lib/tokens';
+import { STATUS, STATUS_ORDER, rolePolicy, type StatusId } from '@/lib/tokens';
 import { ART, formatHours, erfassteStunden } from '@/lib/art';
 import { hasUnterlagenProzess, hasBesonderheiten, isLaufendeArt, hasTeilauftraege } from '@/lib/art';
 import type { Order } from '@/lib/types';
 import { TimePanel } from '@/features/time/TimePanel';
 import { QuickTimeDialog } from '@/features/time/QuickTimeDialog';
 import { NotesSection } from '@/features/notes/NotesSection';
-import { canComplete, offeneChecklist } from '@/state/selectors';
-
-const MONATE = ['Jan 2025', 'Feb 2025', 'Mär 2025', 'Apr 2025', 'Mai 2025', 'Jun 2025'];
+import { CardFlyout, type FlyoutKind } from '@/features/board/CardFlyout';
+import { canComplete, offeneChecklist, umplanungFreiMoeglich, umplanungRegelGilt, freieUmplanungenRest } from '@/state/selectors';
+import { CHECKLIST_TEMPLATES_BY_ORDERTYPE } from '@/lib/checklists';
+import { DEMO_KALENDER, EMPLOYEES } from '@/mock/orders';
 
 export function OrderModal({ orderId }: { orderId: string }) {
   const order = useStore((s) => s.orders.find((o) => o.id === orderId));
   const closeCard = useStore((s) => s.closeCard);
   const setStatus = useStore((s) => s.setStatus);
+  const role = useStore((s) => s.role);
+  const isAdmin = useStore((s) => s.isAdmin);
+  const assignOrder = useStore((s) => s.assignOrder);
+  const umplanen = useStore((s) => s.umplanen);
   const requestUmplanung = useStore((s) => s.requestUmplanung);
-  const openBes = useStore((s) => s.openBesonderheiten);
-  const openChecklist = useStore((s) => s.openChecklist);
-
-  const [zielMonat, setZielMonat] = useState('Apr 2025');
+  const approveUmplanung = useStore((s) => s.approveUmplanung);
+  const rejectUmplanung = useStore((s) => s.rejectUmplanung);
+  const dismissAblehnung = useStore((s) => s.dismissUmplanungAblehnung);
+  const ensureChecklist = useStore((s) => s.ensureChecklist);
+  const checklistTemplates = useStore((s) => s.checklistTemplates);
+  const [zielMonat, setZielMonat] = useState('');
   const [quickOpen, setQuickOpen] = useState(false);
+  // Checkliste/Besonderheiten klappen als eigenständiges Panel neben dem Detail aus (nicht als
+  // eigenes Modal) — positioniert am Detail-Fenster (modalRef), nicht am Knopf: sonst würde das
+  // Panel über die Eingabefelder des Details ragen und sie blockieren.
+  const modalRef = useRef<HTMLDivElement>(null);
+  const [flyout, setFlyout] = useState<{ kind: FlyoutKind; anchor: HTMLElement } | null>(null);
+
+  const toggleFlyout = (kind: FlyoutKind, anchor: HTMLElement) =>
+    setFlyout((prev) => (prev?.kind === kind ? null : { kind, anchor }));
+
+  // Esc schließt das Detail – aber nur, wenn kein anderes Overlay darüber liegt (das schließt zuerst)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !quickOpen && !flyout) closeCard();
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [closeCard, quickOpen, flyout]);
+
+  // Server-Modus: die Checkliste beim ersten Öffnen aus der (admin-gepflegten) Vorlage
+  // instanziieren, falls der Auftrag serverseitig noch keine trägt. Demo-Modus: No-Op
+  // (ensureChecklist ist API-gated). Nur bei Auftragswechsel, nicht bei jedem Render.
+  const orderIdForSeed = order?.id;
+  const checklistLeer = (order?.checklist.length ?? 0) === 0;
+  useEffect(() => {
+    if (!orderIdForSeed || !checklistLeer) return;
+    const labels = checklistTemplates[order!.ordertype] ?? CHECKLIST_TEMPLATES_BY_ORDERTYPE[order!.ordertype] ?? [];
+    if (labels.length > 0) ensureChecklist(orderIdForSeed, labels);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderIdForSeed]);
 
   if (!order) return null;
   const art = ART[order.artKey];
@@ -29,9 +65,15 @@ export function OrderModal({ orderId }: { orderId: string }) {
   const erfasst = erfassteStunden(order.times);
   const pct = order.soll > 0 ? Math.min(100, Math.round((erfasst / order.soll) * 100)) : 0;
   const rest = Math.max(0, order.soll - erfasst);
+  // Vorauswahl der Umplanung: aktueller Monat, falls im Horizont, sonst erster Monat.
+  const zielWert = zielMonat || (DEMO_KALENDER.includes(order.monat) ? order.monat : DEMO_KALENDER[0]);
+  // Umplanungs-Regel JA/ESt: erste Umplanung pro VJ frei, danach Partner-Freigabe.
+  const umplanFrei = umplanungFreiMoeglich(order);
+  const umplanRegel = umplanungRegelGilt(order);
+  const umplanRest = freieUmplanungenRest(order);
 
   const statusListe = STATUS_ORDER.filter((s) => {
-    if ((s === 'ua' || s === 'uv') && !hasUnterlagenProzess(order.artKey)) return false;
+    if ((s === 'ua' || s === 'uv') && !hasUnterlagenProzess(order.ordertype)) return false;
     return true;
   });
 
@@ -41,7 +83,7 @@ export function OrderModal({ orderId }: { orderId: string }) {
 
   return (
     <div className="overlay" onClick={closeCard}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
         <div className="modal__head">
           <button className="modal__close" onClick={closeCard} aria-label="Schließen"><X size={18} /></button>
           <div className="modal__title">
@@ -56,12 +98,12 @@ export function OrderModal({ orderId }: { orderId: string }) {
             {order.art} · VJ {order.vj}
             <span className="modal__sub-actions">
               {order.checklist.length > 0 && (
-                <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={() => openChecklist(order.id)}>
+                <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={(e) => toggleFlyout('checkliste', e.currentTarget)}>
                   <ListChecks size={13} /> Checkliste ({order.checklist.length - offenCheck}/{order.checklist.length})
                 </button>
               )}
-              {hasBesonderheiten(order.artKey) && (
-                <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={() => openBes(order)}>
+              {hasBesonderheiten(order.ordertype) && (
+                <button className="btn btn--ghost btn--sm modal__chip-btn" onClick={(e) => toggleFlyout('besonderheiten', e.currentTarget)}>
                   <Info size={13} /> Besonderheiten
                 </button>
               )}
@@ -76,9 +118,26 @@ export function OrderModal({ orderId }: { orderId: string }) {
             <Meta label="Auftrags-Nr." value={order.auftragsNr} />
             <Meta label="Mandanten-Nr." value={order.mandantNr} />
             <Meta label="Veranlagungsjahr" value={String(order.vj)} />
-            <Meta label="Geplanter Monat" value={order.monat} />
+            <Meta label="Geplanter Monat" value={order.monat || 'ungeplant'} />
             <Meta label="Verantw. Partner" value={order.partner} />
-            <Meta label="Bearbeiter" value={order.bearbeiter} />
+            {(isAdmin || rolePolicy.canAssignOrder(role)) ? (
+              <div className="meta__item">
+                <span className="meta__label">Bearbeiter</span>
+                <select
+                  className="input"
+                  style={{ padding: '2px 6px', fontSize: 13 }}
+                  value={order.bearbeiterId}
+                  onChange={(e) => {
+                    const emp = EMPLOYEES.find((x) => x.id === e.target.value);
+                    if (emp) assignOrder(order.id, emp.id, emp.name);
+                  }}
+                >
+                  {EMPLOYEES.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+              </div>
+            ) : (
+              <Meta label="Bearbeiter" value={order.bearbeiter} />
+            )}
           </div>
         </div>
 
@@ -124,15 +183,15 @@ export function OrderModal({ orderId }: { orderId: string }) {
               <div className="field">
                 <label>Geplanter Zeitraum (aus DATEV EO)</label>
                 <div className="date-range">
-                  <input className="input" type="date" defaultValue={order.fristStart} />
+                  <input className="input" type="date" value={order.fristStart} readOnly />
                   <span>→</span>
-                  <input className="input" type="date" defaultValue={order.fristEnde} />
+                  <input className="input" type="date" value={order.fristEnde} readOnly />
                 </div>
-                <div className="hint">ergibt Monat: {order.monat}</div>
+                <div className="hint">ergibt Monat: {order.monat} · Änderung über „Umplanung"</div>
               </div>
               <div className="field">
-                <label>Soll-Stunden</label>
-                <input className="input" type="number" defaultValue={order.soll} />
+                <label>Soll-Stunden (aus DATEV EO)</label>
+                <input className="input" type="number" value={order.soll} readOnly />
               </div>
               <div className="field">
                 <label>Ist-Stunden</label>
@@ -142,32 +201,87 @@ export function OrderModal({ orderId }: { orderId: string }) {
 
               <div className="field">
                 <label>Umplanung in anderen Monat</label>
-                {order.umplanung?.freigabeAusstehend ? (
-                  <span className="badge badge--pending">Freigabe ausstehend → {order.umplanung.zielMonat}</span>
-                ) : (
-                  <div className="date-range">
-                    <select className="input" value={zielMonat} onChange={(e) => setZielMonat(e.target.value)}>
-                      {MONATE.map((m) => <option key={m}>{m}</option>)}
-                    </select>
-                    <button className="btn btn--amber btn--sm" onClick={() => requestUmplanung(order.id, zielMonat)}>
-                      Freigabe anfordern
+                {order.umplanung?.abgelehnt && (
+                  <div className="date-range" style={{ marginBottom: 8 }}>
+                    <span className="badge badge--pending">
+                      Anfrage → {order.umplanung.zielMonat} vom Partner abgelehnt
+                    </span>
+                    <button className="btn btn--ghost btn--sm" onClick={() => dismissAblehnung(order.id)}>
+                      Verstanden
                     </button>
                   </div>
                 )}
-                <div className="hint">Umplanung erfordert die Freigabe des mandatsverantwortlichen Partners.</div>
+                {order.umplanung?.freigabeAusstehend ? (
+                  <div className="date-range">
+                    <span className="badge badge--pending">Freigabe ausstehend → {order.umplanung.zielMonat}</span>
+                    {rolePolicy.canApproveUmplanung(role) && (
+                      <>
+                        <button className="btn btn--success btn--sm" onClick={() => approveUmplanung(order.id)}>Freigeben</button>
+                        <button className="btn btn--ghost btn--sm" onClick={() => rejectUmplanung(order.id)}>Ablehnen</button>
+                      </>
+                    )}
+                  </div>
+                ) : rolePolicy.canRequestUmplanung(role) ? (
+                  <div className="date-range">
+                    <select className="input" value={zielWert} onChange={(e) => setZielMonat(e.target.value)}>
+                      {DEMO_KALENDER.map((m) => <option key={m}>{m}</option>)}
+                    </select>
+                    {umplanFrei ? (
+                      <button
+                        className="btn btn--success btn--sm"
+                        disabled={zielWert === order.monat}
+                        title={zielWert === order.monat ? 'Zielmonat entspricht dem aktuellen Monat' : undefined}
+                        onClick={() => umplanen(order.id, zielWert)}
+                      >
+                        {order.monat ? 'Umplanen' : 'Einplanen'}
+                      </button>
+                    ) : (
+                      <button
+                        className="btn btn--amber btn--sm"
+                        disabled={zielWert === order.monat}
+                        title={zielWert === order.monat ? 'Zielmonat entspricht dem aktuellen Monat' : undefined}
+                        onClick={() => requestUmplanung(order.id, zielWert)}
+                      >
+                        Freigabe anfordern
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <span className="muted" style={{ fontSize: 13 }}>Keine offene Umplanung.</span>
+                )}
+                <div className="hint">
+                  {rolePolicy.canApproveUmplanung(role)
+                    ? 'Als Partner gibst du die Verschiebung frei oder lehnst sie ab.'
+                    : !order.monat
+                      ? 'Erstplanung — der Monat ist frei wählbar.'
+                      : umplanRegel
+                        ? (umplanFrei
+                            ? `Jahresabschluss/Einkommensteuer: ${umplanRest}× Umplanung pro Jahr ohne Freigabe — jede weitere erfordert die Partner-Freigabe.`
+                            : 'Freie Jahres-Umplanung bereits genutzt — jede weitere erfordert die Freigabe des mandatsverantwortlichen Partners.')
+                        : 'Umplanung erfordert die Freigabe des mandatsverantwortlichen Partners.'}
+                </div>
               </div>
             </div>
 
             <TimePanel order={order} />
           </div>
 
-          {hasTeilauftraege(order.artKey) && order.suborders && <TeilauftragPanel order={order} />}
+          {hasTeilauftraege(order.ordertype) && order.suborders && <TeilauftragPanel order={order} />}
 
           <NotesSection order={order} />
         </div>
       </div>
 
       {quickOpen && <QuickTimeDialog order={order} onClose={() => setQuickOpen(false)} />}
+      {flyout && (
+        <CardFlyout
+          anchorEl={flyout.anchor}
+          boundsEl={modalRef.current}
+          kind={flyout.kind}
+          order={order}
+          onClose={() => setFlyout(null)}
+        />
+      )}
     </div>
   );
 }
@@ -177,10 +291,11 @@ function TeilauftragPanel({ order }: { order: Order }) {
   const setDone = useStore((s) => s.setSuborderDone);
   const subs = order.suborders ?? [];
   const erledigt = subs.filter((s) => s.erledigtAm).length;
+  const rhythmusLabel = subs[0]?.monat.startsWith('Q') ? 'Quartale' : 'Monate';
 
   return (
     <div className="tl">
-      <div className="subhead">Teilaufträge (Monate) · {erledigt}/{subs.length} erledigt</div>
+      <div className="subhead">Teilaufträge ({rhythmusLabel}) · {erledigt}/{subs.length} erledigt</div>
       <div className="tl-grid">
         {subs.map((sb) => {
           const done = !!sb.erledigtAm;

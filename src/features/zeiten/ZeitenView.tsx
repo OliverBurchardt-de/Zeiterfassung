@@ -1,41 +1,61 @@
 import { useMemo } from 'react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
-import { ART, formatHours, isLaufendeArt, AUFWANDSARTEN } from '@/lib/art';
-import { STATUS } from '@/lib/tokens';
+import { ART, formatHours, isLaufendeArt, AUFWANDSARTEN, TIME_STATUS } from '@/lib/art';
+import { STATUS, rolePolicy } from '@/lib/tokens';
 import { zeitenVon, ohneZeit } from '@/state/selectors';
-import { CURRENT_USER } from '@/mock/orders';
+import { useCurrentUser } from '@/state/store';
 
 /**
- * Modul „Meine Zeiten" — persönliche Zeitübersicht des angemeldeten Mitarbeiters:
- * nicht freigegebene und freigegebene Buchungen sowie eigene Aufträge ohne erfasste Zeit.
+ * Modul „Meine Zeiten" — persönliche Zeitübersicht des angemeldeten Mitarbeiters. Hier gibt der
+ * Mitarbeiter seine eigenen Zeiten frei (keine Partner-Freigabe): nur freigegebene/übertragene
+ * Zeiten gehen in den DATEV-Sync. Außerdem: eigene Aufträge ohne erfasste Zeit.
  */
 export function ZeitenView() {
   const orders = useStore((s) => s.orders);
-  const alle = useMemo(() => zeitenVon(orders, CURRENT_USER.name), [orders]);
+  const role = useStore((s) => s.role);
+  const me = useCurrentUser();
+  const meName = me?.name ?? '';
+  const releaseTime = useStore((s) => s.releaseTime);
+  const withdrawTime = useStore((s) => s.withdrawTime);
+  // Eigene Zeiten über die Zeit-Ownership (Server-Modus: t.userId; Demo: Auftrags-Bearbeiter) —
+  // damit sind alle Zeilen hier garantiert eigene, und Freigeben/Zurückziehen trifft nie fremde.
+  const alle = useMemo(() => (me ? zeitenVon(orders, me) : []), [orders, me]);
 
-  const offen = alle.filter((z) => !z.time.freigegeben);
-  const frei = alle.filter((z) => z.time.freigegeben);
+  const offen = alle.filter((z) => z.time.status === 'erfasst');
+  const frei = alle.filter((z) => z.time.status !== 'erfasst');
   const summeOffen = offen.reduce((s, z) => s + z.time.dauer, 0);
   const summeGesamt = alle.reduce((s, z) => s + z.time.dauer, 0);
+  const darfFreigeben = rolePolicy.canReleaseOwnTime(role);
 
-  const ohne = orders.filter((o) => o.bearbeiter === CURRENT_USER.name && !isLaufendeArt(o.artKey) && ohneZeit(o));
+  const ohne = orders.filter((o) => o.bearbeiter === meName && !isLaufendeArt(o.artKey) && ohneZeit(o));
 
   return (
     <div className="placeholder">
       <div className="eyebrow" style={{ color: 'var(--bk-blue)' }}>Zeiterfassung</div>
       <h1 style={{ fontSize: 'var(--bk-fs-h1)', marginBottom: 4 }}>Meine Zeiten</h1>
       <p className="muted" style={{ marginBottom: 18 }}>
-        Übersicht für {CURRENT_USER.name}: <b>{formatHours(summeGesamt)}</b> erfasst, davon
+        Übersicht für {meName}: <b>{formatHours(summeGesamt)}</b> erfasst, davon
         <b> {formatHours(summeOffen)}</b> noch nicht freigegeben.
       </p>
 
-      <Section title="Nicht freigegebene Zeiten" hint="Warten auf Freigabe durch den Partner.">
+      <Section title="Nicht freigegebene Zeiten" hint="Von dir noch freizugeben — erst danach Übertragung nach DATEV.">
+        {offen.length > 1 && darfFreigeben && (
+          <div style={{ marginBottom: 10 }}>
+            <button
+              className="btn btn--success btn--sm"
+              onClick={() => offen.forEach(({ order, time }) => releaseTime(order.id, time.id))}
+            >
+              Alle {offen.length} freigeben ({formatHours(summeOffen)})
+            </button>
+          </div>
+        )}
         {offen.length === 0 ? <Empty text="Alles freigegeben." /> : offen.map(({ order, time }) => (
           <Row key={time.id} o={order}>
             {time.aufwandsart && <span className="auf-tag">{AUFWANDSARTEN.find((a) => a.key === time.aufwandsart)?.label}</span>}
             <span className="muted tabular">{new Date(time.datum).toLocaleDateString('de-DE')} · {formatHours(time.dauer)}</span>
-            <span className="badge badge--notok">offen</span>
+            <span className={`badge ${TIME_STATUS.erfasst.badge}`}>{TIME_STATUS.erfasst.label}</span>
+            {darfFreigeben && <button className="btn btn--success btn--sm" onClick={() => releaseTime(order.id, time.id)}>Freigeben</button>}
           </Row>
         ))}
       </Section>
@@ -46,11 +66,14 @@ export function ZeitenView() {
         ))}
       </Section>
 
-      <Section title="Freigegebene Zeiten" hint="Bereits vom Partner bestätigt.">
+      <Section title="Freigegebene Zeiten" hint="Freigegeben und bereit zur Übertragung nach DATEV (bzw. bereits übertragen).">
         {frei.length === 0 ? <Empty text="Noch keine freigegebenen Zeiten." /> : frei.map(({ order, time }) => (
           <Row key={time.id} o={order}>
             <span className="muted tabular">{new Date(time.datum).toLocaleDateString('de-DE')} · {formatHours(time.dauer)}</span>
-            <span className="badge badge--ok">freigegeben</span>
+            <span className={`badge ${TIME_STATUS[time.status].badge}`}>{TIME_STATUS[time.status].label}</span>
+            {darfFreigeben && time.status === 'freigegeben' && (
+              <button className="btn btn--ghost btn--sm" onClick={() => withdrawTime(order.id, time.id)}>Zurückziehen</button>
+            )}
           </Row>
         ))}
       </Section>

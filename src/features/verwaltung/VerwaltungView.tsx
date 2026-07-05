@@ -1,5 +1,9 @@
-import { Plus, Pencil, UserCheck, UserX } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Pencil, UserCheck, UserX, ListChecks, Upload } from 'lucide-react';
 import { useStore } from '@/state/store';
+import { ChecklistTemplatesModal } from './ChecklistTemplatesModal';
+import { ChecklistImportModal } from './ChecklistImportModal';
+import { AnforderungInbox } from '@/features/anforderung/AnforderungInbox';
 
 /**
  * Modul „Verwaltung" — Nutzerverwaltung (Mock). Sichtbar nur mit Admin-Zusatzrecht.
@@ -10,6 +14,7 @@ export function VerwaltungView() {
   const users = useStore((s) => s.users);
   const openEdit = useStore((s) => s.openUserEdit);
   const setActive = useStore((s) => s.setUserActive);
+  const [clModal, setClModal] = useState<'manage' | 'import' | null>(null);
 
   const aktive = users.filter((u) => u.aktiv);
   const inaktive = users.filter((u) => !u.aktiv);
@@ -40,6 +45,7 @@ export function VerwaltungView() {
               <th>Rechte</th>
               <th>DATEV-ID</th>
               <th className="utable__num">Tagessoll</th>
+              <th className="utable__num">Tage/Wo.</th>
               <th>Status</th>
               <th className="utable__act">Aktionen</th>
             </tr>
@@ -65,6 +71,9 @@ export function VerwaltungView() {
                 </td>
                 <td className="tabular">{u.datevId}</td>
                 <td className="utable__num tabular">{u.tagessoll} h</td>
+                <td className="utable__num tabular">
+                  {u.arbeitstageProWoche}{u.arbeitstageProWoche < 5 ? ' · TZ' : ''}
+                </td>
                 <td>
                   <span className={`badge ${u.aktiv ? 'badge--ok' : 'badge--notok'}`}>
                     {u.aktiv ? 'Aktiv' : 'Deaktiviert'}
@@ -94,6 +103,27 @@ export function VerwaltungView() {
         Mock-Ansicht. Eigener Login, Passwort/Einladung und Persistenz folgen in Meilenstein 2;
         die DATEV-Mitarbeiter-ID verknüpft den Nutzer mit den Auftrags-Verantwortlichkeiten in DATEV EO.
       </div>
+
+      <div className="panel" style={{ marginTop: 20 }}>
+        <div className="panel__title"><h4>Checklisten-Vorlagen</h4></div>
+        <div className="hint" style={{ marginTop: 0, marginBottom: 12 }}>
+          Aufgaben-Checklisten je Auftragsart — voreingestellte Vorlagen nutzen/aktualisieren,
+          bearbeiten, neu anlegen oder aus Excel/CSV einspielen.
+        </div>
+        <div className="add-row" style={{ marginTop: 0 }}>
+          <button className="btn btn--deep" onClick={() => setClModal('manage')}>
+            <ListChecks size={16} /> Checklisten verwalten
+          </button>
+          <button className="btn btn--ghost" onClick={() => setClModal('import')}>
+            <Upload size={16} /> Aus Excel/CSV importieren
+          </button>
+        </div>
+      </div>
+
+      <AnforderungInbox />
+
+      {clModal === 'manage' && <ChecklistTemplatesModal onClose={() => setClModal(null)} />}
+      {clModal === 'import' && <ChecklistImportModal onClose={() => setClModal(null)} />}
     </div>
   );
 }
