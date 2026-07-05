@@ -241,6 +241,59 @@ describe('IDOR-Schutz: Auftrags-Sichtbarkeit auf allen Fach-Routen', () => {
   });
 });
 
+describe('Board-API', () => {
+  it('verlangt Login', async () => {
+    const app = await makeApp();
+    const res = await app.inject({ method: 'GET', url: '/api/board' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('liefert das Aggregat nur fuer sichtbare Auftraege (Mitarbeiter)', async () => {
+    const app = await makeApp();
+    const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
+    const res = await app.inject({ method: 'GET', url: '/api/board', headers: { cookie: cookieHeader } });
+    expect(res.statusCode).toBe(200);
+    const board = res.json() as Array<Record<string, unknown>>;
+    expect(board.map((o) => o.id)).toEqual(['9993']);
+    // Aggregat-Form: Zusatzdaten und aufgeloeste Namen sind enthalten
+    expect(board[0].times).toEqual([]);
+    expect(board[0].notes).toEqual([]);
+    expect(board[0].checklist).toEqual([]);
+    expect(board[0].umplanungenVerbraucht).toBe(0);
+    expect(board[0].responsibleName).toBe('S. Wolf');
+    expect(board[0].partnerName).toBe('O. Burchardt');
+    expect(board[0].clientName).toBe('Hotel Seeblick KG');
+    expect(board[0].plannedEnd).toBe('2026-03-31');
+  });
+
+  it('enthaelt gebuchte Zeiten, Notes samt Autor-Namen und den Board-Status', async () => {
+    const app = await makeApp();
+    const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
+    const h = { cookie: cookieHeader };
+
+    await app.inject({ method: 'POST', url: '/api/time', headers: h, payload: { orderId: '9993', datum: '2026-07-01', dauer: 1.5 } });
+    await app.inject({ method: 'POST', url: '/api/orders/9993/notes', headers: h, payload: { text: 'Beleg fehlt' } });
+    await app.inject({ method: 'POST', url: '/api/orders/9993/status', headers: h, payload: { status: 'bb' } });
+
+    const res = await app.inject({ method: 'GET', url: '/api/board', headers: h });
+    const order = (res.json() as Array<Record<string, unknown>>)[0];
+    expect((order.times as Array<{ dauer: number }>)[0].dauer).toBe(1.5);
+    const note = (order.notes as Array<{ text: string; authorName: string; kind: string }>)[0];
+    expect(note.text).toBe('Beleg fehlt');
+    expect(note.authorName).toBe('S. Wolf');
+    expect(note.kind).toBe('frage'); // Mitarbeiter erzeugt Fragen
+    expect(order.boardStatus).toBe('bb');
+  });
+
+  it('Admin sieht alle Board-Auftraege, interne nie', async () => {
+    const app = await makeApp();
+    const { cookieHeader } = await loginCookie(app, 'burchardt', 'demo');
+    const res = await app.inject({ method: 'GET', url: '/api/board', headers: { cookie: cookieHeader } });
+    const ids = (res.json() as Array<{ id: string }>).map((o) => o.id);
+    expect(ids).toEqual(['9993', '9001']);
+  });
+});
+
 describe('Sessions (TTL)', () => {
   it('abgelaufene Session ist ungueltig', async () => {
     const { createMemorySessionStore } = await import('./auth/sessions');

@@ -6,6 +6,7 @@
   "description": "Zeiterfassung & Auftragsabwicklung — Burchardt & Kollegen",
   "scripts": {
     "dev": "vite",
+    "dev:api": "vite --mode api",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",

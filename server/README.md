@@ -10,7 +10,10 @@ Server der App: REST-API, eigener Login, eigene Persistenz, DATEV-Adapter. Archi
 > Status-Historie, Outbox, Anforderungen, Besonderheiten) — `buildApp` bleibt gleich.
 > Darauf setzen die **Fach-Aktionen + API-Routen** für Zeit, Note und Status
 > (`/api/time*`, `/api/orders/:id/notes`, `/api/notes/:id/*`, `/api/orders/:id/status*`)
-> mit serverseitig verbindlichem Rollen-/Workflow-Gating. Nächster Schritt: Frontend anschließen.
+> mit serverseitig verbindlichem Rollen-/Workflow-Gating. Fürs Frontend liefert **`GET /api/board`**
+> das komplette Auftrags-Aggregat (Overlay, Zeiten, Notes, Checkliste, Anzeige-Namen) in einer
+> Antwort; das Frontend nutzt es im **Server-Modus** (`npm run dev:api` im Projekt-Root — Etappe 1:
+> echter Login + Aufträge lesen). Nächster Schritt: Schreib-Aktionen des Frontends anschließen.
 
 ## Schnellstart
 ```bash
@@ -51,6 +54,7 @@ Schema versioniert in `db/schema.sql` (reines T-SQL; Änderungen als weitere ide
 | POST | `/api/auth/logout` | Session beenden |
 | GET | `/api/auth/me` | aktueller Nutzer (erfordert Login) |
 | GET | `/api/orders` | sichtbare Aufträge (Rollen-gefiltert) |
+| GET | `/api/board` | Board-Aggregat: sichtbare Aufträge inkl. Overlay/Zeiten/Notes/Checkliste + Namen |
 | GET | `/api/time/mine` | eigene Zeiteinträge |
 | POST | `/api/time` | Zeit buchen (`{ orderId, datum, dauer, … }`) → 201 |
 | POST | `/api/time/:id/release` · `/withdraw` | eigene Zeit freigeben / zurücknehmen |

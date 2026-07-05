@@ -57,6 +57,17 @@ export interface OrderView {
   assessmentYear?: number;
   /** DATEV billing_status — Quelle des Controllings „noch nicht abgerechnet". */
   billingStatus?: string;
+  /** DATEV planned_start/planned_end (ISO "JJJJ-MM-TT") — Basis des geplanten Monats im Board. */
+  plannedStart?: string;
+  plannedEnd?: string;
+  /**
+   * Mandanten-Anzeige (Name/Nummer). DATEV-Orders tragen nur die client_id (GUID) — Name/Nummer
+   * kommen aus den Client Master Data. Der Mock liefert sie direkt; der HTTP-Adapter ergaenzt sie
+   * in einem spaeteren M2-Schritt (Client-Master-Data-Lookup). Optional: Frontend faellt auf die
+   * clientId zurueck.
+   */
+  clientName?: string;
+  clientNumber?: string;
 }
 
 /**

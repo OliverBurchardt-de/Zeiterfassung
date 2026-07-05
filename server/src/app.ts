@@ -7,6 +7,7 @@ import type { Actions } from './domain/actions';
 import { healthRoutes } from './routes/health';
 import { authRoutes } from './routes/auth';
 import { orderRoutes } from './routes/orders';
+import { boardRoutes } from './routes/board';
 import { timeRoutes } from './routes/time';
 import { noteRoutes } from './routes/notes';
 import { statusRoutes } from './routes/status';
@@ -36,6 +37,7 @@ export function buildApp(config: Config, deps: AppDeps): FastifyInstance {
       sessionTtlMs: config.sessionTtlMs,
     });
     orderRoutes(instance, deps.datev);
+    boardRoutes(instance, deps.actions);
     timeRoutes(instance, deps.actions);
     noteRoutes(instance, deps.actions);
     statusRoutes(instance, deps.actions);

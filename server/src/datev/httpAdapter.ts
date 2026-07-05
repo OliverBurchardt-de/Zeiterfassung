@@ -25,6 +25,15 @@ export function mapDatevOrder(raw: Record<string, unknown>): OrderView {
   };
   const str = (v: unknown): string | undefined =>
     v === null || v === undefined ? undefined : String(v);
+  // DATEV-Datumsfelder tolerant nach ISO "JJJJ-MM-TT" normalisieren ("2026-03-01T00:00:00"
+  // ebenso wie "01.03.2026 00:00:00"); Unbekanntes lieber weglassen als falsch interpretieren.
+  const isoDate = (v: unknown): string | undefined => {
+    const s = str(v);
+    if (!s) return undefined;
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    const m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(s);
+    return m ? `${m[3]}-${m[2]}-${m[1]}` : undefined;
+  };
 
   return {
     id: String(raw.id ?? raw.order_id ?? ''),
@@ -40,6 +49,10 @@ export function mapDatevOrder(raw: Record<string, unknown>): OrderView {
     plannedHours: num(raw.planned_hours) ?? 0,
     assessmentYear: num(raw.assessment_year),
     billingStatus: str(raw.billing_status) || undefined,
+    plannedStart: isoDate(raw.planned_start),
+    plannedEnd: isoDate(raw.planned_end),
+    // clientName/clientNumber kommen aus den Client Master Data (eigener Lookup, spaeterer
+    // M2-Schritt) — hier bewusst leer; das Frontend faellt auf die clientId zurueck.
   };
 }
 

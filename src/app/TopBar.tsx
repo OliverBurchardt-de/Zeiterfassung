@@ -1,6 +1,8 @@
 import { Search, LogOut } from 'lucide-react';
 import type { ModuleKey } from '@/App';
 import { useStore, useCurrentUser } from '@/state/store';
+import { API_MODE } from '@/api/mode';
+import { apiLogout } from '@/api/session';
 
 const logo = '/assets/logo.svg';
 
@@ -18,8 +20,10 @@ export function TopBar({ module, onModule }: { module: ModuleKey; onModule: (m: 
   const isAdmin = useStore((s) => s.isAdmin);
   const suche = useStore((s) => s.filters.suche);
   const setSuche = useStore((s) => s.setSuche);
-  const logout = useStore((s) => s.logout);
+  const mockLogout = useStore((s) => s.logout);
   const me = useCurrentUser();
+  // Server-Modus: Session auch serverseitig beenden (Cookie ungültig machen).
+  const logout = API_MODE ? () => void apiLogout() : mockLogout;
 
   const rolle = me?.role === 'partner' ? 'Partner' : 'Mitarbeiter';
 

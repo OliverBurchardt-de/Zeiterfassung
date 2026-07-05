@@ -42,7 +42,8 @@ git checkout claude/magical-gauss-3h604n
 
 # Frontend
 npm install
-npm run dev          # -> http://localhost:5173
+npm run dev          # -> http://localhost:5173 (Demo-Modus: Mock-Daten im Browser)
+npm run dev:api      # -> Server-Modus: echter Login + Daten vom Server (Server muss laufen)
 
 # Server (zweites PowerShell-Fenster)
 cd server
@@ -91,6 +92,9 @@ DATEV_ORDERS_FILTER=creation_year eq 2026
 2. `http://localhost:3001/api/health/datev` → zeigt, ob DATEVconnect erreichbar ist
    (VPN verbunden?).
 3. Frontend `http://localhost:5173` → Login.
+   Im **Server-Modus** (`npm run dev:api`) ist das der echte Login: Benutzername + Passwort
+   werden serverseitig gegen die Datenbank geprüft (der erste Admin kommt aus `db:setup`);
+   das Board zeigt die Aufträge vom Server (Etappe 1: Lesen; Schreib-Aktionen folgen).
 
 ---
 

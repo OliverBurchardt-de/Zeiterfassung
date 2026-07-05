@@ -4,7 +4,23 @@ import { useVisibleOrders } from '@/state/selectors';
 import { EMPLOYEES } from '@/mock/orders';
 import { ART, isLaufendeArt } from '@/lib/art';
 import { ORDERTYPE_GROUPS } from '@/lib/ordertypes';
-import type { ArtKey } from '@/lib/types';
+import type { ArtKey, Employee, Order } from '@/lib/types';
+import { API_MODE } from '@/api/mode';
+import { initialenAus } from '@/api/mapping';
+
+/**
+ * Server-Modus: Die Mitarbeiter-Liste aus den sichtbaren Aufträgen ableiten (Bearbeiter-IDs
+ * kommen vom Server), statt aus der Mock-Liste — bis die Nutzer-API sie liefert (Etappe 3).
+ */
+function employeesFrom(orders: Order[]): Employee[] {
+  const seen = new Map<string, Employee>();
+  for (const o of orders) {
+    if (o.bearbeiterId && o.bearbeiter && !seen.has(o.bearbeiterId)) {
+      seen.set(o.bearbeiterId, { id: o.bearbeiterId, name: o.bearbeiter, initials: initialenAus(o.bearbeiter) });
+    }
+  }
+  return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+}
 
 // Board-Filter = nicht-interne DATEV-Gruppen (laufende Arten leben im Modul „Laufende Buchungen").
 const ART_FILTER: ArtKey[] = ORDERTYPE_GROUPS.filter((g) => !g.internal && g.art).map((g) => g.art as ArtKey);
@@ -37,7 +53,7 @@ export function FilterSidebar() {
 
         <div className="filter-group">
           <div className="section-label">Mitarbeiter</div>
-          {EMPLOYEES.map((e) => (
+          {(API_MODE ? employeesFrom(orders) : EMPLOYEES).map((e) => (
             <button
               key={e.id}
               className={`emp-row${filters.employeeId === e.id ? ' is-active' : ''}`}

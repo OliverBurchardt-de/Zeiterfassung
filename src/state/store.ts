@@ -8,6 +8,7 @@ import { hasUnterlagenProzess } from '@/lib/art';
 import { umplanungFreiMoeglich } from '@/lib/regeln';
 import { CHECKLIST_TEMPLATES_BY_ORDERTYPE } from '@/lib/checklists';
 import { notePolicy } from '@/lib/tokens';
+import { API_MODE } from '@/api/mode';
 
 /**
  * Schlüssel der Besonderheiten: Mandantennummer + **Ordertype** (period-unabhängig).
@@ -178,7 +179,9 @@ export function timerSeconds(o: Order, nowMs: number = Date.now()): number {
 }
 
 export const useStore = create<AppState>()(persist((set) => ({
-  orders: MOCK_ORDERS,
+  // Server-Modus: leer starten — Nutzer/Aufträge kommen nach dem Login vom Server
+  // (src/api/session.ts). Demo-Modus: wie gehabt mit Mock-Daten.
+  orders: API_MODE ? [] : MOCK_ORDERS,
   currentUserId: null,
   login: (userId) => set((s) => {
     const u = s.users.find((x) => x.id === userId && x.aktiv);
@@ -192,10 +195,10 @@ export const useStore = create<AppState>()(persist((set) => ({
   filters: { employeeId: 'team', monat: 'alle', vj: 'alle', arten: [], nurOffeneZeiten: false, freigabeAusstehend: false, suche: '' },
   openCardId: null,
   checklistOpenId: null,
-  besonderheiten: MOCK_BESONDERHEITEN,
+  besonderheiten: API_MODE ? {} : MOCK_BESONDERHEITEN,
   besOpen: null,
 
-  users: MOCK_USERS,
+  users: API_MODE ? [] : MOCK_USERS,
   userEditId: null,
   openUserEdit: (id) => set({ userEditId: id }),
   closeUserEdit: () => set({ userEditId: null }),
@@ -483,9 +486,14 @@ export const useStore = create<AppState>()(persist((set) => ({
 }), {
   // Klick-Prototyp: Stand im Browser sichern, damit ein Reload nichts verwirft.
   // version bei Änderungen am Mock-Datenmodell erhöhen → alter Stand wird verworfen.
-  name: 'bk-zeiterfassung',
+  // Server-Modus: eigener Schlüssel + NUR die noch lokal geführten Teile persistieren —
+  // Server-Daten (orders/users) und die Anmeldung kommen beim Start frisch vom Server
+  // (Session-Cookie, apiRestore); sonst zeigte ein Reload veraltete Stände.
+  name: API_MODE ? 'bk-zeiterfassung-api' : 'bk-zeiterfassung',
   version: 12,
-  partialize: (s) => ({ orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId, anforderungen: s.anforderungen }),
+  partialize: (s) => (API_MODE
+    ? { besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, anforderungen: s.anforderungen }
+    : { orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId, anforderungen: s.anforderungen }),
   // Rolle/Admin-Recht werden bewusst NICHT persistiert, sondern beim Laden aus dem angemeldeten
   // Nutzer abgeleitet (eine Quelle der Wahrheit). Ohne dies fiele ein Partner nach Reload auf
   // „mitarbeiter" zurück (Review-Befund 1). Deaktivierte/gelöschte Nutzer werden abgemeldet.

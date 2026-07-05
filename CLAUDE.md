@@ -120,5 +120,14 @@ Umschaltung per `DB_MODE`); Default bleibt in-memory + Schein-DATEV (Tests grün
 **Domain-Aktionen + API-Routen** für Zeit/Note/Status (`server/src/domain/actions/*`,
 `server/src/routes/{time,notes,status}.ts`) mit serverseitig verbindlichem Rollen-/Workflow-Gating
 (eigene Zeiten selbst freigeben, `notePolicy`, „Erledigt"-Checklisten-Gate, Status-Historie;
-`DomainError`→HTTP zentral). Als Nächstes: Frontend an die API anschließen (Mock-Store ersetzen),
-restliche Aktionen (Umplanung/Anforderungen/Besonderheiten) + DATEV-Outbox-Sync-Job.
+`DomainError`→HTTP zentral). **Frontend-Anbindung Etappe 1 umgesetzt:** Server-Modus per
+`npm run dev:api` (`VITE_API_MODE=server` via `.env.api`, Vite-Proxy `/api`→3001) — echter Login
+(`LoginView` → `/api/auth/login`, Session-Restore beim Start, Server-Logout) und Aufträge über
+das Board-Aggregat `GET /api/board` (`server/src/domain/actions/board.ts`: Overlay + Zeiten +
+Notes + Checkliste + Anzeige-Namen in einer Antwort). Frontend-Seite: `src/api/`
+(`mode`/`client`/`types`/`mapping`/`session`) — DTO→`Order`-Mapping macht der Client
+(art/artKey aus dem Ordertype, Monat aus `plannedEnd`); Store startet im Server-Modus leer,
+persistiert keine Server-Daten (eigener Key `bk-zeiterfassung-api`). Demo-Modus (`npm run dev`)
+bleibt unverändert. Als Nächstes (Etappe 2): Schreib-Aktionen des Frontends an die API
+(Zeit/Notes/Status), dann Etappe 3: restliche Aktionen (Umplanung/Planung/Checklisten/
+Anforderungen/Besonderheiten/Nutzer-API) + DATEV-Outbox-Sync-Job.
