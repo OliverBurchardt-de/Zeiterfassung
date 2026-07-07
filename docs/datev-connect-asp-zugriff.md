@@ -2,7 +2,7 @@
 
 > Stand: 25. Juni 2026. Recherche über DATEV-Hilfe-Center/Community (Developer-Portal und
 > DATEV-Domains liefern auf maschinelle Abrufe 403). Endpunkte aus den OpenAPI-Specs im Repo
-> (`Order Management-1.4.9.json`, `Diagnostics and Functional Tests-1.1.2.json`).
+> (`docs/specs/`: `Order Management-1.4.9.json`, `Diagnostics and Functional Tests-1.1.2.json`).
 > **Mit ASP-spezifischen Punkten unbedingt den DATEV-ASP-Ansprechpartner / Systempartner
 > abstimmen** — markiert mit **(mit DATEV klären)**.
 
@@ -227,4 +227,4 @@ laufen diese Schritte i. d. R. über DATEV bzw. den ASP-Partner.** Die Methodik 
   „Benutzer für DATEVconnect … anlegen" (1003185), „Drittanbieterlösungen in DATEVasp".
 - DATEV: „Einsatz Cloud Gateway for DATEVconnect in DATEVasp" (PDF),
   „DATEVasp Zusatzmodul Anbindung Drittanbieter" (Art.-Nr. 42595).
-- OpenAPI-Specs im Repo: `Order Management-1.4.9.json`, `Diagnostics and Functional Tests-1.1.2.json`.
+- OpenAPI-Specs im Repo (`docs/specs/`): `Order Management-1.4.9.json`, `Diagnostics and Functional Tests-1.1.2.json`.

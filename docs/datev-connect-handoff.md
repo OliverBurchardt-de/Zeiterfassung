@@ -361,7 +361,8 @@ Write-Host "`nFertig (nur gelesen, nichts veraendert)."
 
 ## 9. Benötigte OpenAPI-Specs (offline maßgeblich)
 
-Diese JSON-Dateien sind die verbindliche Referenz für Felder/Schemas — ins neue Projekt mitnehmen:
+Diese JSON-Dateien sind die verbindliche Referenz für Felder/Schemas — ins neue Projekt mitnehmen
+(in diesem Repo unter `docs/specs/`):
 - **`Order Management-1.4.9.json`** — Aufträge, Suborders, costitems, expensepostings (Kern).
 - **`Diagnostics and Functional Tests-1.1.2.json`** — Health-Check, belegt `localhost:58454` + Basic Auth.
 - `Client Master Data-1.7.1.json` — Mandanten/Mitarbeiter-Stammdaten.
