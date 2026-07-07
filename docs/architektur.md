@@ -7,7 +7,7 @@
      ▼
 [App-Backend]  Node.js (Fastify) + TypeScript          ── Server im ASP-Umfeld
      ├── Auth/Benutzerverwaltung (eigener Login, Rollen: mitarbeiter | partner)
-     ├── Eigene Persistenz (MS SQL Server, bestehende Instanz, eigene DB; Zugriff via Prisma):
+     ├── Eigene Persistenz (MS SQL Server, bestehende Instanz, eigene DB; Zugriff via mssql/tedious, ADR-04):
      │     Zeiten + Freigaben, Review-Notes/Kommentare, Status-Historie,
      │     Umplanungs-Freigaben, Checklisten, Auftragsart-Konfig, Reminder-Log
      ├── E-Mail-Reminder-Job (Scheduler)
@@ -29,16 +29,20 @@
 - **Status-Änderung** auf zwei Wegen, beide via `setStatus`: Drag & Drop (`features/board/Board.tsx`,
   `@dnd-kit`) und Status-Leiste im Detail (`features/order/OrderModal.tsx`).
 - **Rollen-Policy** zentral in `src/lib/tokens.ts` (`notePolicy`).
-- **Daten** aus `src/mock/orders.ts`. Beim Umstieg auf das Backend werden Lesen/Schreiben über
-  TanStack-Query-Hooks gekapselt; die Komponenten bleiben unverändert.
+- **Daten** aus `src/mock/orders.ts` (Demo-Modus). Im **Server-Modus** (`npm run dev:api`) kommen
+  Login und Daten über die eigene API-Schicht `src/api/*` (Client, DTO-Mapping, optimistische
+  Schreib-Kopplung); die Komponenten bleiben unverändert.
 
 > **Begründete Architektur-Entscheidungen (Schichten, Regeln serverseitig, DATEV-Adapter, DB,
 > Sync, Login, Deployment): `docs/architektur-entscheidungen.md` (ADR-Stil).**
 
-## Backend (Meilenstein 2, geplant)
-- **Node.js + TypeScript** (Fastify), REST-API für die SPA.
+## Backend (Meilenstein 2, in Umsetzung — Stand siehe `CLAUDE.md`/`server/README.md`)
+- **Node.js + TypeScript** (Fastify), REST-API für die SPA (umgesetzt: Login, Board-Aggregat,
+  Zeit/Notes/Status/Checklisten).
 - **MS SQL Server** für die eigene Persistenz (bestehende Instanz im ASP-Umfeld, **eigene Datenbank**
-  + eigener DB-Benutzer; Zugriff/Migrationen über **Prisma**). Alles, was DATEV nicht abbildet.
+  + eigener DB-Benutzer; Zugriff über **mssql/tedious**, Schema in `server/db/schema.sql` —
+  ADR-04-Änderung vom 02.07.2026, ersetzt die ursprüngliche Prisma-Idee). Alles, was DATEV
+  nicht abbildet.
 - **DATEV-Adapter** als eigenes Modul mit klarer Schnittstelle (`getOrders`, `updateOrder`,
   `getEmployees`, …), damit Sandbox/Live und ein späterer API-Wechsel austauschbar bleiben.
 - **E-Mail-Reminder-Job**: periodischer Scheduler; meldet Aufträge ohne erfasste Zeit bzw. mit

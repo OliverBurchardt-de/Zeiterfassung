@@ -6,7 +6,7 @@ import type {
 } from 'fastify';
 import type { SessionStore } from '../auth/sessions';
 import type { UserRepository } from '../domain/ports';
-import { toPublicUser, type PublicUser, type Role } from '../domain/types';
+import { toPublicUser, type PublicUser } from '../domain/types';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -51,21 +51,4 @@ export function requireAuth(
     return;
   }
   done();
-}
-
-/** preHandler-Fabrik: verlangt eine der angegebenen Rollen (bzw. Admin). */
-export function requireRole(...roles: Array<Role | 'admin'>) {
-  return (req: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction): void => {
-    const u = req.currentUser;
-    if (!u) {
-      reply.code(401).send({ error: 'nicht angemeldet' });
-      return;
-    }
-    const ok = roles.some((r) => (r === 'admin' ? u.admin : u.role === r));
-    if (!ok) {
-      reply.code(403).send({ error: 'keine Berechtigung' });
-      return;
-    }
-    done();
-  };
 }

@@ -43,9 +43,6 @@ export function createMemoryTimeEntryRepository(entries: TimeEntry[] = []): Time
     async findByIdempotencyKey(key) {
       return entries.find((e) => e.idempotencyKey === key);
     },
-    async listByUser(userId) {
-      return entries.filter((e) => e.userId === userId).sort(neuesteZuerst);
-    },
     async listByOrder(orderId) {
       return entries.filter((e) => e.orderId === orderId).sort(neuesteZuerst);
     },

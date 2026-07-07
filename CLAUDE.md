@@ -14,8 +14,8 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
 ## Stack (umgesetzt)
 - React 18 + TypeScript (Vite), `@dnd-kit` fürs Board, `lucide-react` (keine Emojis).
 - **State:** Zustand-Store `src/state/store.ts` — Single Source of Truth `orders[]`.
-  In Produktion wird der orders-Teil durch Server-State (TanStack Query / DATEV-EO) ersetzt;
-  UI-State (role, Filter, openCardId, Timer) bleibt lokal.
+  Im Server-Modus füllt die eigene API-Schicht `src/api/*` den orders-Teil (Board-Aggregat +
+  optimistische Schreib-Kopplung); UI-State (role, Filter, openCardId, Timer) bleibt lokal.
 - Styling über CSS-Variablen aus `src/styles/tokens.css` (Marken-Tokens, keine Hardcode-Hex).
 
 ## Architektur-Leitplanken

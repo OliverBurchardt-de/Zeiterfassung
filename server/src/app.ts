@@ -6,7 +6,6 @@ import type { DatevPort } from './domain/ports';
 import type { Actions } from './domain/actions';
 import { healthRoutes } from './routes/health';
 import { authRoutes } from './routes/auth';
-import { orderRoutes } from './routes/orders';
 import { boardRoutes } from './routes/board';
 import { timeRoutes } from './routes/time';
 import { noteRoutes } from './routes/notes';
@@ -37,7 +36,6 @@ export function buildApp(config: Config, deps: AppDeps): FastifyInstance {
       secureCookies: config.nodeEnv === 'production',
       sessionTtlMs: config.sessionTtlMs,
     });
-    orderRoutes(instance, deps.datev);
     boardRoutes(instance, deps.actions);
     timeRoutes(instance, deps.actions);
     noteRoutes(instance, deps.actions);

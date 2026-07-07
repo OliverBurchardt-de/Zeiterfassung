@@ -53,8 +53,6 @@ export const EMPLOYEES: Employee[] = [
   { id: 'tb', name: 'T. Berg', initials: 'TB' },
 ];
 
-export const CURRENT_USER: Employee = EMPLOYEES[0];
-
 /**
  * Demo-Stichtag für Auswertungen (Controlling: „überfällig"). Die Mock-Aufträge liegen rund um
  * den März 2025; in Produktion wird hier das echte Tagesdatum verwendet.

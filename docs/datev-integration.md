@@ -315,7 +315,7 @@ seinem `work_date`) und setzt sie danach auf `uebertragen`. Stunden auf Auftrags
 (`planned_hours`, `total_hours`) bleiben die aggregierte Sicht; die Einzelbuchung erfolgt über
 `expensepostings`.
 
-## Weitere im Repo vorhandene Specs (Kontext)
+## Weitere im Repo vorhandene Specs (Kontext, `docs/specs/`)
 `Client Master Data-1.7.1.json` (Mandanten/Mitarbeiter), `Accounting-*.json`,
 `accounting-clients-2.0.json`, `accounting_documents-*.json`, `accounting_dxso-jobs-*.json`,
 `Diagnostics and Functional Tests-1.1.2.json` (DATEVconnect-Verfügbarkeit prüfen).

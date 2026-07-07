@@ -5,8 +5,12 @@ Interne Web-App der Steuerkanzlei **Burchardt & Kollegen**, die **Auftragsplanun
 an einer Stelle vereint. Auftragsdaten stammen aus **DATEV EO** (Eigenorganisation);
 Status, Plandaten und Verantwortlichkeiten werden nach **DATEV EO Comfort** zurückgeschrieben.
 
-> **Aktueller Stand:** Meilenstein 1 — klickbares Frontend mit Mock-Daten (kein Backend).
-> Backend, DATEV-Anbindung und E-Mail-Reminder folgen in Meilenstein 2 (siehe `docs/`).
+> **Aktueller Stand:** Meilenstein 1 (klickbares Frontend, Demo-Modus) ist abgenommen;
+> Meilenstein 2 läuft: eigenes Backend in `server/` (Fastify, eigener Login, In-Memory- oder
+> MS-SQL-Persistenz, DATEV-Adapter mock/http) und Server-Modus des Frontends (`npm run dev:api`)
+> mit echtem Login, Board über `GET /api/board` und serverseitig festgeschriebenen Aktionen
+> (Zeit/Notes/Status/Checklisten). E-Mail-Reminder und DATEV-Sync-Job folgen
+> (siehe `docs/m2-plan.md`).
 
 ## Stack
 - **React 18 + TypeScript** (Vite)

@@ -185,8 +185,9 @@ bestätigten Annahmen, offenen Risiken und dem finalen Status-Mapping. Erst dana
 - **Domain-Layer:** validierte Funktionen `changeOrderStatus` / `validateTimeEntry` /
   Note-Aktionen **mit Actor-Kontext** (Rolle, zulässige Übergänge, Audit). Store/UI rufen
   ausschließlich diese — Migration der heute im Zustand-Store liegenden Regeln (P1.1/P1.5/P1.6).
-- **Migration localStorage → DB:** der Mock-Store wird durch TanStack-Query-Hooks gegen die REST-API
-  ersetzt; **Komponenten bleiben unverändert** (das war das M1-Designziel). Einmalige Übernahme von
+- **Migration localStorage → DB:** der Mock-Store wird im Server-Modus über die eigene API-Schicht
+  `src/api/*` gegen die REST-API gekoppelt (umgesetzt für Board/Zeit/Notes/Status/Checklisten);
+  **Komponenten bleiben unverändert** (das war das M1-Designziel). Einmalige Übernahme von
   Checklisten-Vorlagen/Besonderheiten optional per Import.
 
 ---

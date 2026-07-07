@@ -105,11 +105,6 @@ export function formatTimer(sec: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-/** Euro-Betrag → "1.840 €" */
-export function formatEuro(v: number): string {
-  return `${v.toLocaleString('de-DE', { maximumFractionDigits: 0 })} €`;
-}
-
 /** Summe der erfassten Stunden eines Auftrags */
 export function erfassteStunden(times: { dauer: number }[]): number {
   return times.reduce((sum, t) => sum + t.dauer, 0);

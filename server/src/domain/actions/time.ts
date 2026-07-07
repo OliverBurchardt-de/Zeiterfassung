@@ -89,10 +89,6 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
       if (entry.status === 'uebertragen') throw new DomainError('conflict', 'bereits nach DATEV uebertragen');
       await repos.times.remove(id);
     },
-
-    async listMine(actor: PublicUser): Promise<TimeEntry[]> {
-      return repos.times.listByUser(actor.id);
-    },
   };
 }
 

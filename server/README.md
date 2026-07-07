@@ -3,17 +3,17 @@
 Server der App: REST-API, eigener Login, eigene Persistenz, DATEV-Adapter. Architektur-Grundlage:
 `../docs/architektur-entscheidungen.md` (ADRs), Fahrplan: `../docs/m2-plan.md`.
 
-> **Stand:** Gerüst + echte Adapter. Default läuft gegen **In-Memory**-Daten und einen
-> **Schein-DATEV-Adapter** (ohne Datenbank/DATEV lauffähig und testbar). Zuschaltbar sind der
-> **echte DATEVconnect-Adapter** (`DATEV_MODE=http`) und die **MS-SQL-Persistenz**
-> (`DB_MODE=mssql`; **alle** Fach-Repositories: Nutzer, Zeiten, Notes, Board-Overlay, Checklisten,
-> Status-Historie, Outbox, Anforderungen, Besonderheiten) — `buildApp` bleibt gleich.
-> Darauf setzen die **Fach-Aktionen + API-Routen** für Zeit, Note und Status
-> (`/api/time*`, `/api/orders/:id/notes`, `/api/notes/:id/*`, `/api/orders/:id/status*`)
-> mit serverseitig verbindlichem Rollen-/Workflow-Gating. Fürs Frontend liefert **`GET /api/board`**
-> das komplette Auftrags-Aggregat (Overlay, Zeiten, Notes, Checkliste, Anzeige-Namen) in einer
-> Antwort; das Frontend nutzt es im **Server-Modus** (`npm run dev:api` im Projekt-Root — Etappe 1:
-> echter Login + Aufträge lesen). Nächster Schritt: Schreib-Aktionen des Frontends anschließen.
+> **Stand:** Default läuft gegen **In-Memory**-Daten und einen **Schein-DATEV-Adapter**
+> (ohne Datenbank/DATEV lauffähig und testbar). Zuschaltbar sind der **echte
+> DATEVconnect-Adapter** (`DATEV_MODE=http`) und die **MS-SQL-Persistenz** (`DB_MODE=mssql`;
+> **alle** Fach-Repositories) — `buildApp` bleibt gleich. Die **Fach-Aktionen + API-Routen**
+> für Zeit, Note, Status und Checkliste tragen das serverseitig verbindliche Rollen-/
+> Workflow-Gating (inkl. „Erledigt"-Checklisten-Gate mit Vorlagen-Seed). Gelesen wird über
+> **`GET /api/board`** (komplettes Auftrags-Aggregat in einer Antwort). Das Frontend nutzt
+> all das im **Server-Modus** (`npm run dev:api` im Projekt-Root): echter Login, Board lesen
+> und **alle Schreib-Aktionen serverseitig festgeschrieben** (Etappen 1–3-Checklisten,
+> siehe `../CLAUDE.md`). Als Nächstes: restliche Etappe-3-Bereiche (Umplanung/Planung,
+> Anforderungen, Besonderheiten, Nutzer-API) + DATEV-Outbox-Sync-Job.
 
 ## Schnellstart
 ```bash
@@ -53,18 +53,19 @@ Schema versioniert in `db/schema.sql` (reines T-SQL; Änderungen als weitere ide
 | POST | `/api/auth/login` | `{ username, password }` → setzt Session-Cookie |
 | POST | `/api/auth/logout` | Session beenden |
 | GET | `/api/auth/me` | aktueller Nutzer (erfordert Login) |
-| GET | `/api/orders` | sichtbare Aufträge (Rollen-gefiltert) |
-| GET | `/api/board` | Board-Aggregat: sichtbare Aufträge inkl. Overlay/Zeiten/Notes/Checkliste + Namen |
-| GET | `/api/time/mine` | eigene Zeiteinträge |
+| GET | `/api/board` | Board-Aggregat: sichtbare Aufträge inkl. Overlay/Zeiten/Notes/Checkliste + Namen (der EINE Lese-Endpunkt) |
 | POST | `/api/time` | Zeit buchen (`{ orderId, datum, dauer, … }`) → 201 |
 | POST | `/api/time/:id/release` · `/withdraw` | eigene Zeit freigeben / zurücknehmen |
 | DELETE | `/api/time/:id` | eigene, nicht übertragene Zeit löschen |
-| GET · POST | `/api/orders/:orderId/notes` | Notes lesen / anlegen (Art aus Rolle) |
+| POST | `/api/orders/:orderId/notes` | Note anlegen (Art aus Rolle) → 201 |
 | PATCH · DELETE | `/api/notes/:id` | Text ändern / löschen (nach `notePolicy`) |
 | POST | `/api/notes/:id/done` · `/reopen` · `/approve` | Note-Workflow (Frage/Review) |
 | POST | `/api/notes/:id/comments` | Kommentar anhängen → 201 |
 | POST | `/api/orders/:orderId/status` | Board-Status setzen (`{ status, position? }`) |
-| GET | `/api/orders/:orderId/status-history` | Status-Historie |
+| POST | `/api/orders/:orderId/checklist/ensure` | Checkliste idempotent aus Vorlagen-Labels anlegen |
+| POST | `/api/orders/:orderId/checklist` | Checklistenpunkt hinzufügen → 201 |
+| POST | `/api/orders/:orderId/checklist/:itemId/done` | Punkt abhaken (`{ done }`) |
+| DELETE | `/api/orders/:orderId/checklist/:itemId` | Checklistenpunkt löschen |
 
 Fachfehler antworten mit passendem HTTP-Status (400/403/404/409) und einer kurzen,
 unbedenklichen Meldung (`DomainError` → `httpStatusFor`).

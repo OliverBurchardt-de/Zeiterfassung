@@ -16,12 +16,6 @@ export function parseMonat(s: string): ParsedMonat | null {
   return { year, monthIndex };
 }
 
-/** Sortierschlüssel für chronologische Reihenfolge der Monate. */
-export function monatSortKey(s: string): number {
-  const p = parseMonat(s);
-  return p ? p.year * 100 + p.monthIndex : 0;
-}
-
 /** Anzahl Arbeitstage (Mo–Fr) im Monat — Mock-Kapazitätsbasis (ohne Feiertage/Urlaub). */
 export function arbeitstage(s: string): number {
   const p = parseMonat(s);
@@ -33,11 +27,6 @@ export function arbeitstage(s: string): number {
     if (wd >= 1 && wd <= 5) count++;
   }
   return count;
-}
-
-/** Eindeutige, chronologisch sortierte Monatsliste aus beliebigen Monats-Strings. */
-export function uniqueMonate(monate: string[]): string[] {
-  return Array.from(new Set(monate)).sort((a, b) => monatSortKey(a) - monatSortKey(b));
 }
 
 /** „Mär 2025" aus Jahr + Monatsindex. */

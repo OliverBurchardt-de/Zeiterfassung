@@ -1,35 +1,6 @@
 // Burchardt & Kollegen — Design Tokens (TypeScript)
-// Spiegelt design-tokens.css. Für Status/Auftragsart-Mappings in der App.
-
-export const colors = {
-  anthracite: '#333333',
-  blue: '#0080C9',
-  deepBlue: '#3A5791',
-  amber: '#F7B234',
-  amberHover: '#E5A11C',
-  bloodOrange: '#E94E1B',
-  success: '#2E7D5B',
-  fg1: '#333333',
-  fg2: '#6E6E6E',
-  fg3: '#9AA0AB',
-  paper: '#FAFAF8',
-  cloud: '#F2F4F8',
-  stone: '#E5E7EC',
-  box: '#D4D9E2',
-  white: '#FFFFFF',
-  blueSoft: '#DCEFF9',
-  deepSoft: '#E1E6F0',
-  amberSoft: '#FDEFD2',
-  orangeSoft: '#FBE4DB',
-  successSoft: '#DCEDE4',
-  amberText: '#7A5400',
-  amberInk: '#B5791A',
-} as const;
-
-export const fonts = {
-  display: "'Petrona', Cambria, Georgia, serif",
-  body: "'Aleo', 'Helvetica Neue', Arial, sans-serif",
-} as const;
+// Farben/Typo leben als CSS-Variablen in styles/tokens.css; hier nur die
+// Status-/Note-Mappings und Rollen-Policies der App.
 
 // Kanban-Status (Reihenfolge = Spaltenreihenfolge)
 export type StatusId =
@@ -70,11 +41,9 @@ export type Role = 'mitarbeiter' | 'partner';
 // Frage  (Mitarbeiter): offen <-> erledigt — KEINE Partner-Freigabe. Der Mitarbeiter
 //                        schließt selbst oder stellt eine Rückfrage (Kommentar).
 // Review (Partner):      offen -> erledigt (Mitarbeiter meldet) -> freigegeben (Partner gibt frei).
+// Bearbeiten/Kommentieren/Anhängen dürfen BEIDE Rollen — dafür braucht es keine Policy-Funktion.
 export const notePolicy = {
   canCreateKind: (role: Role): NoteKind => (role === 'partner' ? 'review' : 'frage'),
-  canEditText:   (_role: Role) => true,
-  canComment:    (_role: Role) => true,
-  canAttach:     (_role: Role) => true,
   // offen -> erledigt: bei Reviews meldet der Mitarbeiter, bei Fragen schließt der Mitarbeiter selbst
   canMarkDone:   (role: Role) => role === 'mitarbeiter',
   // erledigt -> offen für eine Frage (Rückfrage/wieder aufnehmen): Mitarbeiter

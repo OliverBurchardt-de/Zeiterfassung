@@ -67,7 +67,7 @@ einen späteren SaaS-/Remote-Betrieb relevant.
 
 ## 4. Für das Projekt relevante API-Produkte (im Repo bereits als Spec vorhanden)
 
-| Produkt | Zweck im Projekt | Spec im Repo |
+| Produkt | Zweck im Projekt | Spec im Repo (`docs/specs/`) |
 |---|---|---|
 | **Order Management 1.4.9** | Aufträge lesen + Status/Plandaten/Verantwortliche zurückschreiben | `Order Management-1.4.9.json` |
 | **Client Master Data 1.7.1** | Mandanten-/Mitarbeiter-Stammdaten (`client_id` → Mandant) | `Client Master Data-1.7.1.json` |

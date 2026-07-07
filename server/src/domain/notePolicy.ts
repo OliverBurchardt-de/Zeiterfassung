@@ -8,11 +8,10 @@ import type { Role, NoteKind } from './types';
  *  - Frage  (Mitarbeiter): offen <-> erledigt — KEINE Partner-Freigabe.
  *  - Review (Partner):      offen -> erledigt (Mitarbeiter meldet) -> freigegeben (Partner gibt frei).
  */
+// Bearbeiten/Kommentieren duerfen BEIDE Rollen — dafuer braucht es keine Policy-Funktion.
 export const notePolicy = {
   /** Rolle bestimmt die Art der neu angelegten Note. */
   kindFor: (role: Role): NoteKind => (role === 'partner' ? 'review' : 'frage'),
-  canEditText: (_role: Role): boolean => true,
-  canComment: (_role: Role): boolean => true,
   /** offen -> erledigt (Frage schliessen bzw. Review als erledigt melden): Mitarbeiter. */
   canMarkDone: (role: Role): boolean => role === 'mitarbeiter',
   /** erledigt -> offen fuer eine Frage (Rueckfrage/wieder aufnehmen): Mitarbeiter. */

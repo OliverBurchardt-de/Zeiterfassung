@@ -17,24 +17,5 @@ export function isValidTimeDuration(hours: number): boolean {
   return Number.isFinite(hours) && hours > 0;
 }
 
-export const FREIE_UMPLANUNGEN_PRO_JAHR = 1;
-
-export interface UmplanInput {
-  /** Ist der Auftrag bereits einem Monat zugeordnet (also keine Erstplanung)? */
-  hasMonat: boolean;
-  artKey: string;
-  /** Bereits verbrauchte freie Umplanungen im Veranlagungsjahr. */
-  verbraucht: number;
-}
-
-/** Die „1x pro Jahr frei"-Regel gilt nur fuer Jahresabschluss (ja) und Einkommensteuer (est). */
-export function umplanungRegelGilt(artKey: string): boolean {
-  return artKey === 'ja' || artKey === 'est';
-}
-
-/** Darf ohne Partner-Freigabe umgeplant werden? */
-export function umplanungFreiMoeglich(o: UmplanInput): boolean {
-  if (!o.hasMonat) return true; // Erstplanung ist immer frei
-  if (!umplanungRegelGilt(o.artKey)) return false;
-  return (o.verbraucht ?? 0) < FREIE_UMPLANUNGEN_PRO_JAHR;
-}
+// Die Umplanungs-Regeln (1x/Jahr frei fuer JA/ESt) kommen mit der Umplanungs-Aktion
+// (Etappe 3) hierher — Vorlage: src/lib/regeln.ts im Frontend.

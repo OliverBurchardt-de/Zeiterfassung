@@ -73,13 +73,6 @@ export function createMssqlTimeEntryRepository(pool: ConnectionPool): TimeEntryR
         .query(`SELECT ${COLS} FROM dbo.time_entries WHERE idempotency_key = @key`);
       return r.recordset[0] ? mapTimeEntryRow(r.recordset[0]) : undefined;
     },
-    async listByUser(userId) {
-      const r = await pool
-        .request()
-        .input('user_id', sql.NVarChar(64), userId)
-        .query(`SELECT ${COLS} FROM dbo.time_entries WHERE user_id = @user_id ${ORDER}`);
-      return r.recordset.map(mapTimeEntryRow);
-    },
     async listByOrder(orderId) {
       const r = await pool
         .request()

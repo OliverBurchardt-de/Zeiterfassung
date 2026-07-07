@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseMonat, monatBounds, monthRange, monatSortKey } from '@/lib/monate';
+import { parseMonat, monatBounds, monthRange } from '@/lib/monate';
 
 describe('parseMonat', () => {
   it('parst einen gültigen Monat', () => {
@@ -24,11 +24,5 @@ describe('monatBounds', () => {
 describe('monthRange', () => {
   it('liefert fortlaufende Monate über die Jahresgrenze', () => {
     expect(monthRange(2025, 10, 4)).toEqual(['Nov 2025', 'Dez 2025', 'Jan 2026', 'Feb 2026']);
-  });
-});
-
-describe('monatSortKey', () => {
-  it('sortiert chronologisch', () => {
-    expect(monatSortKey('Jan 2026')).toBeGreaterThan(monatSortKey('Dez 2025'));
   });
 });

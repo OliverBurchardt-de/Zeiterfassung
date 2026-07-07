@@ -76,7 +76,7 @@ describe('Zeit-Aktionen', () => {
     const a = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' });
     const b = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' });
     expect(b.id).toBe(a.id);
-    expect(await repos.times.listByUser('u-wolf')).toHaveLength(1);
+    expect(await repos.times.listByOrder('o1')).toHaveLength(1);
   });
 
   it('Freigeben/Zuruecknehmen nur fuer eigene Eintraege', async () => {
@@ -158,8 +158,7 @@ describe('Note-Aktionen', () => {
   it('Kommentieren fuegt Kommentar hinzu; leerer Text abgewiesen', async () => {
     const frage = await actions.notes.createNote(mitarbeiter, { orderId: 'o1', text: 'x' });
     await actions.notes.comment(partner, frage.id, 'Nachfrage');
-    const [thread] = await actions.notes.listByOrder(mitarbeiter, 'o1');
-    expect(thread.comments).toHaveLength(1);
+    expect(await repos.notes.listComments(frage.id)).toHaveLength(1);
     await expectDomainError(() => actions.notes.comment(partner, frage.id, '   '), 'invalid');
   });
 
@@ -238,12 +237,11 @@ describe('Auftrags-Sichtbarkeit (IDOR-Schutz, Review-Befunde 1-5)', () => {
     await expectDomainError(() => actions.status.setStatus(anderer, 'o1', 'bb'), 'not_found');
     await expectDomainError(() => actions.status.history(anderer, 'o1'), 'not_found');
     await expectDomainError(() => actions.notes.createNote(anderer, { orderId: 'o1', text: 'x' }), 'not_found');
-    await expectDomainError(() => actions.notes.listByOrder(anderer, 'o1'), 'not_found');
   });
 
   it('blockt auch unbekannte Auftrags-IDs (kein Enumerations-Orakel)', async () => {
     await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'gibtsnicht', 'bb'), 'not_found');
-    await expectDomainError(() => actions.notes.listByOrder(mitarbeiter, 'gibtsnicht'), 'not_found');
+    await expectDomainError(() => actions.notes.createNote(mitarbeiter, { orderId: 'gibtsnicht', text: 'x' }), 'not_found');
   });
 
   it('verhindert Mutation einer Note ueber ihre ID, wenn der Auftrag nicht sichtbar ist', async () => {

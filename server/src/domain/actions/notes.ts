@@ -10,11 +10,6 @@ export interface CreateNoteInput {
   text: string;
 }
 
-/** Note-Kopf zusammen mit seinen Kommentaren (Thread-Sicht). */
-export interface NoteThread extends Note {
-  comments: NoteComment[];
-}
-
 /**
  * Note-Aktionen (Review-Notes/Fragen) — serverseitig verbindlich ueber notePolicy.
  * Art der Note ergibt sich aus der Rolle (Partner -> review, sonst frage).
@@ -50,8 +45,8 @@ export function createNoteActions(repos: Repositories, clock: Clock, requireVisi
       return note;
     },
 
+    // Bearbeiten duerfen beide Rollen — kein Policy-Gate noetig.
     async editText(actor: PublicUser, id: string, text: string): Promise<Note> {
-      if (!notePolicy.canEditText(actor.role)) throw new DomainError('forbidden', 'Bearbeiten nicht erlaubt');
       const trimmed = text.trim();
       if (!trimmed) throw new DomainError('invalid', 'Text darf nicht leer sein');
       const note = await loadVisible(actor, id);
@@ -106,8 +101,8 @@ export function createNoteActions(repos: Repositories, clock: Clock, requireVisi
       return next;
     },
 
+    // Kommentieren duerfen beide Rollen — kein Policy-Gate noetig.
     async comment(actor: PublicUser, id: string, text: string): Promise<NoteComment> {
-      if (!notePolicy.canComment(actor.role)) throw new DomainError('forbidden', 'Kommentieren nicht erlaubt');
       const trimmed = text.trim();
       if (!trimmed) throw new DomainError('invalid', 'Kommentar darf nicht leer sein');
       await loadVisible(actor, id); // sichert Existenz + Sichtbarkeit des Auftrags
@@ -128,14 +123,6 @@ export function createNoteActions(repos: Repositories, clock: Clock, requireVisi
         throw new DomainError('forbidden', 'Loeschen nicht erlaubt');
       }
       await repos.notes.remove(id);
-    },
-
-    async listByOrder(actor: PublicUser, orderId: string): Promise<NoteThread[]> {
-      await requireVisibleOrder(actor, orderId);
-      const notes = await repos.notes.listByOrder(orderId);
-      return Promise.all(
-        notes.map(async (n) => ({ ...n, comments: await repos.notes.listComments(n.id) }))
-      );
     },
   };
 }
