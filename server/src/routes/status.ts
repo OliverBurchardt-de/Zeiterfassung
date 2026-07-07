@@ -9,7 +9,7 @@ const StatusBody = z.object({
   position: z.number().int().optional(),
 });
 
-/** Board-Status setzen (Drag&Drop + Status-Leiste) + Status-Historie lesen. */
+/** Board-Status setzen (Drag&Drop + Status-Leiste). */
 export function statusRoutes(app: FastifyInstance, actions: Actions): void {
   app.post('/api/orders/:orderId/status', { preHandler: requireAuth }, async (req, reply) => {
     const { orderId } = req.params as { orderId: string };
@@ -19,11 +19,5 @@ export function statusRoutes(app: FastifyInstance, actions: Actions): void {
       actions.status.setStatus(req.currentUser!, orderId, parsed.data.status, parsed.data.position)
     );
     return overlay ?? reply;
-  });
-
-  app.get('/api/orders/:orderId/status-history', { preHandler: requireAuth }, async (req, reply) => {
-    const { orderId } = req.params as { orderId: string };
-    const hist = await runAction(reply, () => actions.status.history(req.currentUser!, orderId));
-    return hist ?? reply;
   });
 }

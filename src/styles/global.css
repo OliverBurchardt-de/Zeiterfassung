@@ -56,15 +56,6 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
   min-width: 200px;
 }
 .search input { border: none; background: transparent; outline: none; width: 100%; }
-.role-switch {
-  display: inline-flex; background: var(--bk-cloud); border: 1px solid var(--bk-stone);
-  border-radius: var(--bk-radius-pill); padding: 2px;
-}
-.role-switch button {
-  border: none; background: transparent; color: var(--bk-fg-2); font-weight: 500;
-  padding: 6px 14px; border-radius: var(--bk-radius-pill); font-size: 13px;
-}
-.role-switch button.is-active { background: var(--bk-white); color: var(--bk-deep-blue); font-weight: 600; box-shadow: var(--bk-shadow-1); }
 .user-chip { display: flex; align-items: center; gap: 10px; }
 .avatar {
   display: inline-flex; align-items: center; justify-content: center;
@@ -193,8 +184,6 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
   border-radius: 6px; padding: 2px 8px;
 }
 .card__state { display: flex; flex-direction: column; gap: 4px; margin-top: 9px; }
-.card__foot { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--bk-stone); display: flex; flex-wrap: wrap; gap: 8px; }
-.card__bes { padding: 4px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
 .modal__sub-actions { display: inline-flex; flex-wrap: wrap; gap: 8px; margin-left: 12px; vertical-align: middle; }
 .modal__chip-btn { display: inline-flex; align-items: center; gap: 6px; }
 .state-line { display: flex; align-items: center; gap: 7px; font-size: 12.5px; }
@@ -390,9 +379,6 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 .laufende-order__sum { margin-left: auto; font-size: 13px; }
 .auf-tag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: var(--bk-radius-pill); font-size: 11px; font-weight: 600; color: var(--bk-fg-1); background: var(--bk-stone); }
 
-/* Admin-Umschalter (Demo) in der Top-Bar */
-.admin-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--bk-fg-2); cursor: pointer; user-select: none; }
-.admin-toggle input { accent-color: var(--bk-deep-blue); }
 
 /* Modul „Verwaltung" — Nutzerverwaltung */
 .verw-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }

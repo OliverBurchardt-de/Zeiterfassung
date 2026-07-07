@@ -28,7 +28,7 @@ export function createActions(repos: Repositories, datev: DatevPort, clock: Cloc
 export type Actions = ReturnType<typeof createActions>;
 
 export type { BookTimeInput, TimeActions } from './time';
-export type { CreateNoteInput, NoteThread, NoteActions } from './notes';
+export type { CreateNoteInput, NoteActions } from './notes';
 export type { StatusActions } from './status';
 export type { ChecklistActions } from './checklist';
 export type { BoardActions, BoardOrder, BoardNote, BoardComment } from './board';

@@ -58,10 +58,10 @@ export const api = {
   deleteTime: (id: string) => request<{ ok: boolean }>(`/api/time/${id}`, { method: 'DELETE' }),
 
   // --- Etappe 2: Schreib-Endpunkte (Status) -------------------------------
-  setStatus: (orderId: string, status: string, position?: number) =>
+  setStatus: (orderId: string, status: string) =>
     request<ApiWithId>(`/api/orders/${orderId}/status`, {
       method: 'POST',
-      body: JSON.stringify(position === undefined ? { status } : { status, position }),
+      body: JSON.stringify({ status }),
     }),
 
   // --- Etappe 2: Schreib-Endpunkte (Review-Notes / Fragen) ----------------

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Trash2, Paperclip, X } from 'lucide-react';
 import type { Order, Note, Attachment } from '@/lib/types';
 import { useStore, noteOffen, useCurrentUser } from '@/state/store';
-import { NOTE_KIND, NOTE_STATE, notePolicy, colors } from '@/lib/tokens';
+import { NOTE_KIND, NOTE_STATE, notePolicy } from '@/lib/tokens';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -174,7 +174,7 @@ function NoteCard({ order, note }: { order: Order; note: Note }) {
   const kindMeta = NOTE_KIND[note.kind];
   // Eine erledigte Frage ist abgeschlossen (kein „wartet auf Freigabe").
   const stateMeta = isFrage && note.noteState === 'erledigt'
-    ? { label: 'Erledigt', color: colors.success, soft: colors.successSoft }
+    ? { label: 'Erledigt', color: 'var(--bk-success)', soft: 'var(--bk-success-soft)' }
     : NOTE_STATE[note.noteState];
 
   function submitComment() {
@@ -233,9 +233,7 @@ function NoteCard({ order, note }: { order: Order; note: Note }) {
           />
           <button className="btn btn--ghost btn--sm" onClick={submitComment}>Kommentar</button>
 
-          {notePolicy.canAttach(role) && (
-            <AttachButton onFiles={(a) => addAttachments(order.id, note.id, a)} label="Datei anhängen" />
-          )}
+          <AttachButton onFiles={(a) => addAttachments(order.id, note.id, a)} label="Datei anhängen" />
 
           {/* offen -> erledigt: Mitarbeiter (Frage selbst schließen / Review als erledigt melden) */}
           {note.noteState === 'offen' && notePolicy.canMarkDone(role) && (

@@ -29,7 +29,6 @@ export interface TimeEntryRepository {
   findById(id: string): Promise<TimeEntry | undefined>;
   /** Fuer Wiederholungs-Requests: gleicher Key -> vorhandenen Eintrag liefern statt Dublette. */
   findByIdempotencyKey(key: string): Promise<TimeEntry | undefined>;
-  listByUser(userId: string): Promise<TimeEntry[]>;
   listByOrder(orderId: string): Promise<TimeEntry[]>;
   update(entry: TimeEntry): Promise<void>;
   remove(id: string): Promise<void>;

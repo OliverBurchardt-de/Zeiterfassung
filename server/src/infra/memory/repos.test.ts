@@ -32,7 +32,7 @@ describe('Memory-TimeEntryRepository', () => {
     const repo = createMemoryTimeEntryRepository();
     await repo.insert(zeit('t1', { datum: '2026-07-01' }));
     await repo.insert(zeit('t2', { datum: '2026-07-02' }));
-    const list = await repo.listByUser('u1');
+    const list = await repo.listByOrder('o1');
     expect(list.map((e) => e.id)).toEqual(['t2', 't1']);
     expect((await repo.findByIdempotencyKey('k-t1'))?.id).toBe('t1');
     expect(await repo.findByIdempotencyKey('fremd')).toBeUndefined();

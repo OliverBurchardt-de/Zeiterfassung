@@ -59,16 +59,16 @@ describe('API', () => {
     expect(meAfter.statusCode).toBe(401);
   });
 
-  it('Orders erfordert Login', async () => {
+  it('Board erfordert Login', async () => {
     const app = await makeApp();
-    const res = await app.inject({ method: 'GET', url: '/api/orders' });
+    const res = await app.inject({ method: 'GET', url: '/api/board' });
     expect(res.statusCode).toBe(401);
   });
 
   it('Mitarbeiter sieht nur eigene Auftraege (ohne interne)', async () => {
     const app = await makeApp();
     const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
-    const res = await app.inject({ method: 'GET', url: '/api/orders', headers: { cookie: cookieHeader } });
+    const res = await app.inject({ method: 'GET', url: '/api/board', headers: { cookie: cookieHeader } });
     expect(res.statusCode).toBe(200);
     const ids = (res.json() as Array<{ id: string }>).map((o) => o.id);
     expect(ids).toEqual(['9993']);
@@ -77,7 +77,7 @@ describe('API', () => {
   it('Admin sieht alle Board-Auftraege', async () => {
     const app = await makeApp();
     const { cookieHeader } = await loginCookie(app, 'burchardt', 'demo');
-    const res = await app.inject({ method: 'GET', url: '/api/orders', headers: { cookie: cookieHeader } });
+    const res = await app.inject({ method: 'GET', url: '/api/board', headers: { cookie: cookieHeader } });
     const ids = (res.json() as Array<{ id: string }>).map((o) => o.id);
     expect(ids).toEqual(['9993', '9001']);
   });
@@ -117,8 +117,10 @@ describe('Zeit-API', () => {
     const id = book.json().id as string;
     expect(book.json().status).toBe('erfasst');
 
-    const mine = await app.inject({ method: 'GET', url: '/api/time/mine', headers: h });
-    expect((mine.json() as unknown[]).length).toBe(1);
+    // Gelesen wird ueber das Board-Aggregat: die Buchung haengt am Auftrag 9993.
+    const board = await app.inject({ method: 'GET', url: '/api/board', headers: h });
+    const o = (board.json() as Array<{ id: string; times: unknown[] }>).find((x) => x.id === '9993');
+    expect(o?.times.length).toBe(1);
 
     const rel = await app.inject({ method: 'POST', url: `/api/time/${id}/release`, headers: h });
     expect(rel.json().status).toBe('freigegeben');
@@ -164,8 +166,10 @@ describe('Note-API', () => {
     const appr = await app.inject({ method: 'POST', url: `/api/notes/${rid}/approve`, headers: { cookie: chef.cookieHeader } });
     expect(appr.json().noteState).toBe('freigegeben');
 
-    const list = await app.inject({ method: 'GET', url: '/api/orders/9993/notes', headers: { cookie: wolf.cookieHeader } });
-    expect((list.json() as unknown[]).length).toBe(2);
+    // Gelesen wird ueber das Board-Aggregat: beide Notes haengen am Auftrag 9993.
+    const board = await app.inject({ method: 'GET', url: '/api/board', headers: { cookie: wolf.cookieHeader } });
+    const o = (board.json() as Array<{ id: string; notes: unknown[] }>).find((x) => x.id === '9993');
+    expect(o?.notes.length).toBe(2);
   });
 
   it('Mitarbeiter darf Review nicht freigeben (403)', async () => {
@@ -181,15 +185,13 @@ describe('Note-API', () => {
 });
 
 describe('Status-API', () => {
-  it('setzt Status und liefert Historie', async () => {
+  it('setzt Status', async () => {
     const app = await makeApp();
     const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
     const h = { cookie: cookieHeader };
     const set = await app.inject({ method: 'POST', url: '/api/orders/9993/status', headers: h, payload: { status: 'bb' } });
     expect(set.statusCode).toBe(200);
     expect(set.json().boardStatus).toBe('bb');
-    const hist = await app.inject({ method: 'GET', url: '/api/orders/9993/status-history', headers: h });
-    expect((hist.json() as unknown[]).length).toBe(1);
   });
 
   it('weist unbekannten Status ab (400)', async () => {
@@ -202,14 +204,12 @@ describe('Status-API', () => {
 
 describe('IDOR-Schutz: Auftrags-Sichtbarkeit auf allen Fach-Routen', () => {
   // Mock-DATEV: 9993 gehoert wolf, 9001 gehoert klein; beide Partner burchardt (Admin sieht beide).
-  it('Mitarbeiter kommt nicht an Notes/Status/Historie eines fremden Auftrags (404)', async () => {
+  it('Mitarbeiter kommt nicht an Notes/Status eines fremden Auftrags (404)', async () => {
     const app = await makeApp();
     const { cookieHeader } = await loginCookie(app, 'klein', 'demo'); // klein != Bearbeiter von 9993
     const h = { cookie: cookieHeader };
     const paths = [
-      { method: 'GET' as const, url: '/api/orders/9993/notes' },
       { method: 'POST' as const, url: '/api/orders/9993/notes', payload: { text: 'x' } },
-      { method: 'GET' as const, url: '/api/orders/9993/status-history' },
       { method: 'POST' as const, url: '/api/orders/9993/status', payload: { status: 'bb' } },
     ];
     for (const p of paths) {

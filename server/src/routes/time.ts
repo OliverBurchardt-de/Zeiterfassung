@@ -16,8 +16,6 @@ const BookBody = z.object({
 
 /** Zeiterfassung — jeder bucht/aendert nur EIGENE Zeiten (Durchsetzung in den Aktionen). */
 export function timeRoutes(app: FastifyInstance, actions: Actions): void {
-  app.get('/api/time/mine', { preHandler: requireAuth }, async (req) => actions.time.listMine(req.currentUser!));
-
   app.post('/api/time', { preHandler: requireAuth }, async (req, reply) => {
     const parsed = BookBody.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: 'ungültige Eingabe' });
