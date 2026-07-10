@@ -70,6 +70,7 @@ design_handoff_zeiterfassung/   verbindliche Design-Referenz (Prototyp, Screensh
 - `docs/architektur-entscheidungen.md` — begründete Architektur-Entscheidungen fürs M2-Backend (ADR-Stil)
 
 **DATEV-Anbindung**
+- `docs/echtdaten-lokal-testen.md` — Schritt für Schritt: echte DATEV-Aufträge lokal am Kanzlei-PC ansehen
 - `docs/datev-integration.md` — Feld-Mapping & Rückschreibung nach EO Comfort
 - `docs/datev-connect-handoff.md` — projektunabhängige, verifizierte DATEVconnect-Mechanik (zur Wiederverwendung)
 - `docs/datev-connect-asp-zugriff.md` — DATEVconnect unter ASP: Anbindungswege, Voraussetzungen, Test (Pull/Writeback)
