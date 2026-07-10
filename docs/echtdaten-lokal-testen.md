@@ -19,14 +19,22 @@
 
 ## Schritt 1 — Projekt aktualisieren (PowerShell)
 
+Der neueste Stand (inkl. dieses Runbooks) liegt aktuell auf dem Arbeits-Branch
+`claude/magical-gauss-3h604n` — den holst du sicherheitshalber, damit alles zusammenpasst:
+
 ```powershell
 cd C:\Projekte\Zeiterfassung
-git pull origin main
+git fetch origin
+git checkout claude/magical-gauss-3h604n
+git pull origin claude/magical-gauss-3h604n
 npm install
 cd server
 npm install
 cd ..
 ```
+
+> **Hinweis:** Sobald der Echtdaten-Test geklappt hat, wandert dieser Stand nach `main`.
+> Danach genügt für künftige Aktualisierungen wieder `git checkout main` + `git pull origin main`.
 
 ## Schritt 2 — Die Datei `server\.env` anlegen
 
