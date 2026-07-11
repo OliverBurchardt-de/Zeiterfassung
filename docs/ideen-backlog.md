@@ -10,7 +10,10 @@
 > Nächster Schritt: **Phase 1 — DATEV-Spike** (on-prem; ich liefere Skript/Checkliste, werte aus).
 
 ## Offen — abgestimmt
-_(leer)_
+- **ABC-Analyse (Mandanten-Rentabilität)** — Umsatz/Kosten/Deckungsbeitrag je Mandant aus der
+  DATEV-API (`/orders/monthlyvalues`, `/invoices`; Kosten alternativ Ist-Stunden × eigener
+  Stundensatz). Vorgesehen **nach v1**; Konzept + Feld-Mapping: `docs/abc-analyse-konzept.md`
+  (abgestimmt 11.07.2026). Beim Echtdaten-Test mitprüfen: Berechtigung der Endpunkte (403?).
 
 ## Externer Code-Review (26.06.2026) — Bewertung & Status
 > Quelle: `docs/reviews/2026-06-26-externer-codereview.md` (erstellt gegen den `main`-Stand).
