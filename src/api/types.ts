@@ -76,6 +76,8 @@ export interface ApiChecklistItem {
   label: string;
   done: boolean;
   position: number;
+  /** 'vorlage' = Pflichtpunkt (nicht löschbar) | 'manuell' = am Auftrag ergänzt. */
+  herkunft: 'vorlage' | 'manuell';
 }
 
 export interface ApiBoardOrder {

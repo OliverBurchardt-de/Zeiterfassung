@@ -73,6 +73,12 @@ export interface ChecklistItem {
   id: string;
   label: string;
   done: boolean;
+  /**
+   * Herkunft des Punkts: 'vorlage' = Pflichtpunkt aus der Checklisten-Vorlage (nicht löschbar),
+   * 'manuell' = am Auftrag ergänzt (löschbar). Fehlend (Alt-Daten) gilt fail-safe als 'vorlage' —
+   * dieselbe Regel wie auf dem Server (Review 12.07.2026).
+   */
+  herkunft?: 'vorlage' | 'manuell';
 }
 
 /**

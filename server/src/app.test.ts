@@ -125,6 +125,12 @@ describe('Zeit-API', () => {
     const rel = await app.inject({ method: 'POST', url: `/api/time/${id}/release`, headers: h });
     expect(rel.json().status).toBe('freigegeben');
 
+    // Loeschen nur im Status 'erfasst' (Review 12.07., P1.1): freigegeben -> 409 …
+    const delGesperrt = await app.inject({ method: 'DELETE', url: `/api/time/${id}`, headers: h });
+    expect(delGesperrt.statusCode).toBe(409);
+
+    // … erst nach Zuruecknahme der Freigabe ist Loeschen erlaubt.
+    await app.inject({ method: 'POST', url: `/api/time/${id}/withdraw`, headers: h });
     const del = await app.inject({ method: 'DELETE', url: `/api/time/${id}`, headers: h });
     expect(del.statusCode).toBe(200);
   });
@@ -199,6 +205,36 @@ describe('Status-API', () => {
     const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
     const res = await app.inject({ method: 'POST', url: '/api/orders/9993/status', headers: { cookie: cookieHeader }, payload: { status: 'xx' } });
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('Checklist-API (Herkunft + Soft-Delete, Review 12.07.)', () => {
+  it('Vorlagenpunkt (ensure) ist nicht loeschbar (409), manueller Punkt schon (200)', async () => {
+    const app = await makeApp();
+    const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
+    const h = { cookie: cookieHeader };
+
+    // Vorlage instanziieren -> Pflichtpunkt
+    const ens = await app.inject({ method: 'POST', url: '/api/orders/9993/checklist/ensure', headers: h, payload: { labels: ['Pflicht'] } });
+    expect(ens.statusCode).toBe(200);
+    const pflicht = (ens.json() as Array<{ id: string; herkunft: string }>)[0];
+    expect(pflicht.herkunft).toBe('vorlage');
+
+    // Manuell ergaenzen -> loeschbar
+    const add = await app.inject({ method: 'POST', url: '/api/orders/9993/checklist', headers: h, payload: { label: 'Zusatz' } });
+    expect(add.statusCode).toBe(201);
+    expect(add.json().herkunft).toBe('manuell');
+
+    const delPflicht = await app.inject({ method: 'DELETE', url: `/api/orders/9993/checklist/${pflicht.id}`, headers: h });
+    expect(delPflicht.statusCode).toBe(409);
+
+    const delZusatz = await app.inject({ method: 'DELETE', url: `/api/orders/9993/checklist/${add.json().id}`, headers: h });
+    expect(delZusatz.statusCode).toBe(200);
+
+    // Board zeigt nur den aktiven Pflichtpunkt — der geloeschte manuelle taucht nicht mehr auf.
+    const board = await app.inject({ method: 'GET', url: '/api/board', headers: h });
+    const o = (board.json() as Array<{ id: string; checklist: Array<{ id: string }> }>).find((x) => x.id === '9993');
+    expect(o?.checklist.map((c) => c.id)).toEqual([pflicht.id]);
   });
 });
 

@@ -46,13 +46,18 @@ CREATE TABLE dbo.order_overlays (
 
 -- Checklisten-INSTANZ je Auftrag (Done-Status) — Grundlage der serverseitigen
 -- Regel "Erledigt erst bei vollstaendiger Checkliste" (canComplete).
+-- herkunft: 'vorlage' = Pflichtpunkt (nie loeschbar) | 'manuell' = am Auftrag ergaenzt.
+-- Loeschen ist Soft-Delete (deleted_at/deleted_by) — revisionssicher (Review 12.07.2026).
 IF OBJECT_ID(N'dbo.checklist_items', N'U') IS NULL
 CREATE TABLE dbo.checklist_items (
-  id       NVARCHAR(64)  NOT NULL CONSTRAINT pk_checklist_items PRIMARY KEY,
-  order_id NVARCHAR(64)  NOT NULL,
-  label    NVARCHAR(500) NOT NULL,
-  done     BIT           NOT NULL CONSTRAINT df_checklist_done DEFAULT 0,
-  position INT           NOT NULL CONSTRAINT df_checklist_pos DEFAULT 0
+  id         NVARCHAR(64)  NOT NULL CONSTRAINT pk_checklist_items PRIMARY KEY,
+  order_id   NVARCHAR(64)  NOT NULL,
+  label      NVARCHAR(500) NOT NULL,
+  done       BIT           NOT NULL CONSTRAINT df_checklist_done DEFAULT 0,
+  position   INT           NOT NULL CONSTRAINT df_checklist_pos DEFAULT 0,
+  herkunft   NVARCHAR(10)  NOT NULL CONSTRAINT df_checklist_herkunft DEFAULT 'vorlage',
+  deleted_at DATETIME2     NULL,
+  deleted_by NVARCHAR(64)  NULL
 );
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_checklist_order' AND object_id = OBJECT_ID(N'dbo.checklist_items'))
   CREATE INDEX ix_checklist_order ON dbo.checklist_items (order_id);
@@ -174,3 +179,11 @@ CREATE TABLE dbo.besonderheiten (
 );
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_bes_key' AND object_id = OBJECT_ID(N'dbo.besonderheiten'))
   CREATE INDEX ix_bes_key ON dbo.besonderheiten (client_id, ordertype);
+
+-- Migrations-Protokoll: welche nummerierten Migrationen (db/migrations/*.sql) bereits
+-- angewendet wurden. Gefuehrt von scripts/db-setup.ts — NICHT von Hand pflegen.
+IF OBJECT_ID(N'dbo.schema_migrations', N'U') IS NULL
+CREATE TABLE dbo.schema_migrations (
+  id         NVARCHAR(200) NOT NULL CONSTRAINT pk_schema_migrations PRIMARY KEY, -- Dateiname, z. B. '001_checklist_herkunft.sql'
+  applied_at DATETIME2     NOT NULL CONSTRAINT df_migr_applied DEFAULT SYSUTCDATETIME()
+);

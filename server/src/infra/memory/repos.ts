@@ -109,7 +109,10 @@ export function createMemoryOverlayRepository(overlays: OrderOverlay[] = []): Ov
 export function createMemoryChecklistRepository(items: ChecklistItem[] = []): ChecklistRepository {
   return {
     async listByOrder(orderId) {
-      return items.filter((i) => i.orderId === orderId).sort((a, b) => a.position - b.position);
+      return items.filter((i) => i.orderId === orderId && !i.deletedAt).sort((a, b) => a.position - b.position);
+    },
+    async listDeletedByOrder(orderId) {
+      return items.filter((i) => i.orderId === orderId && !!i.deletedAt).sort((a, b) => a.position - b.position);
     },
     async findById(id) {
       return items.find((i) => i.id === id);
@@ -124,9 +127,12 @@ export function createMemoryChecklistRepository(items: ChecklistItem[] = []): Ch
       const item = items.find((i) => i.id === id);
       if (item) item.done = done;
     },
-    async remove(id) {
-      const i = items.findIndex((x) => x.id === id);
-      if (i >= 0) items.splice(i, 1);
+    async softDelete(id, deletedBy, deletedAt) {
+      const item = items.find((i) => i.id === id);
+      if (item) {
+        item.deletedAt = deletedAt;
+        item.deletedBy = deletedBy;
+      }
     },
   };
 }

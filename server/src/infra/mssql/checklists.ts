@@ -1,8 +1,8 @@
 import type { ConnectionPool } from 'mssql';
 import { sql } from './db';
-import type { ChecklistItem } from '../../domain/types';
+import type { ChecklistItem, ChecklistHerkunft } from '../../domain/types';
 import type { ChecklistRepository } from '../../domain/ports';
-import { bit } from './rows';
+import { bit, optionalIsoDateTime, optionalString } from './rows';
 
 /** DB-Zeile (dbo.checklist_items) -> Domaenen-ChecklistItem. Reine Funktion (testbar ohne DB). */
 export function mapChecklistItemRow(row: Record<string, unknown>): ChecklistItem {
@@ -12,10 +12,15 @@ export function mapChecklistItemRow(row: Record<string, unknown>): ChecklistItem
     label: String(row.label),
     done: bit(row.done),
     position: Number(row.position ?? 0),
+    // Fail-safe (Review 12.07.2026): Zeilen ohne Herkunft gelten als Pflichtpunkte ('vorlage'),
+    // damit eine fehlende Einordnung die Pflichtpruefung nie abschwaecht.
+    herkunft: (row.herkunft === 'manuell' ? 'manuell' : 'vorlage') as ChecklistHerkunft,
+    deletedAt: optionalIsoDateTime(row.deleted_at),
+    deletedBy: optionalString(row.deleted_by),
   };
 }
 
-const COLS = 'id, order_id, label, done, position';
+const COLS = 'id, order_id, label, done, position, herkunft, deleted_at, deleted_by';
 
 export function createMssqlChecklistRepository(pool: ConnectionPool): ChecklistRepository {
   return {
@@ -23,7 +28,14 @@ export function createMssqlChecklistRepository(pool: ConnectionPool): ChecklistR
       const r = await pool
         .request()
         .input('order_id', sql.NVarChar(64), orderId)
-        .query(`SELECT ${COLS} FROM dbo.checklist_items WHERE order_id = @order_id ORDER BY position`);
+        .query(`SELECT ${COLS} FROM dbo.checklist_items WHERE order_id = @order_id AND deleted_at IS NULL ORDER BY position`);
+      return r.recordset.map(mapChecklistItemRow);
+    },
+    async listDeletedByOrder(orderId) {
+      const r = await pool
+        .request()
+        .input('order_id', sql.NVarChar(64), orderId)
+        .query(`SELECT ${COLS} FROM dbo.checklist_items WHERE order_id = @order_id AND deleted_at IS NOT NULL ORDER BY position`);
       return r.recordset.map(mapChecklistItemRow);
     },
     async findById(id) {
@@ -47,8 +59,13 @@ export function createMssqlChecklistRepository(pool: ConnectionPool): ChecklistR
         .input('done', sql.Bit, done)
         .query('UPDATE dbo.checklist_items SET done = @done WHERE id = @id');
     },
-    async remove(id) {
-      await pool.request().input('id', sql.NVarChar(64), id).query('DELETE FROM dbo.checklist_items WHERE id = @id');
+    async softDelete(id, deletedBy, deletedAt) {
+      await pool
+        .request()
+        .input('id', sql.NVarChar(64), id)
+        .input('deleted_by', sql.NVarChar(64), deletedBy)
+        .input('deleted_at', sql.DateTime2, new Date(deletedAt))
+        .query('UPDATE dbo.checklist_items SET deleted_at = @deleted_at, deleted_by = @deleted_by WHERE id = @id');
     },
   };
 
@@ -60,6 +77,9 @@ export function createMssqlChecklistRepository(pool: ConnectionPool): ChecklistR
       .input('label', sql.NVarChar(500), item.label)
       .input('done', sql.Bit, item.done)
       .input('position', sql.Int, item.position)
-      .query(`INSERT INTO dbo.checklist_items (${COLS}) VALUES (@id, @order_id, @label, @done, @position)`);
+      .input('herkunft', sql.NVarChar(10), item.herkunft)
+      .query(
+        'INSERT INTO dbo.checklist_items (id, order_id, label, done, position, herkunft) VALUES (@id, @order_id, @label, @done, @position, @herkunft)'
+      );
   }
 }

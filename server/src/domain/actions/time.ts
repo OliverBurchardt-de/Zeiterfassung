@@ -84,9 +84,17 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
       return next;
     },
 
+    /**
+     * Loeschen NUR im Status 'erfasst' (verbindliche Entscheidung, Review 12.07.2026):
+     * 'freigegeben' ist fuer den DATEV-Sync vorgemerkt, 'uebertragen' bereits gebucht — beide
+     * gesperrt. Wer loeschen will, nimmt zuerst die Freigabe zurueck (withdraw).
+     */
     async deleteTime(actor: PublicUser, id: string): Promise<void> {
       const entry = await ownEntry(actor, id);
       if (entry.status === 'uebertragen') throw new DomainError('conflict', 'bereits nach DATEV uebertragen');
+      if (entry.status === 'freigegeben') {
+        throw new DomainError('conflict', 'freigegebene Zeit zuerst zurueckziehen, dann loeschen');
+      }
       await repos.times.remove(id);
     },
   };

@@ -65,8 +65,9 @@ Genau so läuft bereits die im Einsatz befindliche **Ingentis Kanzleisuite** der
 Server im ASP-Umfeld, Bedienung im Browser über `localhost`. Unsere App spiegelt dieses Muster.
 
 **Wer muss wo laufen?**
-- **App-Backend (+ PostgreSQL) und DATEV-Adapter:** auf einem **Server im ASP-Umfeld**, der den
-  DATEV-Host erreicht (`localhost`/ASP-internes LAN). Kein externer Netzweg nötig.
+- **App-Backend (+ eigene Datenbank auf der bestehenden MS-SQL-Instanz, ADR-04) und
+  DATEV-Adapter:** auf einem **Server im ASP-Umfeld**, der den DATEV-Host erreicht
+  (`localhost`/ASP-internes LAN). Kein externer Netzweg nötig.
 - **Browser-Frontend (SPA):** wird von diesem Server ausgeliefert; die Mitarbeiter öffnen die App
   **im Browser ihres ASP-Desktops** (wie bei Ingentis). Ruft nie direkt DATEVconnect auf.
 
@@ -74,8 +75,9 @@ Server im ASP-Umfeld, Bedienung im Browser über `localhost`. Unsere App spiegel
 versandfertige Anfrage in `docs/datev-asp-anfrage.md`):
 - Wird ein **eigener Server/VM in DATEVasp** für eine **Eigenentwicklung** bereitgestellt (analog zur
   Ingentis-Anbindung), und unter welchem Modul/Vertrag?
-- **Erlaubte Software/Laufzeit** auf dem ASP-Server: dürfen wir unseren Stack (Node.js + PostgreSQL +
-  Web-Server) installieren, oder muss er paketiert/geprüft werden?
+- **Erlaubte Software/Laufzeit** auf dem ASP-Server: dürfen wir unseren Stack (Node.js + Web-Server;
+  Datenbank = **eigene DB auf der bestehenden MS-SQL-Instanz**) installieren, oder muss er
+  paketiert/geprüft werden?
 - **Deployment & Betrieb:** Wie spielen wir die App ein und aktualisieren sie (RDP-Zugang vs.
   Übergabe-Paket an DATEV)? Wer patcht das Betriebssystem, wer macht Backups?
 - **DATEVconnect-Zugriff von diesem Server:** technischer Benutzer/Rechte (Basic Auth oder

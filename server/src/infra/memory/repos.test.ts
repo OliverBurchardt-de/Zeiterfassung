@@ -90,13 +90,28 @@ describe('Memory-Overlay/Checklist', () => {
   it('checkliste: sortiert nach Position, hakt ab', async () => {
     const repo = createMemoryChecklistRepository();
     await repo.insertMany([
-      { id: 'c2', orderId: 'o1', label: 'B', done: false, position: 2 },
-      { id: 'c1', orderId: 'o1', label: 'A', done: false, position: 1 },
+      { id: 'c2', orderId: 'o1', label: 'B', done: false, position: 2, herkunft: 'vorlage' },
+      { id: 'c1', orderId: 'o1', label: 'A', done: false, position: 1, herkunft: 'manuell' },
     ]);
     await repo.setDone('c1', true);
     const list = await repo.listByOrder('o1');
     expect(list.map((i) => i.id)).toEqual(['c1', 'c2']);
     expect(list[0].done).toBe(true);
+  });
+
+  it('checkliste: Soft-Delete nimmt aus der aktiven Liste, bleibt aber mit Wer/Wann erhalten', async () => {
+    const repo = createMemoryChecklistRepository();
+    await repo.insertMany([
+      { id: 'c1', orderId: 'o1', label: 'A', done: false, position: 1, herkunft: 'manuell' },
+      { id: 'c2', orderId: 'o1', label: 'B', done: false, position: 2, herkunft: 'vorlage' },
+    ]);
+    await repo.softDelete('c1', 'u-x', '2026-07-12T10:00:00.000Z');
+    expect((await repo.listByOrder('o1')).map((i) => i.id)).toEqual(['c2']);
+    const geloescht = await repo.listDeletedByOrder('o1');
+    expect(geloescht).toHaveLength(1);
+    expect(geloescht[0]).toMatchObject({ id: 'c1', label: 'A', deletedBy: 'u-x', deletedAt: '2026-07-12T10:00:00.000Z' });
+    // findById findet den Punkt weiterhin (fuer die Idempotenz-Pruefung der Aktion)
+    expect((await repo.findById('c1'))?.deletedAt).toBeTruthy();
   });
 });
 

@@ -502,15 +502,27 @@ export const useStore = create<AppState>()(persist((set, get) => ({
   addCheck: (orderId, label) => {
     const id = uid();
     set((s) => ({
-      orders: mapOrder(s.orders, orderId, (o) => ({ ...o, checklist: [...o.checklist, { id, label, done: false }] })),
+      orders: mapOrder(s.orders, orderId, (o) => ({ ...o, checklist: [...o.checklist, { id, label, done: false, herkunft: 'manuell' as const }] })),
     }));
     if (API_MODE) write.addCheck(orderId, id, label);
   },
   removeCheck: (orderId, itemId) => {
+    // Nur manuelle Punkte sind löschbar — Pflichtpunkte aus der Vorlage nie (Review 12.07.2026;
+    // fehlende Herkunft gilt fail-safe als 'vorlage'). Der Server erzwingt dieselbe Regel.
+    let changed = false;
     set((s) => ({
-      orders: mapOrder(s.orders, orderId, (o) => ({ ...o, checklist: o.checklist.filter((c) => c.id !== itemId) })),
+      orders: mapOrder(s.orders, orderId, (o) => ({
+        ...o,
+        checklist: o.checklist.filter((c) => {
+          if (c.id === itemId && c.herkunft === 'manuell') {
+            changed = true;
+            return false;
+          }
+          return true;
+        }),
+      })),
     }));
-    if (API_MODE) write.removeCheck(orderId, itemId);
+    if (API_MODE && changed) write.removeCheck(orderId, itemId);
   },
 
   addNote: (orderId, text, role, author, attachments = []) => {
@@ -573,8 +585,8 @@ export const useStore = create<AppState>()(persist((set, get) => ({
   // Server-Daten (orders/users) und die Anmeldung kommen beim Start frisch vom Server
   // (Session-Cookie, apiRestore); sonst zeigte ein Reload veraltete Stände.
   name: API_MODE ? 'bk-zeiterfassung-api' : 'bk-zeiterfassung',
-  // 13: Mock-Timer der Bäckerei-Karte mit Startzeitpunkt geseedet (Codex-Review P3) → neu seeden.
-  version: 13,
+  // 14: Checklisten-Punkte tragen eine Herkunft (vorlage/manuell, Review 12.07.) → neu seeden.
+  version: 14,
   partialize: (s) => (API_MODE
     ? { besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, anforderungen: s.anforderungen }
     : { orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId, anforderungen: s.anforderungen }),

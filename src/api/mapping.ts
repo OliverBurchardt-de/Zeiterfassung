@@ -71,7 +71,7 @@ export function mapBoardOrder(dto: ApiBoardOrder): Order {
     bearbeiter: dto.responsibleName ?? '',
     bearbeiterId: dto.responsibleId ?? '',
     partner: dto.partnerName ?? '',
-    checklist: dto.checklist.map((c) => ({ id: c.id, label: c.label, done: c.done })),
+    checklist: dto.checklist.map((c) => ({ id: c.id, label: c.label, done: c.done, herkunft: c.herkunft })),
     suborders: undefined, // Teilaufträge kommen mit der Suborder-API (Etappe 3)
     notes: dto.notes.map((n) => ({
       id: n.id,
