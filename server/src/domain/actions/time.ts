@@ -80,6 +80,19 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
         if (bestehend) return gleicheBuchungOderKonflikt(actor, input, bestehend);
       }
 
+      // Tagesgrenze (Fachregel 12.07.2026): mehr als 12 h sind an einem Arbeitstag nicht buchbar
+      // — ueber ALLE Auftraege des Nutzers summiert. Prueft NACH der Idempotenz-Weiche, damit
+      // ein Wiederholungs-Request die bereits gezaehlte Buchung nicht doppelt anrechnet.
+      const bereitsGebucht = await repos.times.sumByUserAndDate(actor.id, input.datum);
+      // Auf 2 Nachkommastellen runden — sonst kippte 11.9 + 0.1 durch Gleitkomma-Rauschen.
+      const tagessumme = Math.round((bereitsGebucht + input.dauer) * 100) / 100;
+      if (tagessumme > LIMITS.DAUER_MAX_STUNDEN) {
+        throw new DomainError(
+          'conflict',
+          `Tagesgrenze ueberschritten: max. ${LIMITS.DAUER_MAX_STUNDEN} h pro Tag (bereits gebucht: ${bereitsGebucht} h)`
+        );
+      }
+
       const entry: TimeEntry = {
         id: clock.newId(),
         userId: actor.id,

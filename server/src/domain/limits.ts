@@ -6,14 +6,14 @@
  * - LABEL_MAX spiegelt das DB-Schema (checklist_items.label NVARCHAR(500)).
  * - TEXT_MAX (Notes/Kommentare/Zeitnotizen): DB ist NVARCHAR(MAX); 4000 Zeichen sind eine
  *   grosszuegige technische Obergrenze gegen Missbrauch/Versehen — kein Fachlimit.
- * - DAUER_MAX_STUNDEN = 24 ist die physikalische Obergrenze eines Arbeitstags (work_date-
- *   bezogen), bewusst grosszuegig. Eine engere Kanzlei-Regel (z. B. 12 h) waere eine
- *   FACHLICHE Entscheidung — bei Bedarf hier zentral aendern.
- * - DAUER_SCHRITT = 0.01 h passt zur DB (DECIMAL(9,2)); feinere Werte gingen verloren.
+ * - DAUER_MAX_STUNDEN = 12 ist eine FACHLICHE Entscheidung des Auftraggebers (12.07.2026):
+ *   mehr als 12 Stunden sind an einem Arbeitstag nicht buchbar — als Grenze je Einzelbuchung
+ *   UND als Tagessumme je Nutzer (Pruefung in bookTime).
+ * - Dauer-Genauigkeit 0.01 h passt zur DB (DECIMAL(9,2)); feinere Werte gingen verloren.
  */
 export const LIMITS = {
-  /** Max. Dauer einer einzelnen Zeitbuchung in Stunden (physikalische Tagesgrenze). */
-  DAUER_MAX_STUNDEN: 24,
+  /** Max. buchbare Stunden je Arbeitstag (Einzelbuchung UND Tagessumme; Fachregel 12.07.2026). */
+  DAUER_MAX_STUNDEN: 12,
   /** Max. Nachkommastellen der Dauer (DB: DECIMAL(9,2)). */
   DAUER_NACHKOMMASTELLEN: 2,
   /** Checklisten-Label (DB: NVARCHAR(500)). */
@@ -36,7 +36,7 @@ export function isValidIsoDate(datum: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === datum;
 }
 
-/** Dauer einer Zeitbuchung: > 0, hoechstens ein Tag, maximal 2 Nachkommastellen. */
+/** Dauer einer Zeitbuchung: > 0, hoechstens das Tagesmaximum, maximal 2 Nachkommastellen. */
 export function isValidDauer(stunden: number): boolean {
   if (!Number.isFinite(stunden) || stunden <= 0 || stunden > LIMITS.DAUER_MAX_STUNDEN) return false;
   const skaliert = stunden * 10 ** LIMITS.DAUER_NACHKOMMASTELLEN;

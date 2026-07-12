@@ -79,6 +79,33 @@ describe('Zeit-Aktionen', () => {
     expect(await repos.times.listByOrder('o1')).toHaveLength(1);
   });
 
+  it('Tagesgrenze: mehr als 12 h pro Tag sind nicht buchbar — auch ueber mehrere Auftraege', async () => {
+    // wolf sieht o1 und o2 — 8 h + 4 h = 12 h sind erlaubt (Grenze einschliesslich) …
+    await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 8 });
+    await actions.time.bookTime(mitarbeiter, { orderId: 'o2', datum: '2026-07-01', dauer: 4 });
+    // … aber jede weitere Minute am selben Tag kippt die Summe -> Konflikt.
+    await expectDomainError(
+      () => actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 0.25 }),
+      'conflict'
+    );
+    // Anderer Tag und anderer Nutzer sind unabhaengig.
+    await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-02', dauer: 1 });
+    await actions.time.bookTime(partner, { orderId: 'o1', datum: '2026-07-01', dauer: 1 });
+  });
+
+  it('Tagesgrenze rechnet gleitkomma-fest (11.9 + 0.1 = 12 ist erlaubt)', async () => {
+    await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 11.9 });
+    const e = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 0.1 });
+    expect(e.dauer).toBe(0.1);
+  });
+
+  it('Idempotenz-Wiederholung zaehlt nicht doppelt gegen die Tagesgrenze', async () => {
+    const a = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 12, idempotencyKey: 'kx' });
+    // Retry mit demselben Schluessel: Tag ist "voll", aber der Request ist DIESELBE Buchung.
+    const b = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 12, idempotencyKey: 'kx' });
+    expect(b.id).toBe(a.id);
+  });
+
   it('Idempotenz-Schluessel mit ABWEICHENDER Nutzlast ist ein Konflikt (Review P2.5)', async () => {
     await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' });
     await expectDomainError(

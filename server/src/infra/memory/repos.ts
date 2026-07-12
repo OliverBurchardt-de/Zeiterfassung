@@ -52,6 +52,11 @@ export function createMemoryTimeEntryRepository(entries: TimeEntry[] = []): Time
     async listByOrder(orderId) {
       return entries.filter((e) => e.orderId === orderId).sort(neuesteZuerst);
     },
+    async sumByUserAndDate(userId, datum) {
+      return entries
+        .filter((e) => e.userId === userId && e.datum === datum)
+        .reduce((sum, e) => sum + e.dauer, 0);
+    },
     async update(entry) {
       const i = entries.findIndex((e) => e.id === entry.id);
       if (i >= 0) entries[i] = { ...entry };

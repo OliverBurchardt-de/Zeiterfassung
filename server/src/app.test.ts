@@ -158,7 +158,7 @@ describe('Zeit-API', () => {
     const h = { cookie: cookieHeader };
     const faelle = [
       { payload: { orderId: '9993', datum: '2026-02-30', dauer: 1 }, grund: 'kein echter Kalendertag' },
-      { payload: { orderId: '9993', datum: '2026-07-01', dauer: 25 }, grund: 'mehr als ein Tag' },
+      { payload: { orderId: '9993', datum: '2026-07-01', dauer: 12.5 }, grund: 'mehr als die 12-h-Tagesgrenze' },
       { payload: { orderId: '9993', datum: '2026-07-01', dauer: 1.001 }, grund: 'zu feine Bruchteile' },
       { payload: { orderId: '9993', datum: '2026-07-01', dauer: 1, notiz: 'x'.repeat(5000) }, grund: 'Notiz zu lang' },
     ];

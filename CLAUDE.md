@@ -169,8 +169,9 @@ vor dem ersten Öffnen wird abgelehnt und die Pflichtpunkte existieren danach.
 Server lehnt ab) vs. `manuell` (löschbar als revisionssicherer **Soft-Delete**
 `deletedAt`/`deletedBy`, Server-Zeit; aktive Listen + „Erledigt"-Gate sehen nur aktive Punkte;
 fehlende Herkunft gilt fail-safe als `vorlage`). (P2) zentrale Eingabegrenzen
-`server/src/domain/limits.ts` (Kalenderprüfung, Dauer max. 24 h/2 Nachkommastellen, Längen wie
-DB-Schema) in Domain UND Routen; Idempotenz nur bei gleichem Nutzer+Nutzlast (sonst 403/409,
+`server/src/domain/limits.ts` (Kalenderprüfung, Dauer max. **12 h/Tag** — Fachregel 12.07.2026,
+je Einzelbuchung UND als Tagessumme je Nutzer über alle Aufträge (`sumByUserAndDate`), 2
+Nachkommastellen, Längen wie DB-Schema) in Domain UND Routen; Idempotenz nur bei gleichem Nutzer+Nutzlast (sonst 403/409,
 Parallelfall kontrolliert); Statuswechsel atomar über `repos.statusTransaktion.commitStatusWechsel`
 (MSSQL-Transaktion, Outbox-fähig). (P3) Login-Fehlversuchs-Sperre (`auth/loginSchutz.ts`, 5→15 Min.)
 + Protokoll; Deaktivierung wirkt sofort (`User.active`, Repos filtern); versionierte

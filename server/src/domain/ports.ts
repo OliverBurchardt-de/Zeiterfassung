@@ -30,6 +30,8 @@ export interface TimeEntryRepository {
   /** Fuer Wiederholungs-Requests: gleicher Key -> vorhandenen Eintrag liefern statt Dublette. */
   findByIdempotencyKey(key: string): Promise<TimeEntry | undefined>;
   listByOrder(orderId: string): Promise<TimeEntry[]>;
+  /** Summe der gebuchten Stunden eines Nutzers an einem Arbeitstag (12-h-Tagesgrenze). */
+  sumByUserAndDate(userId: string, datum: string): Promise<number>;
   update(entry: TimeEntry): Promise<void>;
   remove(id: string): Promise<void>;
 }
