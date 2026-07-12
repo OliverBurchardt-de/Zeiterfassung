@@ -2,11 +2,12 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireAuth } from '../plugins/auth';
 import type { Actions } from '../domain/actions';
+import { LIMITS } from '../domain/limits';
 import { runAction } from './domainReply';
 
 const StatusBody = z.object({
   status: z.string().min(1),
-  position: z.number().int().optional(),
+  position: z.number().int().min(0).max(LIMITS.BOARD_POSITION_MAX).optional(),
 });
 
 /** Board-Status setzen (Drag&Drop + Status-Leiste). */

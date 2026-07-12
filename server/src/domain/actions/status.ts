@@ -5,6 +5,7 @@ import type { Clock } from '../clock';
 import type { RequireVisibleOrder } from './access';
 import { DomainError } from '../errors';
 import { canCompleteOrder } from '../rules';
+import { LIMITS } from '../limits';
 import { defaultChecklistLabels } from '../checklistTemplates';
 import { seedChecklist } from './checklist';
 
@@ -29,6 +30,13 @@ export function createStatusActions(repos: Repositories, clock: Clock, requireVi
       // Nur sichtbare/zugewiesene Auftraege umschalten (Review-Befund 2).
       const order = await requireVisibleOrder(actor, orderId);
       if (!isStatusId(toStatus)) throw new DomainError('invalid', `unbekannter Status: ${toStatus}`);
+      // Board-Position: nicht negativ, ganzzahlig, grosszuegig gedeckelt (Review P2.4).
+      if (
+        boardPosition !== undefined &&
+        (!Number.isInteger(boardPosition) || boardPosition < 0 || boardPosition > LIMITS.BOARD_POSITION_MAX)
+      ) {
+        throw new DomainError('invalid', 'ungueltige Board-Position');
+      }
 
       const current = await repos.overlays.get(orderId);
       const fromStatus = current?.boardStatus;
@@ -50,20 +58,14 @@ export function createStatusActions(repos: Repositories, clock: Clock, requireVi
         boardPosition: boardPosition ?? current?.boardPosition,
         umplanungenVerbraucht: current?.umplanungenVerbraucht ?? 0,
       };
-      await repos.overlays.upsert(overlay);
-
       // Nur echte Statuswechsel historisieren (reine Positionsverschiebung ist kein Wechsel).
-      if (fromStatus !== toStatus) {
-        const change: StatusChange = {
-          id: clock.newId(),
-          orderId,
-          fromStatus,
-          toStatus,
-          actorId: actor.id,
-          createdAt: clock.now(),
-        };
-        await repos.statusHistory.insert(change);
-      }
+      const change: StatusChange | undefined =
+        fromStatus !== toStatus
+          ? { id: clock.newId(), orderId, fromStatus, toStatus, actorId: actor.id, createdAt: clock.now() }
+          : undefined;
+      // Atomar (Review P2.6): Overlay + Historie zusammen — MSSQL in einer Transaktion; der
+      // spaetere DATEV-Outbox-Eintrag (Sync-Job) kommt als dritter Teilnehmer dazu.
+      await repos.statusTransaktion.commitStatusWechsel(overlay, change);
       return overlay;
     },
 

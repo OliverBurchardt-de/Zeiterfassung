@@ -116,6 +116,17 @@ export interface Repositories {
   outbox: OutboxRepository;
   anforderungen: AnforderungRepository;
   besonderheiten: BesonderheitRepository;
+  statusTransaktion: StatusWechselTransaktion;
+}
+
+/**
+ * Gezielte Transaktionsgrenze fuer den Statuswechsel (Review 12.07.2026, P2.6): Overlay und
+ * Historie werden entweder BEIDE geschrieben oder keins von beiden. Der optionale Outbox-Eintrag
+ * ist fuer den DATEV-Writeback vorgesehen (gleiche fachliche Transaktion, M2-Sync-Job) —
+ * bewusst KEINE allgemeine Unit-of-Work-Abstraktion.
+ */
+export interface StatusWechselTransaktion {
+  commitStatusWechsel(overlay: OrderOverlay, change?: StatusChange, outboxEntry?: OutboxEntry): Promise<void>;
 }
 
 /** Eine Aufwands-/Zeitbuchung, wie sie nach DATEV (expensepostings) geschrieben wird. */

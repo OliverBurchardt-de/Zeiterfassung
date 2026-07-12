@@ -3,6 +3,7 @@ import type { Repositories } from '../ports';
 import type { Clock } from '../clock';
 import type { RequireVisibleOrder } from './access';
 import { DomainError } from '../errors';
+import { LIMITS } from '../limits';
 
 /**
  * Checklisten-Aktionen (serverseitig verbindlich). Die Checkliste ist die Grundlage der
@@ -53,6 +54,13 @@ export function createChecklistActions(repos: Repositories, clock: Clock, requir
      */
     async ensure(actor: PublicUser, orderId: string, labels: string[]): Promise<ChecklistItem[]> {
       await requireVisibleOrder(actor, orderId);
+      // Jedes einzelne Label pruefen (Review P2.4): Laenge passend zum DB-Schema; leere Labels
+      // filtert der Seed bewusst heraus (Vorlagen duerfen Luecken enthalten).
+      for (const label of labels) {
+        if (label.trim().length > LIMITS.LABEL_MAX) {
+          throw new DomainError('invalid', `Checklisten-Label ist zu lang (max. ${LIMITS.LABEL_MAX} Zeichen)`);
+        }
+      }
       return seedChecklist(repos, clock, orderId, labels);
     },
 
@@ -60,6 +68,9 @@ export function createChecklistActions(repos: Repositories, clock: Clock, requir
       await requireVisibleOrder(actor, orderId);
       const trimmed = label.trim();
       if (!trimmed) throw new DomainError('invalid', 'Text darf nicht leer sein');
+      if (trimmed.length > LIMITS.LABEL_MAX) {
+        throw new DomainError('invalid', `Checklisten-Label ist zu lang (max. ${LIMITS.LABEL_MAX} Zeichen)`);
+      }
       const existing = await repos.checklists.listByOrder(orderId);
       const position = existing.length ? Math.max(...existing.map((i) => i.position)) + 1 : 0;
       // Am Auftrag ergaenzte Punkte sind 'manuell' -> loeschbar (als Soft-Delete).

@@ -1,4 +1,4 @@
-import type { ConnectionPool } from 'mssql';
+import type { ConnectionPool, Request } from 'mssql';
 import { sql } from './db';
 import type { OutboxEntry, OutboxKind, OutboxStatus } from '../../domain/types';
 import type { OutboxRepository } from '../../domain/ports';
@@ -21,22 +21,29 @@ export function mapOutboxRow(row: Record<string, unknown>): OutboxEntry {
 
 const COLS = 'id, kind, payload, idempotency_key, status, attempts, last_error, created_at, processed_at';
 
+/**
+ * Enqueue als eigenstaendiges Statement — Pool (Repo) oder laufende Transaktion
+ * (StatusWechselTransaktion, Review P2.6); den Request stellt der Aufrufer.
+ */
+export async function enqueueOutboxStatement(request: Request, e: OutboxEntry): Promise<void> {
+  await request
+    .input('id', sql.NVarChar(64), e.id)
+    .input('kind', sql.NVarChar(30), e.kind)
+    .input('payload', sql.NVarChar(sql.MAX), e.payload)
+    .input('idempotency_key', sql.NVarChar(100), e.idempotencyKey)
+    .input('status', sql.NVarChar(20), e.status)
+    .input('attempts', sql.Int, e.attempts)
+    .input('created_at', sql.DateTime2, new Date(e.createdAt))
+    .query(
+      `INSERT INTO dbo.outbox (id, kind, payload, idempotency_key, status, attempts, created_at)
+       VALUES (@id, @kind, @payload, @idempotency_key, @status, @attempts, @created_at)`
+    );
+}
+
 export function createMssqlOutboxRepository(pool: ConnectionPool): OutboxRepository {
   return {
     async enqueue(e) {
-      await pool
-        .request()
-        .input('id', sql.NVarChar(64), e.id)
-        .input('kind', sql.NVarChar(30), e.kind)
-        .input('payload', sql.NVarChar(sql.MAX), e.payload)
-        .input('idempotency_key', sql.NVarChar(100), e.idempotencyKey)
-        .input('status', sql.NVarChar(20), e.status)
-        .input('attempts', sql.Int, e.attempts)
-        .input('created_at', sql.DateTime2, new Date(e.createdAt))
-        .query(
-          `INSERT INTO dbo.outbox (id, kind, payload, idempotency_key, status, attempts, created_at)
-           VALUES (@id, @kind, @payload, @idempotency_key, @status, @attempts, @created_at)`
-        );
+      await enqueueOutboxStatement(pool.request(), e);
     },
     async nextOpen(limit) {
       const r = await pool

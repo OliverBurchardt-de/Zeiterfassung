@@ -2,14 +2,17 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireAuth } from '../plugins/auth';
 import type { Actions } from '../domain/actions';
+import { LIMITS } from '../domain/limits';
 import { runAction } from './domainReply';
 
+// Grenzwerte zentral in domain/limits.ts (Review P2.4); die Feinpruefung (echter Kalendertag,
+// Dezimalgenauigkeit) liegt in der Domaenen-Aktion — hier die Schnellablehnung an der Kante.
 const BookBody = z.object({
   orderId: z.string().min(1),
   suborderId: z.string().min(1).optional(),
   datum: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Datum als JJJJ-MM-TT'),
-  dauer: z.number().positive(),
-  notiz: z.string().optional(),
+  dauer: z.number().positive().max(LIMITS.DAUER_MAX_STUNDEN),
+  notiz: z.string().max(LIMITS.TEXT_MAX).optional(),
   aufwandsart: z.enum(['mehraufwand', 'dumm']).optional(),
   idempotencyKey: z.string().min(1).max(100).optional(),
 });

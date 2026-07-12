@@ -1,4 +1,4 @@
-import type { ConnectionPool } from 'mssql';
+import type { ConnectionPool, Request } from 'mssql';
 import { sql } from './db';
 import type { StatusChange } from '../../domain/types';
 import type { StatusHistoryRepository } from '../../domain/ports';
@@ -18,21 +18,28 @@ export function mapStatusChangeRow(row: Record<string, unknown>): StatusChange {
 
 const COLS = 'id, order_id, from_status, to_status, actor_id, created_at';
 
+/**
+ * Insert als eigenstaendiges Statement — Pool (Repo) oder laufende Transaktion
+ * (StatusWechselTransaktion, Review P2.6); den Request stellt der Aufrufer.
+ */
+export async function insertStatusChangeStatement(request: Request, c: StatusChange): Promise<void> {
+  await request
+    .input('id', sql.NVarChar(64), c.id)
+    .input('order_id', sql.NVarChar(64), c.orderId)
+    .input('from_status', sql.NVarChar(4), c.fromStatus ?? null)
+    .input('to_status', sql.NVarChar(4), c.toStatus)
+    .input('actor_id', sql.NVarChar(64), c.actorId)
+    .input('created_at', sql.DateTime2, new Date(c.createdAt))
+    .query(
+      `INSERT INTO dbo.status_history (${COLS})
+       VALUES (@id, @order_id, @from_status, @to_status, @actor_id, @created_at)`
+    );
+}
+
 export function createMssqlStatusHistoryRepository(pool: ConnectionPool): StatusHistoryRepository {
   return {
     async insert(c) {
-      await pool
-        .request()
-        .input('id', sql.NVarChar(64), c.id)
-        .input('order_id', sql.NVarChar(64), c.orderId)
-        .input('from_status', sql.NVarChar(4), c.fromStatus ?? null)
-        .input('to_status', sql.NVarChar(4), c.toStatus)
-        .input('actor_id', sql.NVarChar(64), c.actorId)
-        .input('created_at', sql.DateTime2, new Date(c.createdAt))
-        .query(
-          `INSERT INTO dbo.status_history (${COLS})
-           VALUES (@id, @order_id, @from_status, @to_status, @actor_id, @created_at)`
-        );
+      await insertStatusChangeStatement(pool.request(), c);
     },
     async listByOrder(orderId) {
       const r = await pool

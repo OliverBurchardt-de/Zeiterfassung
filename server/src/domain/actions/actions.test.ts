@@ -79,6 +79,50 @@ describe('Zeit-Aktionen', () => {
     expect(await repos.times.listByOrder('o1')).toHaveLength(1);
   });
 
+  it('Idempotenz-Schluessel mit ABWEICHENDER Nutzlast ist ein Konflikt (Review P2.5)', async () => {
+    await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' });
+    await expectDomainError(
+      () => actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 2, idempotencyKey: 'k1' }),
+      'conflict'
+    );
+    await expectDomainError(
+      () => actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-02', dauer: 1, idempotencyKey: 'k1' }),
+      'conflict'
+    );
+    expect(await repos.times.listByOrder('o1')).toHaveLength(1);
+  });
+
+  it('fremder Idempotenz-Schluessel gibt NIE die fremde Buchung zurueck (Review P2.5)', async () => {
+    // wolf bucht auf o1; burchardt (Admin, sieht o1 ebenfalls) verwendet denselben Schluessel.
+    const a = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' });
+    await expectDomainError(
+      () => actions.time.bookTime(partner, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' }),
+      'forbidden'
+    );
+    expect((await repos.times.findById(a.id))?.userId).toBe('u-wolf');
+  });
+
+  it('Parallelfall: Unique-Kollision beim Insert wird kontrolliert aufgeloest (Review P2.5)', async () => {
+    // Beide Requests passieren die Vorpruefung (Key noch frei), der zweite Insert kollidiert
+    // mit dem Unique-Index. Simulation: findByIdempotencyKey liefert beim ERSTEN Aufruf nichts.
+    let erster = true;
+    const echteSuche = repos.times.findByIdempotencyKey.bind(repos.times);
+    repos.times.findByIdempotencyKey = async (key) => {
+      if (erster) {
+        erster = false;
+        return undefined; // Request A hat noch nicht committet
+      }
+      return echteSuche(key);
+    };
+    const a = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' });
+    // Zweiter "paralleler" Request: Vorpruefung (jetzt echte Suche) wuerde finden — wir erzwingen
+    // den Insert-Pfad, indem die Vorpruefung erneut leer antwortet.
+    erster = true;
+    const b = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' });
+    expect(b.id).toBe(a.id); // kein interner Fehler, keine Dublette
+    expect(await repos.times.listByOrder('o1')).toHaveLength(1);
+  });
+
   it('Freigeben/Zuruecknehmen nur fuer eigene Eintraege', async () => {
     const e = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1 });
     const freigegeben = await actions.time.releaseTime(mitarbeiter, e.id);

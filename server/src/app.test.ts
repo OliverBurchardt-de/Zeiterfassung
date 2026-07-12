@@ -151,6 +151,31 @@ describe('Zeit-API', () => {
     const res = await app.inject({ method: 'POST', url: '/api/time', headers: { cookie: cookieHeader }, payload: { orderId: '9993', datum: '2026-07-01', dauer: 0 } });
     expect(res.statusCode).toBe(400);
   });
+
+  it('weist Eingabegrenz-Verstoesse mit 400 ab, bevor die DB sie sieht (Review P2.4)', async () => {
+    const app = await makeApp();
+    const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
+    const h = { cookie: cookieHeader };
+    const faelle = [
+      { payload: { orderId: '9993', datum: '2026-02-30', dauer: 1 }, grund: 'kein echter Kalendertag' },
+      { payload: { orderId: '9993', datum: '2026-07-01', dauer: 25 }, grund: 'mehr als ein Tag' },
+      { payload: { orderId: '9993', datum: '2026-07-01', dauer: 1.001 }, grund: 'zu feine Bruchteile' },
+      { payload: { orderId: '9993', datum: '2026-07-01', dauer: 1, notiz: 'x'.repeat(5000) }, grund: 'Notiz zu lang' },
+    ];
+    for (const f of faelle) {
+      const res = await app.inject({ method: 'POST', url: '/api/time', headers: h, payload: f.payload });
+      expect(res.statusCode, f.grund).toBe(400);
+    }
+    // Note-Text und Checklisten-Label zu lang -> 400; negative Board-Position -> 400.
+    const note = await app.inject({ method: 'POST', url: '/api/orders/9993/notes', headers: h, payload: { text: 'x'.repeat(5000) } });
+    expect(note.statusCode).toBe(400);
+    const label = await app.inject({ method: 'POST', url: '/api/orders/9993/checklist', headers: h, payload: { label: 'x'.repeat(600) } });
+    expect(label.statusCode).toBe(400);
+    const pos = await app.inject({ method: 'POST', url: '/api/orders/9993/status', headers: h, payload: { status: 'bb', position: -1 } });
+    expect(pos.statusCode).toBe(400);
+    const ensure = await app.inject({ method: 'POST', url: '/api/orders/9993/checklist/ensure', headers: h, payload: { labels: ['ok', 'x'.repeat(600)] } });
+    expect(ensure.statusCode).toBe(400);
+  });
 });
 
 describe('Note-API', () => {

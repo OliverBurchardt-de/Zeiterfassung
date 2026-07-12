@@ -4,6 +4,15 @@ import type { Clock } from '../clock';
 import type { RequireVisibleOrder } from './access';
 import { DomainError } from '../errors';
 import { notePolicy } from '../notePolicy';
+import { LIMITS } from '../limits';
+
+/** Freitext-Pruefung (Review P2.4): getrimmt, nicht leer, innerhalb der zentralen Obergrenze. */
+function gepruefterText(text: string, feld: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) throw new DomainError('invalid', `${feld} darf nicht leer sein`);
+  if (trimmed.length > LIMITS.TEXT_MAX) throw new DomainError('invalid', `${feld} ist zu lang (max. ${LIMITS.TEXT_MAX} Zeichen)`);
+  return trimmed;
+}
 
 export interface CreateNoteInput {
   orderId: string;
@@ -30,8 +39,7 @@ export function createNoteActions(repos: Repositories, clock: Clock, requireVisi
   return {
     async createNote(actor: PublicUser, input: CreateNoteInput): Promise<Note> {
       await requireVisibleOrder(actor, input.orderId);
-      const text = input.text.trim();
-      if (!text) throw new DomainError('invalid', 'Text darf nicht leer sein');
+      const text = gepruefterText(input.text, 'Text');
       const note: Note = {
         id: clock.newId(),
         orderId: input.orderId,
@@ -47,8 +55,7 @@ export function createNoteActions(repos: Repositories, clock: Clock, requireVisi
 
     // Bearbeiten duerfen beide Rollen — kein Policy-Gate noetig.
     async editText(actor: PublicUser, id: string, text: string): Promise<Note> {
-      const trimmed = text.trim();
-      if (!trimmed) throw new DomainError('invalid', 'Text darf nicht leer sein');
+      const trimmed = gepruefterText(text, 'Text');
       const note = await loadVisible(actor, id);
       const next: Note = { ...note, text: trimmed };
       await repos.notes.update(next);
@@ -103,8 +110,7 @@ export function createNoteActions(repos: Repositories, clock: Clock, requireVisi
 
     // Kommentieren duerfen beide Rollen — kein Policy-Gate noetig.
     async comment(actor: PublicUser, id: string, text: string): Promise<NoteComment> {
-      const trimmed = text.trim();
-      if (!trimmed) throw new DomainError('invalid', 'Kommentar darf nicht leer sein');
+      const trimmed = gepruefterText(text, 'Kommentar');
       await loadVisible(actor, id); // sichert Existenz + Sichtbarkeit des Auftrags
       const comment: NoteComment = {
         id: clock.newId(),
