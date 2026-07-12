@@ -5,12 +5,13 @@ Interne Web-App der Steuerkanzlei **Burchardt & Kollegen**, die **Auftragsplanun
 an einer Stelle vereint. Auftragsdaten stammen aus **DATEV EO** (Eigenorganisation);
 Status, Plandaten und Verantwortlichkeiten werden nach **DATEV EO Comfort** zurückgeschrieben.
 
-> **Aktueller Stand:** Meilenstein 1 (klickbares Frontend, Demo-Modus) ist abgenommen;
-> Meilenstein 2 läuft: eigenes Backend in `server/` (Fastify, eigener Login, In-Memory- oder
-> MS-SQL-Persistenz, DATEV-Adapter mock/http) und Server-Modus des Frontends (`npm run dev:api`)
-> mit echtem Login, Board über `GET /api/board` und serverseitig festgeschriebenen Aktionen
-> (Zeit/Notes/Status/Checklisten). E-Mail-Reminder und DATEV-Sync-Job folgen
-> (siehe `docs/m2-plan.md`).
+> **Aktueller Stand (12.07.2026):** Meilenstein 1 (klickbares Frontend, Demo-Modus) ist
+> abgenommen; Meilenstein 2 läuft: eigenes Backend in `server/` (Fastify, eigener Login mit
+> Fehlversuchs-Sperre, In-Memory- oder MS-SQL-Persistenz mit versionierten Migrationen,
+> DATEV-Adapter mock/http) und Server-Modus des Frontends (`npm run dev:api`) mit echtem Login,
+> Board über `GET /api/board` und serverseitig festgeschriebenen Aktionen
+> (Zeit/Notes/Status/Checklisten inkl. Pflichtpunkt-/Soft-Delete-Regeln). E-Mail-Reminder und
+> DATEV-Sync-Job folgen (siehe `docs/m2-plan.md`; aktuelle Prüfstände: CI).
 
 ## Stack
 - **React 18 + TypeScript** (Vite)
@@ -55,8 +56,9 @@ docs/             Architektur, DATEV-Integration, Lastenheft
 design_handoff_zeiterfassung/   verbindliche Design-Referenz (Prototyp, Screenshots, Tokens)
 ```
 
-> **Backend (M2):** Erstes Gerüst liegt in `server/` (läuft in-memory + Schein-DATEV, Tests grün).
-> Details: `server/README.md`, Architektur: `docs/architektur-entscheidungen.md`.
+> **Backend (M2):** liegt in `server/` (Default: in-memory + Schein-DATEV; zuschaltbar MS SQL +
+> echter DATEVconnect-Adapter). Details: `server/README.md`, Architektur:
+> `docs/architektur-entscheidungen.md`. E2E-Prüfläufe: `tools/e2e/README.md`.
 
 ## Dokumentation
 

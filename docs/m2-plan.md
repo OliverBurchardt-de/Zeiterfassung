@@ -1,6 +1,8 @@
 # M2-Plan — Backend, DATEV-Anbindung & Betrieb
 
-> **Status:** Entwurf zur Abstimmung (27.06.2026). Hängt an `docs/architektur.md` (Zielbild,
+> **Status:** in Umsetzung, Stand **12.07.2026** (Fortschritt siehe Phase-2-Blöcke; aktuelle
+> Prüfstände liefert die **CI**, nicht dieses Dokument). Ursprünglicher Entwurf: 27.06.2026.
+> Hängt an `docs/architektur.md` (Zielbild,
 > Deployment) und `docs/datev-integration.md` (Feld-/Status-Mapping, verifizierte API-Befunde).
 > Dieses Dokument ist der **Fahrplan** von M1 (klickbarer Mock) zu M2 (echtes Backend + DATEV).
 > Doppelt nichts aus den beiden Referenzdokumenten — es ordnet, priorisiert und plant.
@@ -126,7 +128,7 @@ bestätigten Annahmen, offenen Risiken und dem finalen Status-Mapping. Erst dana
 > serverseitig verbindlich: eigene Zeiten selbst freigeben (keine Partner-Freigabe, übertragene
 > gesperrt), `notePolicy` (Frage vs. Review) gespiegelt, „Erledigt" durch Checklisten-Gate
 > gesperrt, jeder Statuswechsel historisiert. Idempotenz bei Zeitbuchung; `DomainError`→HTTP-Status
-> zentral. **75 Tests grün** (Aktionen + API-Integration).
+> zentral. Tests grün (Aktionen + API-Integration; aktuelle Zahlen: CI).
 >
 > ✅ **Frontend-Anbindung Etappe 1:** Server-Modus (`npm run dev:api`), echter Login und Aufträge
 > über das Board-Aggregat `GET /api/board` (`src/api/*`; Details in der Repo-`CLAUDE.md`).
@@ -155,8 +157,24 @@ bestätigten Annahmen, offenen Risiken und dem finalen Status-Mapping. Erst dana
 > (4) Planung im Server-Modus über echte DATEV-Employee-IDs (`me.datevId`; Admin-Auswahl aus den
 > sichtbaren Aufträgen). (5) „Erledigt"-Gate vor dem ersten Öffnen nicht mehr umgehbar: die
 > Status-Aktion seedet die server-seitige Default-Vorlage (`server/src/domain/checklistTemplates.ts`)
-> idempotent VOR der Gate-Prüfung. Verifiziert: Server 107 + Frontend 45 Tests, Playwright-Suiten
-> (Writes/Fehlerpfad/Checkliste/Codex-Fixes) + Demo-Regression grün.
+> idempotent VOR der Gate-Prüfung. Verifiziert: Vitest beider Pakete (aktuelle Zahlen: CI) +
+> Playwright-Suiten (Writes/Fehlerpfad/Checkliste/Codex-Fixes/Demo-Regression — jetzt
+> reproduzierbar im Repo unter `tools/e2e/`).
+>
+> ✅ **Fortschritt (12.07.2026) — Review-Arbeitsauftrag umgesetzt** (alle 3 Prioritäten,
+> `docs/reviews/2026-07-12-codereview-arbeitsauftrag.md`):
+> **P1 Fachliche Integrität:** Zeiten löschen nur im Status `erfasst` (serverseitig);
+> Checklistenpunkte mit Herkunft `vorlage` (Pflicht, nie löschbar) vs. `manuell` (löschbar als
+> revisionssicherer **Soft-Delete** mit `deleted_at`/`deleted_by`); „Erledigt"-Gate nicht mehr
+> über Punkt-Löschen umgehbar. **P2 API-Härtung:** zentrale Eingabegrenzen (`domain/limits.ts`,
+> echte Kalenderprüfung, Dauer-/Längen-Limits passend zum DB-Schema → 400 vor DB-Fehler);
+> Idempotenz nur bei gleichem Nutzer + gleicher Nutzlast (Parallelfall kontrolliert);
+> Statuswechsel **atomar** (`commitStatusWechsel`: Overlay+Historie in einer MSSQL-Transaktion,
+> Outbox-fähig für den Sync-Job). **P3 Produktionsvorbereitung:** Login-Fehlversuchs-Sperre
+> (5 → 15 Min., 429) + Protokoll; Deaktivierung wirkt sofort; Passwortregeln + Reset-Prozess
+> (`npm run hash-password`); **versionierte DB-Migrationen** (`server/db/migrations/` +
+> `schema_migrations`-Protokoll, Vorgehen/Backup im dortigen README); eigenes Server-ESLint in
+> der CI; Coverage-Auswertung ohne Zwangs-Prozentzahl.
 >
 > **Nächste Schritte (Etappe 3):** Umplanung/Planung/Anforderungen/Besonderheiten/Suborders/
 > Attachments + Nutzer-API als Frontend-Aktionen, Checklisten-Vorlagen serverseitig verwalten
@@ -214,7 +232,21 @@ bestätigten Annahmen, offenen Risiken und dem finalen Status-Mapping. Erst dana
   Virenscan/Quarantäne, Storage-Key statt freier URL, Berechtigung je Auftrag, Aufbewahrung/Löschung.
   (M1-Kleinfix offen: Object-URLs mit `URL.revokeObjectURL` freigeben.)
 - **KI-Notizprüfung (V2):** `pruefeNotizKI` an `releaseTime` aktivieren (Prompt/Schwellen definieren).
-- **Tests:** Komponenten-/E2E-Tests (RTL/Playwright) ergänzend zur bestehenden Vitest-Basis; CI läuft.
+- **Tests:** Vitest-Basis + CI laufen; E2E-Suiten reproduzierbar in `tools/e2e/` (manuell
+  gestartet, siehe dortiges README).
+
+### Produktionsunterlagen (Voraussetzung vor Produktivfreigabe, Review 12.07.2026)
+Kurze, praktisch nutzbare Dokumente — müssen nicht in einem Code-Paket entstehen, aber vor dem
+Produktivbetrieb vorliegen:
+- [ ] **Deployment, Update und Rollback** (Einspielweg auf den ASP-Server, Rückwegs-Plan)
+- [x] **DB-Migration + Backup davor** — `server/db/migrations/README.md` (Rest: Restore-Test dokumentieren)
+- [ ] **Backup & getestete Wiederherstellung** (App-DB; Zuständigkeit ASP-Partner klären)
+- [ ] **Monitoring, Fehleralarmierung, Log-Aufbewahrung**
+- [ ] **Datenschutz, Lösch- und Aufbewahrungsfristen** (Zeiten/Notes/Löschhistorie)
+- [x] **Benutzeranlage, Rollenwechsel, Deaktivierung, Passwort-Reset** — `server/README.md`
+      („Login-Schutz & Passwörter"; wird von der Nutzer-Verwaltung in der App abgelöst)
+- [ ] **DATEV-Ausfall & Konflikte** (Sync-Wiederholungen, endgültig fehlgeschlagene Übertragungen)
+- [ ] **Dateianhänge** (Limit, Typen, Virenprüfung, Ablage, Zugriff — s. Attachment-Konzept oben)
 
 ---
 
