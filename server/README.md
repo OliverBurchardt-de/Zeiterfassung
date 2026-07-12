@@ -21,11 +21,35 @@ npm install
 npm run dev        # startet auf http://localhost:3001
 npm test           # Vitest
 npm run typecheck  # TypeScript ohne Emit
+npm run lint       # ESLint (eigenes Server-Setup, laeuft auch in der CI)
+npm run coverage   # Test-Abdeckung (Auswertung, bewusst ohne Zwangs-Prozentzahl)
 ```
+
+> **Coverage-Lesart:** Kritische Fachmodule (Domain-Aktionen, Regeln, Policies, Routen) sind
+> gezielt hoch abgedeckt; die MS-SQL-Adapter zeigen ohne echte Datenbank nur ihre (getesteten)
+> Mapping-Funktionen — das ist erwartet, kein Testloch. E2E-Prüfläufe: `../tools/e2e/README.md`.
 
 Demo-Login (NUR Entwicklung, In-Memory-Modus), Passwort für alle: `demo`
 - `wolf`, `klein`, `berg` — Mitarbeiter
 - `burchardt` — Partner + Admin
+
+## Login-Schutz & Passwörter
+
+- **Fehlversuchs-Sperre:** Nach **5** aufeinanderfolgenden Fehlversuchen (je Benutzername und je
+  Client-IP) ist der Login für **15 Minuten** gesperrt (HTTP 429). Ein erfolgreicher Login setzt
+  den Zähler zurück. Werte zentral in `src/auth/loginSchutz.ts`.
+- **Protokoll:** Fehlgeschlagene und gesperrte Anmeldungen werden geloggt (Benutzername + IP,
+  **niemals** Passwörter).
+- **Deaktivierung wirkt sofort:** Der Auth-Hook lädt den Nutzer bei jedem Request neu; beide
+  Repos liefern Deaktivierte nicht (`active = 0`). Auch eine laufende Session ist damit ab dem
+  nächsten Request beendet — Deaktivieren: `UPDATE dbo.users SET active = 0 WHERE username = '…'`.
+- **Passwortregeln:** mindestens **8 Zeichen** (durchgesetzt beim ersten Admin und im
+  Hash-Helfer); Speicherung ausschließlich als **bcrypt-Hash**, nie im Klartext.
+- **Passwort setzen/zurücksetzen** (bis die Nutzer-Verwaltung in der App kommt, Etappe 3):
+  `npm run hash-password` (fragt interaktiv, nichts landet in Shell-History/Logs) → ausgegebenen
+  Hash per SQL einspielen: `UPDATE dbo.users SET password_hash = '<hash>' WHERE username = '…'`.
+- **Sessions:** In-Memory (bewusste Betriebsmodell-Entscheidung, eine zentrale Instanz) — nach
+  Server-Neustart müssen sich alle neu anmelden; das ist akzeptiert.
 
 ## Datenbank einrichten (MS SQL)
 Voraussetzung: eigene Datenbank + SQL-Benutzer auf der bestehenden MS-SQL-Instanz

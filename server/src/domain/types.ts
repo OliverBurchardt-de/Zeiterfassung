@@ -22,6 +22,12 @@ export interface User {
   admin: boolean;
   passwordHash: string;
   datevEmployeeId?: string;
+  /**
+   * false = deaktiviert (Review P3.7): wirkt SOFORT, weil der Auth-Hook den Nutzer bei jedem
+   * Request neu laedt und beide Repos Deaktivierte nicht liefern (SQL: WHERE active = 1).
+   * Fehlend = aktiv.
+   */
+  active?: boolean;
 }
 
 /** Nutzer-Sicht ohne Geheimnisse — alles, was nach aussen gehen darf. */

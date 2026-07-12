@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { type AuthDeps, SESSION_COOKIE, requireAuth } from '../plugins/auth';
 import { hashPassword, verifyPassword } from '../auth/passwords';
+import { createLoginSchutz } from '../auth/loginSchutz';
 import { toPublicUser } from '../domain/types';
 
 const LoginBody = z.object({
@@ -23,19 +24,38 @@ export interface AuthRouteOpts {
 const dummyHashPromise = hashPassword('timing-equalizer-dummy');
 
 export function authRoutes(app: FastifyInstance, deps: AuthDeps, opts: AuthRouteOpts): void {
+  // Fehlversuchs-Sperre je Benutzername UND je Client-IP (Review P3.7). Der Benutzername-
+  // Schluessel schuetzt das Konto (auch bei wechselnden IPs), der IP-Schluessel bremst
+  // das Durchprobieren vieler Namen von einer Quelle.
+  const schutz = createLoginSchutz();
+
   app.post('/api/auth/login', async (req, reply) => {
     const parsed = LoginBody.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: 'ungültige Eingabe' });
     }
     const { username, password } = parsed.data;
+    const userKey = `u:${username.toLowerCase()}`;
+    const ipKey = `ip:${req.ip}`;
+    if (schutz.gesperrt(userKey) || schutz.gesperrt(ipKey)) {
+      req.log.warn({ username, ip: req.ip }, 'Login gesperrt (zu viele Fehlversuche)');
+      return reply.code(429).send({ error: 'Zu viele Fehlversuche — bitte in einigen Minuten erneut versuchen.' });
+    }
     const user = await deps.users.findByUsername(username);
     const hash = user?.passwordHash ?? (await dummyHashPromise);
     const ok = await verifyPassword(password, hash);
     if (!user || !ok) {
-      // Bewusst keine Unterscheidung, ob Benutzer oder Passwort falsch ist.
+      // Fehlversuch protokollieren OHNE Passwort (Review P3.7); in der Antwort bewusst
+      // keine Unterscheidung, ob Benutzer oder Passwort falsch ist.
+      // BEIDE Zaehler immer erhoehen (kein ||-Kurzschluss — sonst zaehlte die IP nicht mit).
+      const kontoGesperrt = schutz.fehlversuch(userKey);
+      const ipGesperrt = schutz.fehlversuch(ipKey);
+      const jetztGesperrt = kontoGesperrt || ipGesperrt;
+      req.log.warn({ username, ip: req.ip, gesperrt: jetztGesperrt }, 'Login fehlgeschlagen');
       return reply.code(401).send({ error: 'Benutzername oder Passwort falsch' });
     }
+    schutz.erfolg(userKey);
+    schutz.erfolg(ipKey);
     const sid = deps.sessions.create(user.id);
     reply.setCookie(SESSION_COOKIE, sid, {
       httpOnly: true,

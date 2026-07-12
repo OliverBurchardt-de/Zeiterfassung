@@ -355,6 +355,43 @@ describe('Board-API', () => {
   });
 });
 
+describe('Login-Schutz (Review P3.7)', () => {
+  it('sperrt nach 5 Fehlversuchen auch das richtige Passwort (429)', async () => {
+    const app = await makeApp();
+    for (let i = 0; i < 5; i++) {
+      const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'wolf', password: 'falsch' } });
+      expect(res.statusCode).toBe(401);
+    }
+    const gesperrt = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'wolf', password: 'demo' } });
+    expect(gesperrt.statusCode).toBe(429);
+    // Anderer Nutzer von anderer "IP" ist nicht betroffen — inject nutzt dieselbe Quell-IP,
+    // daher hier nur der Konto-Schluessel pruefbar: klein ist gesperrt ueber die IP-Sperre?
+    // Nein: IP-Sperre greift erst nach 5 IP-Fehlversuchen — die 5 obigen zaehlen auch fuer die
+    // IP, also ist die Quelle jetzt ebenfalls gesperrt. Das ist gewollt (eine Quelle, viele Namen).
+    const klein = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'klein', password: 'demo' } });
+    expect(klein.statusCode).toBe(429);
+  });
+
+  it('deaktivierter Nutzer verliert sofort den Zugriff (laufende Session inklusive)', async () => {
+    const users = await seedDemoUsers();
+    const repos = createMemoryRepositories(users);
+    const datev = createMockDatevAdapter();
+    const app = buildApp(
+      { ...loadConfig(), nodeEnv: 'test', cookieSecret: 'test-secret-für-tests' },
+      { sessions: createMemorySessionStore(), users: repos.users, datev, actions: createActions(repos, datev) },
+    );
+    const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
+    expect((await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie: cookieHeader } })).statusCode).toBe(200);
+
+    // Deaktivieren — wirkt beim NAECHSTEN Request, ohne dass die Session geloescht werden muss.
+    users.find((u) => u.username === 'wolf')!.active = false;
+    expect((await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie: cookieHeader } })).statusCode).toBe(401);
+    // Auch ein Neu-Login ist nicht moeglich.
+    const relogin = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'wolf', password: 'demo' } });
+    expect(relogin.statusCode).toBe(401);
+  });
+});
+
 describe('Sessions (TTL)', () => {
   it('abgelaufene Session ist ungueltig', async () => {
     const { createMemorySessionStore } = await import('./auth/sessions');

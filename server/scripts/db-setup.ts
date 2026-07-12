@@ -70,6 +70,8 @@ async function main(): Promise<void> {
         'Nutzer-Tabelle ist leer. Zum Anlegen des ersten Admins SETUP_ADMIN_USER, ' +
           'SETUP_ADMIN_EMAIL und SETUP_ADMIN_PASSWORD setzen und erneut ausfuehren.',
       );
+    } else if (password.length < 8) {
+      console.log('SETUP_ADMIN_PASSWORD hat weniger als 8 Zeichen (Passwortregel, s. README) — kein Admin angelegt.');
     } else {
       const hash = await hashPassword(password);
       await pool

@@ -22,15 +22,18 @@ export async function seedDemoUsers(): Promise<User[]> {
 }
 
 export function createMemoryUserRepository(users: User[]): UserRepository {
+  // Deaktivierte Nutzer liefert das Repo NICHT (gleiche Semantik wie SQL "WHERE active = 1") —
+  // dadurch wirkt eine Deaktivierung sofort: der Auth-Hook laedt den Nutzer bei jedem Request.
+  const aktiv = (u: User): boolean => u.active !== false;
   return {
     async findByUsername(username) {
-      return users.find((u) => u.username === username);
+      return users.find((u) => u.username === username && aktiv(u));
     },
     async findById(id) {
-      return users.find((u) => u.id === id);
+      return users.find((u) => u.id === id && aktiv(u));
     },
     async list() {
-      return users;
+      return users.filter(aktiv);
     },
   };
 }
