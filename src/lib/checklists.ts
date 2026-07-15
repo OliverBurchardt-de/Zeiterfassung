@@ -41,5 +41,6 @@ export const CHECKLIST_TEMPLATES_BY_ORDERTYPE: Record<string, string[]> = Object
 
 /** Frische Checkliste (alle Punkte offen) aus einer Vorlagen-Liste erzeugen. */
 function checklistFromTemplate(items: string[]): ChecklistItem[] {
-  return items.map((label) => ({ id: crypto.randomUUID(), label, done: false }));
+  // Vorlagen-Punkte sind Pflichtpunkte ('vorlage') — nicht löschbar, wie serverseitig.
+  return items.map((label) => ({ id: crypto.randomUUID(), label, done: false, herkunft: 'vorlage' as const }));
 }

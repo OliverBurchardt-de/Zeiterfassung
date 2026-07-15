@@ -20,6 +20,7 @@ import type {
   OutboxRepository,
   AnforderungRepository,
   BesonderheitRepository,
+  StatusWechselTransaktion,
 } from '../../domain/ports';
 import { createMemoryUserRepository } from './users';
 
@@ -35,6 +36,11 @@ export function createMemoryTimeEntryRepository(entries: TimeEntry[] = []): Time
     b.datum.localeCompare(a.datum) || b.createdAt.localeCompare(a.createdAt);
   return {
     async insert(entry) {
+      // Gleiche Garantie wie der SQL-Unique-Index uq_time_idem: doppelter Idempotenz-
+      // Schluessel schlaegt fehl — die Domaenen-Aktion loest den Parallelfall kontrolliert auf.
+      if (entries.some((e) => e.idempotencyKey === entry.idempotencyKey)) {
+        throw new Error('unique violation: idempotency_key');
+      }
       entries.push({ ...entry });
     },
     async findById(id) {
@@ -45,6 +51,11 @@ export function createMemoryTimeEntryRepository(entries: TimeEntry[] = []): Time
     },
     async listByOrder(orderId) {
       return entries.filter((e) => e.orderId === orderId).sort(neuesteZuerst);
+    },
+    async sumByUserAndDate(userId, datum) {
+      return entries
+        .filter((e) => e.userId === userId && e.datum === datum)
+        .reduce((sum, e) => sum + e.dauer, 0);
     },
     async update(entry) {
       const i = entries.findIndex((e) => e.id === entry.id);
@@ -109,7 +120,10 @@ export function createMemoryOverlayRepository(overlays: OrderOverlay[] = []): Ov
 export function createMemoryChecklistRepository(items: ChecklistItem[] = []): ChecklistRepository {
   return {
     async listByOrder(orderId) {
-      return items.filter((i) => i.orderId === orderId).sort((a, b) => a.position - b.position);
+      return items.filter((i) => i.orderId === orderId && !i.deletedAt).sort((a, b) => a.position - b.position);
+    },
+    async listDeletedByOrder(orderId) {
+      return items.filter((i) => i.orderId === orderId && !!i.deletedAt).sort((a, b) => a.position - b.position);
     },
     async findById(id) {
       return items.find((i) => i.id === id);
@@ -124,9 +138,12 @@ export function createMemoryChecklistRepository(items: ChecklistItem[] = []): Ch
       const item = items.find((i) => i.id === id);
       if (item) item.done = done;
     },
-    async remove(id) {
-      const i = items.findIndex((x) => x.id === id);
-      if (i >= 0) items.splice(i, 1);
+    async softDelete(id, deletedBy, deletedAt) {
+      const item = items.find((i) => i.id === id);
+      if (item) {
+        item.deletedAt = deletedAt;
+        item.deletedBy = deletedBy;
+      }
     },
   };
 }
@@ -226,16 +243,38 @@ export function createMemoryBesonderheitRepository(items: Besonderheit[] = []): 
 }
 
 /** Das komplette Buendel fuer DB_MODE=memory — Gegenstueck zu createMssqlRepositories. */
+/**
+ * Memory-Pendant zur MSSQL-Transaktion: sequenzielle Schreibvorgaenge — im Ein-Prozess-Betrieb
+ * ohne echte Nebenlaeufigkeit die passende (und einzige moegliche) "Atomaritaet".
+ */
+export function createMemoryStatusWechselTransaktion(
+  overlays: OverlayRepository,
+  statusHistory: StatusHistoryRepository,
+  outbox: OutboxRepository
+): StatusWechselTransaktion {
+  return {
+    async commitStatusWechsel(overlay, change, outboxEntry) {
+      await overlays.upsert(overlay);
+      if (change) await statusHistory.insert(change);
+      if (outboxEntry) await outbox.enqueue(outboxEntry);
+    },
+  };
+}
+
 export function createMemoryRepositories(users: User[]): Repositories {
+  const overlays = createMemoryOverlayRepository();
+  const statusHistory = createMemoryStatusHistoryRepository();
+  const outbox = createMemoryOutboxRepository();
   return {
     users: createMemoryUserRepository(users),
     times: createMemoryTimeEntryRepository(),
     notes: createMemoryNoteRepository(),
-    overlays: createMemoryOverlayRepository(),
+    overlays,
     checklists: createMemoryChecklistRepository(),
-    statusHistory: createMemoryStatusHistoryRepository(),
-    outbox: createMemoryOutboxRepository(),
+    statusHistory,
+    outbox,
     anforderungen: createMemoryAnforderungRepository(),
     besonderheiten: createMemoryBesonderheitRepository(),
+    statusTransaktion: createMemoryStatusWechselTransaktion(overlays, statusHistory, outbox),
   };
 }

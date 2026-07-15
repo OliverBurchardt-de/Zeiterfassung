@@ -30,6 +30,8 @@ export interface TimeEntryRepository {
   /** Fuer Wiederholungs-Requests: gleicher Key -> vorhandenen Eintrag liefern statt Dublette. */
   findByIdempotencyKey(key: string): Promise<TimeEntry | undefined>;
   listByOrder(orderId: string): Promise<TimeEntry[]>;
+  /** Summe der gebuchten Stunden eines Nutzers an einem Arbeitstag (12-h-Tagesgrenze). */
+  sumByUserAndDate(userId: string, datum: string): Promise<number>;
   update(entry: TimeEntry): Promise<void>;
   remove(id: string): Promise<void>;
 }
@@ -52,15 +54,23 @@ export interface OverlayRepository {
   upsert(overlay: OrderOverlay): Promise<void>;
 }
 
-/** Checklisten-Instanz je Auftrag (aus der Vorlage instanziiert, dann nur noch abgehakt). */
+/**
+ * Checklisten-Instanz je Auftrag (aus der Vorlage instanziiert, dann abgehakt/ergaenzt).
+ * Loeschen ist IMMER Soft-Delete (Review 12.07.2026, P1.3): der Punkt verschwindet aus der
+ * aktiven Liste, bleibt aber mit Loeschendem + Zeitpunkt fuer Revision erhalten.
+ */
 export interface ChecklistRepository {
+  /** Nur AKTIVE Punkte (ohne soft-geloeschte) — Basis fuer Anzeige und „Erledigt"-Gate. */
   listByOrder(orderId: string): Promise<ChecklistItem[]>;
+  /** Soft-geloeschte Punkte eines Auftrags (Revisions-/Pruefsicht). */
+  listDeletedByOrder(orderId: string): Promise<ChecklistItem[]>;
   findById(id: string): Promise<ChecklistItem | undefined>;
   insertMany(items: ChecklistItem[]): Promise<void>;
   /** Einzelnen Punkt anlegen (manuelles Hinzufuegen im Detail). */
   insert(item: ChecklistItem): Promise<void>;
   setDone(id: string, done: boolean): Promise<void>;
-  remove(id: string): Promise<void>;
+  /** Soft-Delete: markiert statt entfernt. Wer/Wann setzt die Domaenen-Aktion (Server-Zeit). */
+  softDelete(id: string, deletedBy: string, deletedAt: string): Promise<void>;
 }
 
 export interface StatusHistoryRepository {
@@ -108,6 +118,17 @@ export interface Repositories {
   outbox: OutboxRepository;
   anforderungen: AnforderungRepository;
   besonderheiten: BesonderheitRepository;
+  statusTransaktion: StatusWechselTransaktion;
+}
+
+/**
+ * Gezielte Transaktionsgrenze fuer den Statuswechsel (Review 12.07.2026, P2.6): Overlay und
+ * Historie werden entweder BEIDE geschrieben oder keins von beiden. Der optionale Outbox-Eintrag
+ * ist fuer den DATEV-Writeback vorgesehen (gleiche fachliche Transaktion, M2-Sync-Job) —
+ * bewusst KEINE allgemeine Unit-of-Work-Abstraktion.
+ */
+export interface StatusWechselTransaktion {
+  commitStatusWechsel(overlay: OrderOverlay, change?: StatusChange, outboxEntry?: OutboxEntry): Promise<void>;
 }
 
 /** Eine Aufwands-/Zeitbuchung, wie sie nach DATEV (expensepostings) geschrieben wird. */

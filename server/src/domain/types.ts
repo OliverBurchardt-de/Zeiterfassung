@@ -22,6 +22,12 @@ export interface User {
   admin: boolean;
   passwordHash: string;
   datevEmployeeId?: string;
+  /**
+   * false = deaktiviert (Review P3.7): wirkt SOFORT, weil der Auth-Hook den Nutzer bei jedem
+   * Request neu laedt und beide Repos Deaktivierte nicht liefern (SQL: WHERE active = 1).
+   * Fehlend = aktiv.
+   */
+  active?: boolean;
 }
 
 /** Nutzer-Sicht ohne Geheimnisse — alles, was nach aussen gehen darf. */
@@ -125,6 +131,13 @@ export interface OrderOverlay {
   umplanungenVerbraucht: number;
 }
 
+/**
+ * Herkunft eines Checklistenpunkts (Review 12.07.2026, P1.2): 'vorlage' = Pflichtpunkt aus einer
+ * Checklisten-Vorlage (darf NIE geloescht werden), 'manuell' = am Auftrag ergaenzt (loeschbar,
+ * aber nur als Soft-Delete — revisionssicher).
+ */
+export type ChecklistHerkunft = 'vorlage' | 'manuell';
+
 /** Checklisten-Instanz-Punkt je Auftrag (Grundlage der serverseitigen canComplete-Regel). */
 export interface ChecklistItem {
   id: string;
@@ -132,6 +145,11 @@ export interface ChecklistItem {
   label: string;
   done: boolean;
   position: number;
+  herkunft: ChecklistHerkunft;
+  /** Soft-Delete (nur manuelle Punkte): gesetzt = nicht mehr aktiv; Inhalt bleibt fuer Revision. */
+  deletedAt?: string;
+  /** Nutzer-ID des Loeschenden — setzt der Server, nie der Client. */
+  deletedBy?: string;
 }
 
 /** Ein Kanban-Statuswechsel (Nachvollziehbarkeit + Basis fuer den DATEV-Writeback). */

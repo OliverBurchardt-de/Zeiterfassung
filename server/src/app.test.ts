@@ -125,6 +125,12 @@ describe('Zeit-API', () => {
     const rel = await app.inject({ method: 'POST', url: `/api/time/${id}/release`, headers: h });
     expect(rel.json().status).toBe('freigegeben');
 
+    // Loeschen nur im Status 'erfasst' (Review 12.07., P1.1): freigegeben -> 409 …
+    const delGesperrt = await app.inject({ method: 'DELETE', url: `/api/time/${id}`, headers: h });
+    expect(delGesperrt.statusCode).toBe(409);
+
+    // … erst nach Zuruecknahme der Freigabe ist Loeschen erlaubt.
+    await app.inject({ method: 'POST', url: `/api/time/${id}/withdraw`, headers: h });
     const del = await app.inject({ method: 'DELETE', url: `/api/time/${id}`, headers: h });
     expect(del.statusCode).toBe(200);
   });
@@ -144,6 +150,31 @@ describe('Zeit-API', () => {
     const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
     const res = await app.inject({ method: 'POST', url: '/api/time', headers: { cookie: cookieHeader }, payload: { orderId: '9993', datum: '2026-07-01', dauer: 0 } });
     expect(res.statusCode).toBe(400);
+  });
+
+  it('weist Eingabegrenz-Verstoesse mit 400 ab, bevor die DB sie sieht (Review P2.4)', async () => {
+    const app = await makeApp();
+    const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
+    const h = { cookie: cookieHeader };
+    const faelle = [
+      { payload: { orderId: '9993', datum: '2026-02-30', dauer: 1 }, grund: 'kein echter Kalendertag' },
+      { payload: { orderId: '9993', datum: '2026-07-01', dauer: 12.5 }, grund: 'mehr als die 12-h-Tagesgrenze' },
+      { payload: { orderId: '9993', datum: '2026-07-01', dauer: 1.001 }, grund: 'zu feine Bruchteile' },
+      { payload: { orderId: '9993', datum: '2026-07-01', dauer: 1, notiz: 'x'.repeat(5000) }, grund: 'Notiz zu lang' },
+    ];
+    for (const f of faelle) {
+      const res = await app.inject({ method: 'POST', url: '/api/time', headers: h, payload: f.payload });
+      expect(res.statusCode, f.grund).toBe(400);
+    }
+    // Note-Text und Checklisten-Label zu lang -> 400; negative Board-Position -> 400.
+    const note = await app.inject({ method: 'POST', url: '/api/orders/9993/notes', headers: h, payload: { text: 'x'.repeat(5000) } });
+    expect(note.statusCode).toBe(400);
+    const label = await app.inject({ method: 'POST', url: '/api/orders/9993/checklist', headers: h, payload: { label: 'x'.repeat(600) } });
+    expect(label.statusCode).toBe(400);
+    const pos = await app.inject({ method: 'POST', url: '/api/orders/9993/status', headers: h, payload: { status: 'bb', position: -1 } });
+    expect(pos.statusCode).toBe(400);
+    const ensure = await app.inject({ method: 'POST', url: '/api/orders/9993/checklist/ensure', headers: h, payload: { labels: ['ok', 'x'.repeat(600)] } });
+    expect(ensure.statusCode).toBe(400);
   });
 });
 
@@ -199,6 +230,36 @@ describe('Status-API', () => {
     const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
     const res = await app.inject({ method: 'POST', url: '/api/orders/9993/status', headers: { cookie: cookieHeader }, payload: { status: 'xx' } });
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('Checklist-API (Herkunft + Soft-Delete, Review 12.07.)', () => {
+  it('Vorlagenpunkt (ensure) ist nicht loeschbar (409), manueller Punkt schon (200)', async () => {
+    const app = await makeApp();
+    const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
+    const h = { cookie: cookieHeader };
+
+    // Vorlage instanziieren -> Pflichtpunkt
+    const ens = await app.inject({ method: 'POST', url: '/api/orders/9993/checklist/ensure', headers: h, payload: { labels: ['Pflicht'] } });
+    expect(ens.statusCode).toBe(200);
+    const pflicht = (ens.json() as Array<{ id: string; herkunft: string }>)[0];
+    expect(pflicht.herkunft).toBe('vorlage');
+
+    // Manuell ergaenzen -> loeschbar
+    const add = await app.inject({ method: 'POST', url: '/api/orders/9993/checklist', headers: h, payload: { label: 'Zusatz' } });
+    expect(add.statusCode).toBe(201);
+    expect(add.json().herkunft).toBe('manuell');
+
+    const delPflicht = await app.inject({ method: 'DELETE', url: `/api/orders/9993/checklist/${pflicht.id}`, headers: h });
+    expect(delPflicht.statusCode).toBe(409);
+
+    const delZusatz = await app.inject({ method: 'DELETE', url: `/api/orders/9993/checklist/${add.json().id}`, headers: h });
+    expect(delZusatz.statusCode).toBe(200);
+
+    // Board zeigt nur den aktiven Pflichtpunkt — der geloeschte manuelle taucht nicht mehr auf.
+    const board = await app.inject({ method: 'GET', url: '/api/board', headers: h });
+    const o = (board.json() as Array<{ id: string; checklist: Array<{ id: string }> }>).find((x) => x.id === '9993');
+    expect(o?.checklist.map((c) => c.id)).toEqual([pflicht.id]);
   });
 });
 
@@ -291,6 +352,43 @@ describe('Board-API', () => {
     const res = await app.inject({ method: 'GET', url: '/api/board', headers: { cookie: cookieHeader } });
     const ids = (res.json() as Array<{ id: string }>).map((o) => o.id);
     expect(ids).toEqual(['9993', '9001']);
+  });
+});
+
+describe('Login-Schutz (Review P3.7)', () => {
+  it('sperrt nach 5 Fehlversuchen auch das richtige Passwort (429)', async () => {
+    const app = await makeApp();
+    for (let i = 0; i < 5; i++) {
+      const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'wolf', password: 'falsch' } });
+      expect(res.statusCode).toBe(401);
+    }
+    const gesperrt = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'wolf', password: 'demo' } });
+    expect(gesperrt.statusCode).toBe(429);
+    // Anderer Nutzer von anderer "IP" ist nicht betroffen — inject nutzt dieselbe Quell-IP,
+    // daher hier nur der Konto-Schluessel pruefbar: klein ist gesperrt ueber die IP-Sperre?
+    // Nein: IP-Sperre greift erst nach 5 IP-Fehlversuchen — die 5 obigen zaehlen auch fuer die
+    // IP, also ist die Quelle jetzt ebenfalls gesperrt. Das ist gewollt (eine Quelle, viele Namen).
+    const klein = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'klein', password: 'demo' } });
+    expect(klein.statusCode).toBe(429);
+  });
+
+  it('deaktivierter Nutzer verliert sofort den Zugriff (laufende Session inklusive)', async () => {
+    const users = await seedDemoUsers();
+    const repos = createMemoryRepositories(users);
+    const datev = createMockDatevAdapter();
+    const app = buildApp(
+      { ...loadConfig(), nodeEnv: 'test', cookieSecret: 'test-secret-für-tests' },
+      { sessions: createMemorySessionStore(), users: repos.users, datev, actions: createActions(repos, datev) },
+    );
+    const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
+    expect((await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie: cookieHeader } })).statusCode).toBe(200);
+
+    // Deaktivieren — wirkt beim NAECHSTEN Request, ohne dass die Session geloescht werden muss.
+    users.find((u) => u.username === 'wolf')!.active = false;
+    expect((await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie: cookieHeader } })).statusCode).toBe(401);
+    // Auch ein Neu-Login ist nicht moeglich.
+    const relogin = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'wolf', password: 'demo' } });
+    expect(relogin.statusCode).toBe(401);
   });
 });
 

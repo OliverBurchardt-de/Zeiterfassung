@@ -11,13 +11,19 @@ describe('canCompleteOrder', () => {
   });
 });
 
-describe('isValidTimeDuration', () => {
+describe('isValidTimeDuration (Grenzen zentral in limits.ts)', () => {
   it('lehnt 0 und negative Dauer ab', () => {
     expect(isValidTimeDuration(0)).toBe(false);
     expect(isValidTimeDuration(-1)).toBe(false);
     expect(isValidTimeDuration(Number.NaN)).toBe(false);
   });
-  it('akzeptiert positive Dauer', () => {
+  it('akzeptiert positive Dauer bis zur Tagesgrenze (12 h, Fachregel 12.07.2026)', () => {
     expect(isValidTimeDuration(1.5)).toBe(true);
+    expect(isValidTimeDuration(12)).toBe(true);
+  });
+  it('lehnt mehr als die Tagesgrenze und zu feine Bruchteile ab', () => {
+    expect(isValidTimeDuration(12.01)).toBe(false);
+    expect(isValidTimeDuration(1.001)).toBe(false); // DECIMAL(9,2): max. 2 Nachkommastellen
+    expect(isValidTimeDuration(0.25)).toBe(true);
   });
 });

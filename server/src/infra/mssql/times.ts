@@ -80,6 +80,16 @@ export function createMssqlTimeEntryRepository(pool: ConnectionPool): TimeEntryR
         .query(`SELECT ${COLS} FROM dbo.time_entries WHERE order_id = @order_id ${ORDER}`);
       return r.recordset.map(mapTimeEntryRow);
     },
+    async sumByUserAndDate(userId, datum) {
+      const r = await pool
+        .request()
+        .input('user_id', sql.NVarChar(64), userId)
+        .input('work_date', sql.VarChar(10), datum)
+        .query(
+          'SELECT COALESCE(SUM(hours), 0) AS summe FROM dbo.time_entries WHERE user_id = @user_id AND work_date = @work_date'
+        );
+      return Number(r.recordset[0]?.summe ?? 0);
+    },
     async update(e) {
       await bindFachfelder(pool.request(), e)
         .input('id', sql.NVarChar(64), e.id)

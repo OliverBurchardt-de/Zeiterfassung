@@ -5,12 +5,13 @@ Interne Web-App der Steuerkanzlei **Burchardt & Kollegen**, die **Auftragsplanun
 an einer Stelle vereint. Auftragsdaten stammen aus **DATEV EO** (Eigenorganisation);
 Status, Plandaten und Verantwortlichkeiten werden nach **DATEV EO Comfort** zurückgeschrieben.
 
-> **Aktueller Stand:** Meilenstein 1 (klickbares Frontend, Demo-Modus) ist abgenommen;
-> Meilenstein 2 läuft: eigenes Backend in `server/` (Fastify, eigener Login, In-Memory- oder
-> MS-SQL-Persistenz, DATEV-Adapter mock/http) und Server-Modus des Frontends (`npm run dev:api`)
-> mit echtem Login, Board über `GET /api/board` und serverseitig festgeschriebenen Aktionen
-> (Zeit/Notes/Status/Checklisten). E-Mail-Reminder und DATEV-Sync-Job folgen
-> (siehe `docs/m2-plan.md`).
+> **Aktueller Stand (12.07.2026):** Meilenstein 1 (klickbares Frontend, Demo-Modus) ist
+> abgenommen; Meilenstein 2 läuft: eigenes Backend in `server/` (Fastify, eigener Login mit
+> Fehlversuchs-Sperre, In-Memory- oder MS-SQL-Persistenz mit versionierten Migrationen,
+> DATEV-Adapter mock/http) und Server-Modus des Frontends (`npm run dev:api`) mit echtem Login,
+> Board über `GET /api/board` und serverseitig festgeschriebenen Aktionen
+> (Zeit/Notes/Status/Checklisten inkl. Pflichtpunkt-/Soft-Delete-Regeln). E-Mail-Reminder und
+> DATEV-Sync-Job folgen (siehe `docs/m2-plan.md`; aktuelle Prüfstände: CI).
 
 ## Stack
 - **React 18 + TypeScript** (Vite)
@@ -55,8 +56,9 @@ docs/             Architektur, DATEV-Integration, Lastenheft
 design_handoff_zeiterfassung/   verbindliche Design-Referenz (Prototyp, Screenshots, Tokens)
 ```
 
-> **Backend (M2):** Erstes Gerüst liegt in `server/` (läuft in-memory + Schein-DATEV, Tests grün).
-> Details: `server/README.md`, Architektur: `docs/architektur-entscheidungen.md`.
+> **Backend (M2):** liegt in `server/` (Default: in-memory + Schein-DATEV; zuschaltbar MS SQL +
+> echter DATEVconnect-Adapter). Details: `server/README.md`, Architektur:
+> `docs/architektur-entscheidungen.md`. E2E-Prüfläufe: `tools/e2e/README.md`.
 
 ## Dokumentation
 
@@ -70,6 +72,7 @@ design_handoff_zeiterfassung/   verbindliche Design-Referenz (Prototyp, Screensh
 - `docs/architektur-entscheidungen.md` — begründete Architektur-Entscheidungen fürs M2-Backend (ADR-Stil)
 
 **DATEV-Anbindung**
+- `docs/echtdaten-lokal-testen.md` — Schritt für Schritt: echte DATEV-Aufträge lokal am Kanzlei-PC ansehen
 - `docs/datev-integration.md` — Feld-Mapping & Rückschreibung nach EO Comfort
 - `docs/datev-connect-handoff.md` — projektunabhängige, verifizierte DATEVconnect-Mechanik (zur Wiederverwendung)
 - `docs/datev-connect-asp-zugriff.md` — DATEVconnect unter ASP: Anbindungswege, Voraussetzungen, Test (Pull/Writeback)
@@ -79,6 +82,7 @@ design_handoff_zeiterfassung/   verbindliche Design-Referenz (Prototyp, Screensh
 
 **Planung, Abnahme & Qualität**
 - `docs/m2-plan.md` — Fahrplan von M1 (Mock) zu M2 (Backend + DATEV)
+- `docs/abc-analyse-konzept.md` — ABC-Analyse (Mandanten-Rentabilität): API-Felder, Logik, Andockpunkt (vorgesehen, nicht v1)
 - `docs/ideen-backlog.md` — Ideen-/Aufgaben-Backlog
 - `docs/m1-abnahme.md` — M1-Abnahme-Checkliste
 - `docs/reviews/` — Review-Protokolle (Eigen-, UI-, externe Code-Reviews)

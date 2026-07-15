@@ -162,7 +162,22 @@ Kalenderhorizont aus `heute()` — Demo weiter über Mock-`EMPLOYEES`. (5) **„
 mehr umgehbar:** die Status-Aktion seedet vor der Gate-Prüfung idempotent die server-seitige
 Default-Vorlage (`server/src/domain/checklistTemplates.ts`, Spiegel der Frontend-Defaults;
 gemeinsame Mechanik `seedChecklist` in `actions/checklist.ts`) — ein Board-Drag auf „Erledigt"
-vor dem ersten Öffnen wird abgelehnt und die Pflichtpunkte existieren danach. Als Nächstes
+vor dem ersten Öffnen wird abgelehnt und die Pflichtpunkte existieren danach.
+**Review-Arbeitsauftrag 12.07.2026 (umgesetzt, alle 3 Prioritäten;
+`docs/reviews/2026-07-12-codereview-arbeitsauftrag.md`):** (P1) Zeiten löschen nur im Status
+`erfasst`; Checklisten-**Herkunft** `vorlage` (Pflichtpunkt, nie löschbar — UI ohne Lösch-Knopf,
+Server lehnt ab) vs. `manuell` (löschbar als revisionssicherer **Soft-Delete**
+`deletedAt`/`deletedBy`, Server-Zeit; aktive Listen + „Erledigt"-Gate sehen nur aktive Punkte;
+fehlende Herkunft gilt fail-safe als `vorlage`). (P2) zentrale Eingabegrenzen
+`server/src/domain/limits.ts` (Kalenderprüfung, Dauer max. **12 h/Tag** — Fachregel 12.07.2026,
+je Einzelbuchung UND als Tagessumme je Nutzer über alle Aufträge (`sumByUserAndDate`), 2
+Nachkommastellen, Längen wie DB-Schema) in Domain UND Routen; Idempotenz nur bei gleichem Nutzer+Nutzlast (sonst 403/409,
+Parallelfall kontrolliert); Statuswechsel atomar über `repos.statusTransaktion.commitStatusWechsel`
+(MSSQL-Transaktion, Outbox-fähig). (P3) Login-Fehlversuchs-Sperre (`auth/loginSchutz.ts`, 5→15 Min.)
++ Protokoll; Deaktivierung wirkt sofort (`User.active`, Repos filtern); versionierte
+**DB-Migrationen** (`server/db/migrations/` + `schema_migrations`; Checklisten-Änderung =
+Migration 001); eigenes Server-ESLint + CI-Schritt; `npm run coverage`; E2E-Suiten reproduzierbar
+in `tools/e2e/`. Als Nächstes
 (Etappe 3): restliche Aktionen (Umplanung/Planung/Anforderungen/Besonderheiten/Suborders/
 Attachments/Nutzer-API), Checklisten-Vorlagen serverseitig verwalten (löst die bewusste
 Vorlagen-Duplikation ab) + DATEV-Outbox-Sync-Job.

@@ -4,6 +4,7 @@ import type { Clock } from '../clock';
 import type { RequireVisibleOrder } from './access';
 import { DomainError } from '../errors';
 import { isValidTimeDuration } from '../rules';
+import { LIMITS, isValidIsoDate } from '../limits';
 
 export interface BookTimeInput {
   orderId: string;
@@ -25,6 +26,29 @@ export interface BookTimeInput {
  * es gibt KEINE Partner-Freigabe — der Erfasser gibt selbst frei (CLAUDE.md, TimeStatus).
  * Bereits nach DATEV uebertragene Zeiten (status 'uebertragen') sind gesperrt.
  */
+/**
+ * Idempotenz-Wiederholungsfall pruefen (Review P2.5): Der bestehende Eintrag wird NUR
+ * zurueckgegeben, wenn er demselben Nutzer gehoert (403 sonst — nie fremde Buchungen
+ * herausgeben) UND die Nutzlast uebereinstimmt (409 sonst — Schluessel-Wiederverwendung
+ * mit anderem Inhalt ist ein Programmierfehler des Clients, kein Erfolgsfall).
+ */
+function gleicheBuchungOderKonflikt(actor: PublicUser, input: BookTimeInput, bestehend: TimeEntry): TimeEntry {
+  if (bestehend.userId !== actor.id) {
+    throw new DomainError('forbidden', 'Idempotenz-Schluessel ist bereits vergeben');
+  }
+  const gleich =
+    bestehend.orderId === input.orderId &&
+    (bestehend.suborderId ?? null) === (input.suborderId ?? null) &&
+    bestehend.datum === input.datum &&
+    bestehend.dauer === input.dauer &&
+    (bestehend.notiz ?? null) === (input.notiz ?? null) &&
+    (bestehend.aufwandsart ?? null) === (input.aufwandsart ?? null);
+  if (!gleich) {
+    throw new DomainError('conflict', 'Idempotenz-Schluessel wurde bereits mit anderer Buchung verwendet');
+  }
+  return bestehend;
+}
+
 export function createTimeActions(repos: Repositories, clock: Clock, requireVisibleOrder: RequireVisibleOrder) {
   /** Laedt den Eintrag und stellt sicher, dass er dem Handelnden gehoert. */
   async function ownEntry(actor: PublicUser, id: string): Promise<TimeEntry> {
@@ -39,12 +63,34 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
       // Nur auf sichtbare/zugewiesene Auftraege buchen — sonst landeten (nach Freigabe/Sync)
       // Aufwandsbuchungen auf fremden Mandaten (Review-Befund 5).
       await requireVisibleOrder(actor, input.orderId);
-      if (!isValidTimeDuration(input.dauer)) throw new DomainError('invalid', 'Dauer muss groesser 0 sein');
+      if (!isValidTimeDuration(input.dauer)) {
+        throw new DomainError('invalid', `Dauer muss zwischen 0 und ${LIMITS.DAUER_MAX_STUNDEN} Stunden liegen (max. 2 Nachkommastellen)`);
+      }
+      // Echte Kalenderpruefung (Review P2.4): "2026-02-30" hat das richtige Format, ist aber kein Tag.
+      if (!isValidIsoDate(input.datum)) throw new DomainError('invalid', 'kein gueltiges Datum (JJJJ-MM-TT)');
+      if ((input.notiz ?? '').length > LIMITS.TEXT_MAX) {
+        throw new DomainError('invalid', `Notiz ist zu lang (max. ${LIMITS.TEXT_MAX} Zeichen)`);
+      }
 
-      // Idempotenz: gleicher Client-Key -> vorhandene Buchung zurueckgeben, keine Dublette.
+      // Idempotenz (gehaertet, Review P2.5): gleicher Client-Key liefert die vorhandene Buchung
+      // NUR zurueck, wenn Nutzer UND Nutzlast uebereinstimmen. Ein fremder oder abweichend
+      // wiederverwendeter Schluessel ist ein Konflikt — nie die fremde/alte Buchung.
       if (input.idempotencyKey) {
         const bestehend = await repos.times.findByIdempotencyKey(input.idempotencyKey);
-        if (bestehend) return bestehend;
+        if (bestehend) return gleicheBuchungOderKonflikt(actor, input, bestehend);
+      }
+
+      // Tagesgrenze (Fachregel 12.07.2026): mehr als 12 h sind an einem Arbeitstag nicht buchbar
+      // — ueber ALLE Auftraege des Nutzers summiert. Prueft NACH der Idempotenz-Weiche, damit
+      // ein Wiederholungs-Request die bereits gezaehlte Buchung nicht doppelt anrechnet.
+      const bereitsGebucht = await repos.times.sumByUserAndDate(actor.id, input.datum);
+      // Auf 2 Nachkommastellen runden — sonst kippte 11.9 + 0.1 durch Gleitkomma-Rauschen.
+      const tagessumme = Math.round((bereitsGebucht + input.dauer) * 100) / 100;
+      if (tagessumme > LIMITS.DAUER_MAX_STUNDEN) {
+        throw new DomainError(
+          'conflict',
+          `Tagesgrenze ueberschritten: max. ${LIMITS.DAUER_MAX_STUNDEN} h pro Tag (bereits gebucht: ${bereitsGebucht} h)`
+        );
       }
 
       const entry: TimeEntry = {
@@ -60,7 +106,19 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
         idempotencyKey: input.idempotencyKey ?? clock.newId(),
         createdAt: clock.now(),
       };
-      await repos.times.insert(entry);
+      try {
+        await repos.times.insert(entry);
+      } catch (err) {
+        // Parallelfall (Review P2.5): zwei gleichzeitige Requests mit demselben Schluessel —
+        // beide passieren die Vorpruefung, der zweite Insert faellt auf den Unique-Index
+        // (uq_time_idem bzw. Memory-Pendant). Kontrolliert aufloesen statt internem Fehler:
+        // den inzwischen vorhandenen Eintrag laden und wie einen Wiederholungsfall behandeln.
+        if (input.idempotencyKey) {
+          const inzwischen = await repos.times.findByIdempotencyKey(input.idempotencyKey);
+          if (inzwischen) return gleicheBuchungOderKonflikt(actor, input, inzwischen);
+        }
+        throw err;
+      }
       return entry;
     },
 
@@ -84,9 +142,17 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
       return next;
     },
 
+    /**
+     * Loeschen NUR im Status 'erfasst' (verbindliche Entscheidung, Review 12.07.2026):
+     * 'freigegeben' ist fuer den DATEV-Sync vorgemerkt, 'uebertragen' bereits gebucht — beide
+     * gesperrt. Wer loeschen will, nimmt zuerst die Freigabe zurueck (withdraw).
+     */
     async deleteTime(actor: PublicUser, id: string): Promise<void> {
       const entry = await ownEntry(actor, id);
       if (entry.status === 'uebertragen') throw new DomainError('conflict', 'bereits nach DATEV uebertragen');
+      if (entry.status === 'freigegeben') {
+        throw new DomainError('conflict', 'freigegebene Zeit zuerst zurueckziehen, dann loeschen');
+      }
       await repos.times.remove(id);
     },
   };

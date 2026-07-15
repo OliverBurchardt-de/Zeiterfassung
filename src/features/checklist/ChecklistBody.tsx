@@ -38,9 +38,12 @@ export function ChecklistBody({ order }: { order: Order }) {
             {c.done && <Check size={13} strokeWidth={3} />}
           </button>
           <span className={`check-item__label${c.done ? ' is-done' : ''}`}>{c.label}</span>
-          <button className="icon-btn" onClick={() => removeCheck(order.id, c.id)} aria-label="löschen">
-            <Trash2 size={16} />
-          </button>
+          {/* Pflichtpunkte aus der Vorlage sind nicht löschbar (fehlende Herkunft = Pflicht). */}
+          {c.herkunft === 'manuell' && (
+            <button className="icon-btn" onClick={() => removeCheck(order.id, c.id)} aria-label="löschen">
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       ))}
 

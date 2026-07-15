@@ -2,9 +2,11 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireAuth } from '../plugins/auth';
 import type { Actions } from '../domain/actions';
+import { LIMITS } from '../domain/limits';
 import { runAction } from './domainReply';
 
-const TextBody = z.object({ text: z.string().min(1) });
+// Obergrenze zentral (Review P2.4); Trim-/Leer-Pruefung macht die Domaenen-Aktion.
+const TextBody = z.object({ text: z.string().min(1).max(LIMITS.TEXT_MAX) });
 
 /** Review-Notes/Fragen — Workflow + Rechte in den Aktionen (notePolicy), nicht hier.
  * Gelesen werden Notes ueber das Board-Aggregat (GET /api/board), nicht einzeln. */

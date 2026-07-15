@@ -36,10 +36,11 @@ DATEVasp-Umgebung** bereitstellen (analog zur Ingentis-Anbindung)? Unter welchem
 läuft das, und mit welchen **Kosten/Vorlauf**?
 
 **2. Erlaubte Software / Laufzeitumgebung.**
-Unsere App benötigt auf dem Server eine **Node.js-Laufzeit**, eine **PostgreSQL-Datenbank** und einen
-schlanken Web-Server. Dürfen wir diese Komponenten auf dem ASP-Server installieren/betreiben, oder
-gibt es Vorgaben (zugelassene Software, Paketierung, Prüfung)? Welches **Betriebssystem** (Windows
-Server-Version) stünde zur Verfügung?
+Unsere App benötigt auf dem Server eine **Node.js-Laufzeit** und einen schlanken Web-Server; als
+Datenbank nutzen wir eine **eigene Datenbank auf der bereits vorhandenen MS-SQL-Server-Instanz**
+(eigener SQL-Benutzer mit `db_owner` nur auf dieser einen DB). Dürfen wir diese
+Komponenten auf dem ASP-Server installieren/betreiben, oder gibt es Vorgaben (zugelassene Software,
+Paketierung, Prüfung)? Welches **Betriebssystem** (Windows Server-Version) stünde zur Verfügung?
 
 **3. Einspielen und Aktualisieren der App (Deployment & Betrieb).**
 Wie spielen wir die Anwendung auf den Server und **aktualisieren** sie später — z. B. per

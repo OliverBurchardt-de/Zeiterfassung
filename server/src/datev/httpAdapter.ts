@@ -1,3 +1,4 @@
+import { Agent } from 'node:https';
 import type { DatevPort, ExpensePosting } from '../domain/ports';
 import type { OrderView } from '../domain/types';
 import type { DatevConfig } from '../config';
@@ -67,6 +68,16 @@ export function splitDomainUser(user: string): { domain: string; username: strin
 export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
   const base = cfg.baseUrl.replace(/\/$/, '');
 
+  // NTLM-Weg über HTTPS: `httpntlm` (v1.8.13) erstellt seinen HTTPS-Agent ohne die Option
+  // `rejectUnauthorized` — der TLS-INSECURE-Schalter würde sonst wirkungslos verpuffen und der
+  // Zugriff über die IP (Zertifikatsname passt nicht) beim TLS-Aufbau scheitern. Wir geben der
+  // Bibliothek deshalb einen eigenen Agent mit; keepAlive ist Pflicht, weil NTLM Aushandlung und
+  // Anmeldung über dieselbe Verbindung führt. Nur Dev (tlsInsecure ist in Produktion Fail-Fast).
+  const ntlmAgent =
+    cfg.auth === 'ntlm' && cfg.tlsInsecure && base.startsWith('https:')
+      ? new Agent({ keepAlive: true, rejectUnauthorized: false })
+      : undefined;
+
   const headers: Record<string, string> = {
     Accept: 'application/json; charset=utf-8',
   };
@@ -92,9 +103,13 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
 
   /** Transport 2: NTLM (Windows-Domänenkonto) — der verifizierte Weg der Entwicklungsumgebung. */
   async function requestNtlm<T>(path: string, init?: { method?: string; body?: string }): Promise<T> {
-    // Lazy require: httpntlm wird nur im NTLM-Modus geladen.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const httpntlm = (await import('httpntlm')) as typeof import('httpntlm');
+    // Lazy import: httpntlm wird nur im NTLM-Modus geladen. httpntlm ist ein CommonJS-Modul —
+    // beim dynamischen Import landen get/post/put unter `.default` (Interop), nicht direkt am
+    // Namespace. Ohne dieses Auspacken ist httpntlm[method] undefined ("fn is not a function").
+    const imported = (await import('httpntlm')) as typeof import('httpntlm') & {
+      default?: typeof import('httpntlm');
+    };
+    const httpntlm = imported.default ?? imported;
     const { domain, username } = splitDomainUser(cfg.user);
     const method = (init?.method ?? 'GET').toLowerCase() as 'get' | 'post' | 'put';
     const fn = httpntlm[method];
@@ -111,7 +126,8 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
             ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
           },
           ...(init?.body ? { body: init.body } : {}),
-          ...(cfg.tlsInsecure ? { rejectUnauthorized: false } : {}),
+          // Eigener Agent statt der (wirkungslosen) rejectUnauthorized-Option — s. o.
+          ...(ntlmAgent ? { agent: ntlmAgent } : {}),
         },
         (err, res) => {
           if (err) return reject(new Error(`DATEV ${method.toUpperCase()} ${path} -> ${err.message}`));
@@ -137,7 +153,10 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
       try {
         await request('diagnostics/v1/echo');
         return true;
-      } catch {
+      } catch (err) {
+        // Den echten Grund sichtbar machen (sonst zeigt der Start nur "kein OK").
+        // eslint-disable-next-line no-console
+        console.log(`[DATEV] health-Detail: ${err instanceof Error ? err.message : String(err)}`);
         return false;
       }
     },

@@ -21,8 +21,7 @@ jobs:
       - run: npm run build
 
   # Eigenes Server-Paket (server/) separat pruefen — sonst koennten Backend-Compile-/Testfehler
-  # mit gruener CI gemerged werden (Codex-Review P2). Kein lint-Schritt: der Server hat (noch)
-  # kein eigenes ESLint-Setup.
+  # mit gruener CI gemerged werden (Codex-Review P2). Eigenes ESLint-Setup: server/.eslintrc.cjs.
   server:
     runs-on: ubuntu-latest
     defaults:
@@ -37,5 +36,6 @@ jobs:
           cache-dependency-path: server/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm test
       - run: npm run build

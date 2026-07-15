@@ -2,11 +2,14 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireAuth } from '../plugins/auth';
 import type { Actions } from '../domain/actions';
+import { LIMITS } from '../domain/limits';
 import { runAction } from './domainReply';
 
-const AddBody = z.object({ label: z.string().min(1) });
+// Grenzwerte zentral (Review P2.4): Label-Laenge passend zum DB-Schema, jedes einzelne
+// ensure-Label geprueft; Trim-/Herkunfts-Regeln liegen in der Domaenen-Aktion.
+const AddBody = z.object({ label: z.string().min(1).max(LIMITS.LABEL_MAX) });
 const DoneBody = z.object({ done: z.boolean() });
-const EnsureBody = z.object({ labels: z.array(z.string()).max(200) });
+const EnsureBody = z.object({ labels: z.array(z.string().max(LIMITS.LABEL_MAX)).max(LIMITS.ENSURE_LABELS_MAX) });
 
 /** Checkliste je Auftrag — Sichtbarkeit/Regeln in den Aktionen, nicht hier. Lesen via GET /api/board. */
 export function checklistRoutes(app: FastifyInstance, actions: Actions): void {

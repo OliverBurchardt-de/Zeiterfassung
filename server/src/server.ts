@@ -27,6 +27,22 @@ async function main(): Promise<void> {
   };
   const app = buildApp(config, deps);
   await app.listen({ port: config.port, host: config.host });
+
+  // Start-Rueckmeldung im Echtdaten-Modus: dem Bediener sofort zeigen, ob die DATEV-Verbindung
+  // steht — ohne schweren getOrders()-Abruf. Nicht-fatal: ein DATEV-Ausfall bricht den Start nicht ab.
+  if (config.datev.mode === 'http') {
+    // eslint-disable-next-line no-console
+    console.log(`[DATEV] Modus http — ${config.datev.baseUrl} (Auth: ${config.datev.auth})`);
+    try {
+      const ok = await datev.health();
+      // eslint-disable-next-line no-console
+      console.log(ok ? '[DATEV] erreichbar.' : '[DATEV] NICHT erreichbar (health lieferte kein OK).');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // eslint-disable-next-line no-console
+      console.log(`[DATEV] NICHT erreichbar: ${msg}`);
+    }
+  }
 }
 
 main().catch((err) => {

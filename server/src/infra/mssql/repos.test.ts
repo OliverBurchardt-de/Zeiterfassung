@@ -129,13 +129,23 @@ describe('Noten-/Auftrags-Mapper', () => {
       boardPosition: undefined,
       umplanungenVerbraucht: 0,
     });
+    // Fail-safe: Zeile ohne Herkunft (Alt-Datenbestand) gilt als Pflichtpunkt 'vorlage'.
     expect(mapChecklistItemRow({ id: 'c1', order_id: 'o1', label: 'ELSTER', done: 1, position: 3 })).toEqual({
       id: 'c1',
       orderId: 'o1',
       label: 'ELSTER',
       done: true,
       position: 3,
+      herkunft: 'vorlage',
+      deletedAt: undefined,
+      deletedBy: undefined,
     });
+    expect(
+      mapChecklistItemRow({
+        id: 'c2', order_id: 'o1', label: 'Zusatz', done: 0, position: 4,
+        herkunft: 'manuell', deleted_at: new Date('2026-07-12T10:00:00.000Z'), deleted_by: 'u-x',
+      })
+    ).toMatchObject({ herkunft: 'manuell', deletedAt: '2026-07-12T10:00:00.000Z', deletedBy: 'u-x' });
     const s = mapStatusChangeRow({
       id: 's1',
       order_id: 'o1',

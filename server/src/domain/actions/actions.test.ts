@@ -79,6 +79,77 @@ describe('Zeit-Aktionen', () => {
     expect(await repos.times.listByOrder('o1')).toHaveLength(1);
   });
 
+  it('Tagesgrenze: mehr als 12 h pro Tag sind nicht buchbar — auch ueber mehrere Auftraege', async () => {
+    // wolf sieht o1 und o2 — 8 h + 4 h = 12 h sind erlaubt (Grenze einschliesslich) …
+    await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 8 });
+    await actions.time.bookTime(mitarbeiter, { orderId: 'o2', datum: '2026-07-01', dauer: 4 });
+    // … aber jede weitere Minute am selben Tag kippt die Summe -> Konflikt.
+    await expectDomainError(
+      () => actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 0.25 }),
+      'conflict'
+    );
+    // Anderer Tag und anderer Nutzer sind unabhaengig.
+    await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-02', dauer: 1 });
+    await actions.time.bookTime(partner, { orderId: 'o1', datum: '2026-07-01', dauer: 1 });
+  });
+
+  it('Tagesgrenze rechnet gleitkomma-fest (11.9 + 0.1 = 12 ist erlaubt)', async () => {
+    await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 11.9 });
+    const e = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 0.1 });
+    expect(e.dauer).toBe(0.1);
+  });
+
+  it('Idempotenz-Wiederholung zaehlt nicht doppelt gegen die Tagesgrenze', async () => {
+    const a = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 12, idempotencyKey: 'kx' });
+    // Retry mit demselben Schluessel: Tag ist "voll", aber der Request ist DIESELBE Buchung.
+    const b = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 12, idempotencyKey: 'kx' });
+    expect(b.id).toBe(a.id);
+  });
+
+  it('Idempotenz-Schluessel mit ABWEICHENDER Nutzlast ist ein Konflikt (Review P2.5)', async () => {
+    await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' });
+    await expectDomainError(
+      () => actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 2, idempotencyKey: 'k1' }),
+      'conflict'
+    );
+    await expectDomainError(
+      () => actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-02', dauer: 1, idempotencyKey: 'k1' }),
+      'conflict'
+    );
+    expect(await repos.times.listByOrder('o1')).toHaveLength(1);
+  });
+
+  it('fremder Idempotenz-Schluessel gibt NIE die fremde Buchung zurueck (Review P2.5)', async () => {
+    // wolf bucht auf o1; burchardt (Admin, sieht o1 ebenfalls) verwendet denselben Schluessel.
+    const a = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' });
+    await expectDomainError(
+      () => actions.time.bookTime(partner, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' }),
+      'forbidden'
+    );
+    expect((await repos.times.findById(a.id))?.userId).toBe('u-wolf');
+  });
+
+  it('Parallelfall: Unique-Kollision beim Insert wird kontrolliert aufgeloest (Review P2.5)', async () => {
+    // Beide Requests passieren die Vorpruefung (Key noch frei), der zweite Insert kollidiert
+    // mit dem Unique-Index. Simulation: findByIdempotencyKey liefert beim ERSTEN Aufruf nichts.
+    let erster = true;
+    const echteSuche = repos.times.findByIdempotencyKey.bind(repos.times);
+    repos.times.findByIdempotencyKey = async (key) => {
+      if (erster) {
+        erster = false;
+        return undefined; // Request A hat noch nicht committet
+      }
+      return echteSuche(key);
+    };
+    const a = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' });
+    // Zweiter "paralleler" Request: Vorpruefung (jetzt echte Suche) wuerde finden — wir erzwingen
+    // den Insert-Pfad, indem die Vorpruefung erneut leer antwortet.
+    erster = true;
+    const b = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1, idempotencyKey: 'k1' });
+    expect(b.id).toBe(a.id); // kein interner Fehler, keine Dublette
+    expect(await repos.times.listByOrder('o1')).toHaveLength(1);
+  });
+
   it('Freigeben/Zuruecknehmen nur fuer eigene Eintraege', async () => {
     const e = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1 });
     const freigegeben = await actions.time.releaseTime(mitarbeiter, e.id);
@@ -95,10 +166,29 @@ describe('Zeit-Aktionen', () => {
     await expectDomainError(() => actions.time.deleteTime(mitarbeiter, e.id), 'conflict');
   });
 
-  it('loescht eigenen, nicht uebertragenen Eintrag', async () => {
+  it('loescht eigenen Eintrag nur im Status "erfasst"', async () => {
     const e = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1 });
     await actions.time.deleteTime(mitarbeiter, e.id);
     expect(await repos.times.findById(e.id)).toBeUndefined();
+  });
+
+  it('freigegebene Zeit ist gegen Loeschen gesperrt (Review 12.07., P1.1)', async () => {
+    const e = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1 });
+    await actions.time.releaseTime(mitarbeiter, e.id);
+    await expectDomainError(() => actions.time.deleteTime(mitarbeiter, e.id), 'conflict');
+    expect(await repos.times.findById(e.id)).toMatchObject({ status: 'freigegeben' });
+    // Weg zum Loeschen: erst Freigabe zuruecknehmen, dann loeschen.
+    await actions.time.withdrawTime(mitarbeiter, e.id);
+    await actions.time.deleteTime(mitarbeiter, e.id);
+    expect(await repos.times.findById(e.id)).toBeUndefined();
+  });
+
+  it('fremde Eintraege bleiben unabhaengig vom Status gesperrt', async () => {
+    const e = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1 });
+    await expectDomainError(() => actions.time.deleteTime(anderer, e.id), 'forbidden');
+    await actions.time.releaseTime(mitarbeiter, e.id);
+    await expectDomainError(() => actions.time.deleteTime(anderer, e.id), 'forbidden');
+    await expectDomainError(() => actions.time.deleteTime(partner, e.id), 'forbidden');
   });
 });
 
@@ -191,7 +281,7 @@ describe('Status-Aktionen', () => {
 
   it('"Erledigt" ist gesperrt, solange die Checkliste offen ist', async () => {
     await repos.checklists.insertMany([
-      { id: 'c1', orderId: 'o1', label: 'ELSTER', done: false, position: 1 },
+      { id: 'c1', orderId: 'o1', label: 'ELSTER', done: false, position: 1, herkunft: 'vorlage' },
     ]);
     await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o1', 'er'), 'conflict');
     await repos.checklists.setDone('c1', true);
@@ -288,10 +378,46 @@ describe('Checklisten-Aktionen', () => {
     expect((await actions.checklist.setDone(mitarbeiter, 'o1', item.id, false)).done).toBe(false);
   });
 
-  it('entfernt einen Punkt', async () => {
+  it('entfernt einen manuellen Punkt als Soft-Delete (revisionssicher, Review P1.3)', async () => {
     const item = await actions.checklist.add(mitarbeiter, 'o1', 'Beleg');
+    expect(item.herkunft).toBe('manuell');
     await actions.checklist.remove(mitarbeiter, 'o1', item.id);
+    // aus der aktiven Liste verschwunden …
     expect(await repos.checklists.listByOrder('o1')).toHaveLength(0);
+    // … aber mit Inhalt, Loeschendem und Zeitpunkt erhalten (Server setzt Wer/Wann).
+    const geloescht = await repos.checklists.listDeletedByOrder('o1');
+    expect(geloescht).toHaveLength(1);
+    expect(geloescht[0]).toMatchObject({ label: 'Beleg', deletedBy: 'u-wolf' });
+    expect(geloescht[0].deletedAt).toBeTruthy();
+    // erneutes Loeschen ist idempotent (kein Fehler, kein zweiter Stempel)
+    await actions.checklist.remove(mitarbeiter, 'o1', item.id);
+    expect((await repos.checklists.listDeletedByOrder('o1'))[0].deletedBy).toBe('u-wolf');
+  });
+
+  it('Pflichtpunkte aus der Vorlage sind NIE loeschbar (Review P1.2)', async () => {
+    const items = await actions.checklist.ensure(mitarbeiter, 'o1', ['Pflicht A']);
+    expect(items[0].herkunft).toBe('vorlage');
+    await expectDomainError(() => actions.checklist.remove(mitarbeiter, 'o1', items[0].id), 'conflict');
+    expect(await repos.checklists.listByOrder('o1')).toHaveLength(1);
+  });
+
+  it('das "Erledigt"-Gate ist nicht durch Loeschen offener Pflichtpunkte umgehbar', async () => {
+    // o2 (301) traegt die Default-Vorlage: Gate-Versuch seedet Pflichtpunkte.
+    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o2', 'er'), 'conflict');
+    const pflicht = await repos.checklists.listByOrder('o2');
+    // Loesch-Versuche prallen ab -> Gate bleibt zu.
+    for (const p of pflicht) {
+      await expectDomainError(() => actions.checklist.remove(mitarbeiter, 'o2', p.id), 'conflict');
+    }
+    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o2', 'er'), 'conflict');
+  });
+
+  it('geloeschte manuelle Punkte beeinflussen das "Erledigt"-Gate nicht', async () => {
+    // o1 (202 Lohn, keine Vorlage): ein offener manueller Punkt blockt, sein Soft-Delete gibt frei.
+    const item = await actions.checklist.add(mitarbeiter, 'o1', 'Zusatzpunkt');
+    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o1', 'er'), 'conflict');
+    await actions.checklist.remove(mitarbeiter, 'o1', item.id);
+    expect((await actions.status.setStatus(mitarbeiter, 'o1', 'er')).boardStatus).toBe('er');
   });
 
   it('schaltet das "Erledigt"-Gate ueber add + setDone (integrativ)', async () => {

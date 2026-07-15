@@ -1,4 +1,4 @@
-import type { ConnectionPool } from 'mssql';
+import type { ConnectionPool, Request } from 'mssql';
 import { sql } from './db';
 import type { OrderOverlay } from '../../domain/types';
 import type { OverlayRepository } from '../../domain/ports';
@@ -16,6 +16,28 @@ export function mapOverlayRow(row: Record<string, unknown>): OrderOverlay {
 
 const COLS = 'order_id, board_status, board_position, umplanungen_verbraucht';
 
+/**
+ * Upsert als eigenstaendiges Statement — laeuft wahlweise gegen den Pool (Repo) oder eine
+ * laufende Transaktion (StatusWechselTransaktion, Review P2.6); den Request stellt der Aufrufer.
+ * UPDATE, sonst INSERT — ein Batch, kein MERGE noetig (ein Schreiber pro Auftrag genuegt hier).
+ */
+export async function upsertOverlayStatement(request: Request, o: OrderOverlay): Promise<void> {
+  await request
+    .input('order_id', sql.NVarChar(64), o.orderId)
+    .input('board_status', sql.NVarChar(4), o.boardStatus ?? null)
+    .input('board_position', sql.Int, o.boardPosition ?? null)
+    .input('umplanungen_verbraucht', sql.Int, o.umplanungenVerbraucht)
+    .query(
+      `UPDATE dbo.order_overlays
+       SET board_status = @board_status, board_position = @board_position,
+           umplanungen_verbraucht = @umplanungen_verbraucht, updated_at = SYSUTCDATETIME()
+       WHERE order_id = @order_id;
+       IF @@ROWCOUNT = 0
+         INSERT INTO dbo.order_overlays (${COLS})
+         VALUES (@order_id, @board_status, @board_position, @umplanungen_verbraucht);`
+    );
+}
+
 export function createMssqlOverlayRepository(pool: ConnectionPool): OverlayRepository {
   return {
     async get(orderId) {
@@ -30,22 +52,7 @@ export function createMssqlOverlayRepository(pool: ConnectionPool): OverlayRepos
       return r.recordset.map(mapOverlayRow);
     },
     async upsert(o) {
-      // UPDATE, sonst INSERT — ein Batch, kein MERGE noetig (ein Schreiber pro Auftrag genuegt hier).
-      await pool
-        .request()
-        .input('order_id', sql.NVarChar(64), o.orderId)
-        .input('board_status', sql.NVarChar(4), o.boardStatus ?? null)
-        .input('board_position', sql.Int, o.boardPosition ?? null)
-        .input('umplanungen_verbraucht', sql.Int, o.umplanungenVerbraucht)
-        .query(
-          `UPDATE dbo.order_overlays
-           SET board_status = @board_status, board_position = @board_position,
-               umplanungen_verbraucht = @umplanungen_verbraucht, updated_at = SYSUTCDATETIME()
-           WHERE order_id = @order_id;
-           IF @@ROWCOUNT = 0
-             INSERT INTO dbo.order_overlays (${COLS})
-             VALUES (@order_id, @board_status, @board_position, @umplanungen_verbraucht);`
-        );
+      await upsertOverlayStatement(pool.request(), o);
     },
   };
 }

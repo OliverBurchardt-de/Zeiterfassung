@@ -9,6 +9,7 @@ import { createMssqlStatusHistoryRepository } from './statusHistory';
 import { createMssqlOutboxRepository } from './outbox';
 import { createMssqlAnforderungRepository } from './anforderungen';
 import { createMssqlBesonderheitRepository } from './besonderheiten';
+import { createMssqlStatusWechselTransaktion } from './transaktion';
 
 /** Das komplette Buendel fuer DB_MODE=mssql — Gegenstueck zu createMemoryRepositories. */
 export function createMssqlRepositories(pool: ConnectionPool): Repositories {
@@ -22,5 +23,6 @@ export function createMssqlRepositories(pool: ConnectionPool): Repositories {
     outbox: createMssqlOutboxRepository(pool),
     anforderungen: createMssqlAnforderungRepository(pool),
     besonderheiten: createMssqlBesonderheitRepository(pool),
+    statusTransaktion: createMssqlStatusWechselTransaktion(pool),
   };
 }
