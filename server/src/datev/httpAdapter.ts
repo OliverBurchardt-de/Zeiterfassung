@@ -164,7 +164,20 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
     async getOrders() {
       const q = cfg.ordersFilter ? `?filter=${encodeURIComponent(cfg.ordersFilter)}` : '';
       const raw = await request<Record<string, unknown>[]>(`order-management/v1/orders${q}`);
-      return (raw ?? []).map(mapDatevOrder);
+      // TEMPORAER (Diagnose Feld-Mapping am Livesystem): Anzahl + die ersten 3 Rohdatensaetze
+      // mit den anzeigerelevanten Feldern zeigen. Wird nach der Analyse wieder entfernt.
+      const liste = raw ?? [];
+      // eslint-disable-next-line no-console
+      console.log(`[DATEV] getOrders: ${liste.length} Auftraege. Beispiele:`);
+      for (const o of liste.slice(0, 3)) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `  order_number=${o.order_number} order_name=${JSON.stringify(o.order_name)} ` +
+            `ordertype=${JSON.stringify(o.ordertype)} completion_status=${JSON.stringify(o.completion_status)} ` +
+            `planned_end=${JSON.stringify(o.planned_end)} order_responsible1_id=${JSON.stringify(o.order_responsible1_id)}`,
+        );
+      }
+      return liste.map(mapDatevOrder);
     },
 
     async getOrder(id) {
