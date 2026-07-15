@@ -103,9 +103,13 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
 
   /** Transport 2: NTLM (Windows-Domänenkonto) — der verifizierte Weg der Entwicklungsumgebung. */
   async function requestNtlm<T>(path: string, init?: { method?: string; body?: string }): Promise<T> {
-    // Lazy require: httpntlm wird nur im NTLM-Modus geladen.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const httpntlm = (await import('httpntlm')) as typeof import('httpntlm');
+    // Lazy import: httpntlm wird nur im NTLM-Modus geladen. httpntlm ist ein CommonJS-Modul —
+    // beim dynamischen Import landen get/post/put unter `.default` (Interop), nicht direkt am
+    // Namespace. Ohne dieses Auspacken ist httpntlm[method] undefined ("fn is not a function").
+    const imported = (await import('httpntlm')) as typeof import('httpntlm') & {
+      default?: typeof import('httpntlm');
+    };
+    const httpntlm = imported.default ?? imported;
     const { domain, username } = splitDomainUser(cfg.user);
     const method = (init?.method ?? 'GET').toLowerCase() as 'get' | 'post' | 'put';
     const fn = httpntlm[method];
