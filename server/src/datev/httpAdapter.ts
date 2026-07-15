@@ -1,3 +1,4 @@
+import { Agent } from 'node:https';
 import type { DatevPort, ExpensePosting } from '../domain/ports';
 import type { OrderView } from '../domain/types';
 import type { DatevConfig } from '../config';
@@ -67,6 +68,16 @@ export function splitDomainUser(user: string): { domain: string; username: strin
 export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
   const base = cfg.baseUrl.replace(/\/$/, '');
 
+  // NTLM-Weg über HTTPS: `httpntlm` (v1.8.13) erstellt seinen HTTPS-Agent ohne die Option
+  // `rejectUnauthorized` — der TLS-INSECURE-Schalter würde sonst wirkungslos verpuffen und der
+  // Zugriff über die IP (Zertifikatsname passt nicht) beim TLS-Aufbau scheitern. Wir geben der
+  // Bibliothek deshalb einen eigenen Agent mit; keepAlive ist Pflicht, weil NTLM Aushandlung und
+  // Anmeldung über dieselbe Verbindung führt. Nur Dev (tlsInsecure ist in Produktion Fail-Fast).
+  const ntlmAgent =
+    cfg.auth === 'ntlm' && cfg.tlsInsecure && base.startsWith('https:')
+      ? new Agent({ keepAlive: true, rejectUnauthorized: false })
+      : undefined;
+
   const headers: Record<string, string> = {
     Accept: 'application/json; charset=utf-8',
   };
@@ -111,7 +122,8 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
             ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
           },
           ...(init?.body ? { body: init.body } : {}),
-          ...(cfg.tlsInsecure ? { rejectUnauthorized: false } : {}),
+          // Eigener Agent statt der (wirkungslosen) rejectUnauthorized-Option — s. o.
+          ...(ntlmAgent ? { agent: ntlmAgent } : {}),
         },
         (err, res) => {
           if (err) return reject(new Error(`DATEV ${method.toUpperCase()} ${path} -> ${err.message}`));
