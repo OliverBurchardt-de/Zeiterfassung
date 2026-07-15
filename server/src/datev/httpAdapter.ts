@@ -149,7 +149,10 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
       try {
         await request('diagnostics/v1/echo');
         return true;
-      } catch {
+      } catch (err) {
+        // Den echten Grund sichtbar machen (sonst zeigt der Start nur "kein OK").
+        // eslint-disable-next-line no-console
+        console.log(`[DATEV] health-Detail: ${err instanceof Error ? err.message : String(err)}`);
         return false;
       }
     },
