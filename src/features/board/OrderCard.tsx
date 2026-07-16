@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import type { Order } from '@/lib/types';
-import { ART, formatTimer, formatHours, erfassteStunden } from '@/lib/art';
+import { ART, formatTimer, formatHours, erfassteStunden, hasTeilauftraege } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
 import { offeneNotes, useStore, timerSeconds } from '@/state/store';
 import { hasOffeneZeiten, naechsterOffenerTeilauftrag } from '@/state/selectors';
@@ -31,9 +31,10 @@ function CardInner({ order }: { order: Order }) {
         <span className="chip">Soll {order.soll} h</span>
         <span className="chip">Ist {formatHours(erfassteStunden(order.times))}</span>
         <span className="chip">{order.monat || 'ungeplant'}</span>
-        {/* Teilauftrags-Aufträge (FiBu/Lohn/Reporting): NUR den nächsten offenen Monat zeigen
-            (Entscheidung 15.07.2026) — erledigt = abgehakt, die Karte zeigt, was ansteht. */}
-        {(() => {
+        {/* Teilauftrags-Chip NUR bei echten Teilauftrags-Arten (teilauftraege-Flag am Ordertype:
+            FiBu/Lohn/Reporting/Mehraufwand/laufende Beratung) — DATEV liefert bei anderen Arten
+            (z. B. EÜR) technisch Suborders mit, die hier aber KEINE Teilaufträge sind. */}
+        {hasTeilauftraege(order.ordertype) && (() => {
           const next = naechsterOffenerTeilauftrag(order);
           if (next) return <span className="chip chip--teil">Teilauftrag {next.monat}</span>;
           if (order.suborders?.length) return <span className="chip chip--teil">Teilaufträge erledigt</span>;

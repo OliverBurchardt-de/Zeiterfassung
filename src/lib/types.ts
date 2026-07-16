@@ -67,6 +67,12 @@ export interface TimeEntry {
   status: TimeStatus;
   notiz?: string; // optionale Notiz zur Buchung (Pflicht bei Beratung/Mehraufwand)
   aufwandsart?: Aufwandsart; // nur bei Mehraufwand/Dumm gelaufen: gewählte EO-Aufwandsart
+  /**
+   * Startminute des Tages (0 = 0:00) für die grafische Tages-Timeline im Zeiterfassungs-Board.
+   * Reine Anzeige-Hilfe — DATEV/der Server speichern nur `datum`+`dauer` (kein work_start_time),
+   * deshalb optional; ohne Wert stapelt die Timeline die Blöcke der Reihe nach.
+   */
+  startMin?: number;
 }
 
 export interface ChecklistItem {
