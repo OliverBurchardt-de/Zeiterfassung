@@ -58,6 +58,10 @@ Tages-Timeline** (Kalender), in der der Mitarbeiter seine Zeit sichtbar auf Auft
   (planbar, laufend UND sonstige) und zieht sie **per Drag & Drop** in die Timeline.
 - **Click & Drag** zum Anlegen eines Zeitblocks (Start/Ende), danach Auftrag + Pflicht-/Notiz
   zuweisen (analog memtime: Block ziehen → Projekt wählen → Kommentar → fertig).
+- **Stoppuhr** (prominenter Timer im Board): Mitarbeiter startet die Uhr, arbeitet, stoppt —
+  der entstandene Zeitblock erscheint in der Timeline und wird per Zuweisung/Drag auf den
+  Auftrag gebucht. Technisch ist das der bestehende Live-Timer (M1) — hier bekommt er seine
+  tagesorientierte Oberfläche.
 - **Buchung nach DATEV:** die hier erfassten Zeiten laufen durch dieselbe freigeben→sync-Kette
   wie heute (auch für *sonstige* Aufträge).
 - Die bestehende Zeiterfassung am Auftrag (im Planungs-Board) **bleibt** — das Zeiterfassungs-Board
