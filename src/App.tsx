@@ -35,7 +35,8 @@ export function App() {
   if (restoring) {
     return (
       <div className="login">
-        <div className="login__card"><p className="muted">Anmeldung wird geprüft …</p></div>
+        {/* Hinter diesem Schritt laeuft auch der erste Auftrags-Abruf — ehrlich benennen. */}
+        <div className="login__card"><p className="muted">Anmeldung wird geprüft und Aufträge werden geladen …</p></div>
       </div>
     );
   }

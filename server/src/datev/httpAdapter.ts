@@ -106,6 +106,16 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
   let clientsCacheTime = 0;
   let clientsInFlight: Promise<DatevClient[]> | null = null;
 
+  // Cache fuer die Auftragsliste: der Abruf mit expand=suborders ist gross (am Echtsystem
+  // ~35 s ueber VPN) — ohne Cache wartete JEDER Board-Aufruf so lange. 60 s TTL: kurz genug,
+  // dass fremde DATEV-Aenderungen zeitnah erscheinen; eigene Schreibaktionen laufen ohnehin
+  // ueber die App-DB (Overlay/Zeiten/Notes) und sind sofort sichtbar. In-Flight-Dedupe, damit
+  // parallele Board-Aufrufe (mehrere Nutzer) denselben DATEV-Abruf teilen.
+  const ORDERS_CACHE_MS = 60 * 1000;
+  let ordersCache: OrderView[] | null = null;
+  let ordersCacheTime = 0;
+  let ordersInFlight: Promise<OrderView[]> | null = null;
+
   const headers: Record<string, string> = {
     Accept: 'application/json; charset=utf-8',
   };
@@ -190,12 +200,24 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
     },
 
     async getOrders() {
-      // expand=suborders: Teilauftraege in EINEM Abruf mitladen (statt 1 Detail-GET je Auftrag)
-      // — Basis der Karten-Anzeige „naechster offener Teilauftrag".
-      const params = new URLSearchParams({ expand: 'suborders' });
-      if (cfg.ordersFilter) params.set('filter', cfg.ordersFilter);
-      const raw = await request<Record<string, unknown>[]>(`order-management/v1/orders?${params.toString()}`);
-      return (raw ?? []).map(mapDatevOrder);
+      const now = Date.now();
+      if (ordersCache && now - ordersCacheTime < ORDERS_CACHE_MS) return ordersCache;
+      if (!ordersInFlight) {
+        // expand=suborders: Teilauftraege in EINEM Abruf mitladen (statt 1 Detail-GET je Auftrag)
+        // — Basis der Karten-Anzeige „naechster offener Teilauftrag".
+        const params = new URLSearchParams({ expand: 'suborders' });
+        if (cfg.ordersFilter) params.set('filter', cfg.ordersFilter);
+        ordersInFlight = request<Record<string, unknown>[]>(`order-management/v1/orders?${params.toString()}`)
+          .then((raw) => {
+            ordersCache = (raw ?? []).map(mapDatevOrder);
+            ordersCacheTime = Date.now();
+            return ordersCache;
+          })
+          .finally(() => {
+            ordersInFlight = null;
+          });
+      }
+      return ordersInFlight;
     },
 
     async getClients() {

@@ -37,6 +37,23 @@ async function main(): Promise<void> {
       const ok = await datev.health();
       // eslint-disable-next-line no-console
       console.log(ok ? '[DATEV] erreichbar.' : '[DATEV] NICHT erreichbar (health lieferte kein OK).');
+      if (ok) {
+        // Auftrags-Cache im Hintergrund vorwaermen: der grosse expand-Abruf (am Echtsystem
+        // ~35 s) laeuft schon beim Start — der erste Login trifft dann den warmen Cache.
+        // Bewusst NICHT awaiten (Start blockiert nicht) und nicht-fatal.
+        // eslint-disable-next-line no-console
+        console.log('[DATEV] lade Auftraege vor (Cache) ...');
+        void datev
+          .getOrders()
+          .then((orders) => {
+            // eslint-disable-next-line no-console
+            console.log(`[DATEV] ${orders.length} Auftraege geladen — Board ist jetzt schnell.`);
+          })
+          .catch((err) => {
+            // eslint-disable-next-line no-console
+            console.log(`[DATEV] Vorwaermen fehlgeschlagen (Board laedt beim ersten Aufruf): ${err instanceof Error ? err.message : String(err)}`);
+          });
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       // eslint-disable-next-line no-console
