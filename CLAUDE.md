@@ -63,7 +63,14 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
 - **Mandanten-Klarnamen** (Server-Modus): Board-Aggregat löst `clientId` über
   `datev.getClients()` (Client Master Data, `master-data/v1/clients`) auf — im HTTP-Adapter
   10 Min. gecacht, Ausfall nicht-fatal (Fallback clientId). Monatsfilter im Board: chronologisch,
-  nur ab aktuellem Monat (`heute()`).
+  nur ab aktuellem Monat (`heute()`). Der `getOrders`-Abruf (mit `expand=suborders`) ist im
+  HTTP-Adapter 60 s gecacht + beim Serverstart vorgewärmt (großer Live-Abruf, sonst hängt der
+  erste Login).
+- **Zeiterfassungs-Board** (`src/features/zeiterfassung/ZeiterfassungBoard.tsx`, memtime-Stil,
+  `docs/zeiterfassung-board-konzept.md` §2): eigene Kachel „Zeiterfassung" — Tagesauswahl links,
+  grafische Tages-Timeline mitte, Auftrags-Palette (Suche) rechts, Drag & Drop auf eine Uhrzeit →
+  Entwurf → `addManualTime` (jetzt setzt sie `userId` in BEIDEN Modi: wer bucht, dem gehört die
+  Zeit). `TimeEntry.startMin` = reine Timeline-Anzeige (nicht an DATEV/Server).
 - **Freigaben** (Partner-Cockpit) und **Meine Zeiten** sind reine Sichten über `orders[]`
   (Selektoren `offeneUmplanungen`/`offeneReviewFreigaben`/`zeitenVon`). Das Partner-Cockpit umfasst
   **nur Umplanungen + Review-Notes** — **Zeiten brauchen keine Partner-Freigabe** (s. u.).

@@ -112,7 +112,7 @@ interface AppState {
   pauseTimer: (orderId: string) => void;
   resetTimer: (orderId: string) => void;
   transferTimer: (orderId: string, notiz?: string) => void;
-  addManualTime: (orderId: string, datum: string, dauer: number, notiz?: string, aufwandsart?: Aufwandsart) => void;
+  addManualTime: (orderId: string, datum: string, dauer: number, notiz?: string, aufwandsart?: Aufwandsart, startMin?: number) => void;
   releaseTime: (orderId: string, timeId: string) => void; // Mitarbeiter gibt eigene Zeit frei (erfasst → freigegeben)
   withdrawTime: (orderId: string, timeId: string) => void; // Freigabe zurückziehen (freigegeben → erfasst), solange nicht übertragen
   deleteTime: (orderId: string, timeId: string) => void; // Fehlbuchung löschen — NUR solange Status 'erfasst'
@@ -368,16 +368,21 @@ export const useStore = create<AppState>()(persist((set, get) => ({
     }));
     if (API_MODE && dauer > 0) write.bookTime(orderId, id, { orderId, datum, dauer, notiz: n });
   },
-  addManualTime: (orderId, datum, dauer, notiz, aufwandsart) => {
+  addManualTime: (orderId, datum, dauer, notiz, aufwandsart, startMin) => {
     // Guard (SSOT): ungültige Eingaben verwerfen — die UI validiert zusätzlich. Vollständige
     // Validierung (Obergrenze, Pflicht-Notiz/Aufwandsart, Erfasser) folgt serverseitig in M2 (Review P1.5).
     if (!(dauer > 0) || !datum) return;
     const id = uid();
     const n = notiz?.trim() || undefined;
-    const userId = API_MODE ? get().currentUserId ?? undefined : undefined;
+    // WER bucht, dem gehoert die Zeit — in beiden Modi (Demo hat auch currentUserId). Ohne dies
+    // schriebe die Demo eine Fremdbuchung dem Auftrags-Bearbeiter zu (Zeiterfassungs-Board zeigte
+    // die eigene Buchung dann nicht). Server-Modus erzwingt Ownership ohnehin.
+    const userId = get().currentUserId ?? undefined;
     set((s) => ({
       orders: mapOrder(s.orders, orderId, (o) => ({
-        ...o, times: [...o.times, { id, userId, datum, dauer, status: 'erfasst', notiz: n, aufwandsart }],
+        // startMin ist reine Timeline-Anzeige (Zeiterfassungs-Board) — geht NICHT an den Server;
+        // DATEV speichert nur datum+dauer (kein work_start_time).
+        ...o, times: [...o.times, { id, userId, datum, dauer, status: 'erfasst', notiz: n, aufwandsart, startMin }],
       })),
     }));
     if (API_MODE) write.bookTime(orderId, id, { orderId, datum, dauer, notiz: n, aufwandsart });

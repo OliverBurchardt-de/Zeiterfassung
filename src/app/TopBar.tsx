@@ -8,6 +8,7 @@ const logo = '/assets/logo.svg';
 
 const MODULES: { key: ModuleKey; label: string; adminOnly?: boolean }[] = [
   { key: 'board', label: 'Board' },
+  { key: 'zeiterfassung', label: 'Zeiterfassung' },
   { key: 'planung', label: 'Planung' },
   { key: 'laufende', label: 'Buchungen' },
   { key: 'controlling', label: 'Controlling' },

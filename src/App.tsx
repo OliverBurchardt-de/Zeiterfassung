@@ -10,6 +10,7 @@ import { PlanungView } from '@/features/planung/PlanungView';
 import { ControllingView } from '@/features/controlling/ControllingView';
 import { FreigabenView } from '@/features/freigaben/FreigabenView';
 import { ZeitenView } from '@/features/zeiten/ZeitenView';
+import { ZeiterfassungBoard } from '@/features/zeiterfassung/ZeiterfassungBoard';
 import { VerwaltungView } from '@/features/verwaltung/VerwaltungView';
 import { UserModal } from '@/features/verwaltung/UserModal';
 import { LoginView } from '@/features/auth/LoginView';
@@ -18,7 +19,7 @@ import { useStore } from '@/state/store';
 import { API_MODE } from '@/api/mode';
 import { apiRestore } from '@/api/session';
 
-export type ModuleKey = 'board' | 'planung' | 'laufende' | 'controlling' | 'zeiten' | 'freigaben' | 'verwaltung';
+export type ModuleKey = 'board' | 'zeiterfassung' | 'planung' | 'laufende' | 'controlling' | 'zeiten' | 'freigaben' | 'verwaltung';
 
 export function App() {
   const [module, setModule] = useState<ModuleKey>('board');
@@ -60,6 +61,7 @@ export function App() {
         </>
       )}
 
+      {module === 'zeiterfassung' && <ZeiterfassungBoard />}
       {module === 'planung' && <PlanungView />}
 
       {module === 'laufende' && <LaufendeView />}

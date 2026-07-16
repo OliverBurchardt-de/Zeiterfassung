@@ -94,6 +94,15 @@ vorgemerkt**, damit das Datenmodell der Zeiterfassung (Abschnitt 2) so gebaut wi
    gecacht), **Teilaufträge** via `expand=suborders` — Karte zeigt **nur den nächsten offenen**
    Teilauftrag; Monatsfilter chronologisch + nur nach vorn; Buchungen-Suche über Mandant/
    Mandantennr./Auftrag. E2E: `tools/e2e/e2e-teilauftrag.mjs`.
-2. **Danach:** Zeiterfassungs-Board (Abschnitt 2) als eigenes Feature entwerfen und bauen
-   (nach den Ingentis-Vorbildern).
+2. ✅ **Umgesetzt (15.07.2026) — erste Version:** eigene Kachel „Zeiterfassung"
+   (`src/features/zeiterfassung/ZeiterfassungBoard.tsx`): links Tagesauswahl
+   (Heute/Gestern/Vorgestern + Datumsfeld) mit Tagessumme/„Tag voll?"-Balken; Mitte die
+   Tages-Timeline (07–20 Uhr, 30-Min-Raster, Lücken sichtbar); rechts die Auftrags-Palette mit
+   Suche über Mandantennr./Mandant/Auftrag. Auftrag per Drag & Drop auf eine Uhrzeit → Entwurf
+   (Dauer ±15 Min, Notiz) → „Buchen" über `addManualTime` (dieselbe Freigabe→Sync-Kette).
+   `startMin` ist reine Anzeige (DATEV kennt kein work_start_time); nach Server-Reload stapelt die
+   Timeline Blöcke ohne startMin der Reihe nach. E2E: `tools/e2e/e2e-zeiterfassung.mjs`.
+   **Offen für die nächste Version:** Stoppuhr direkt im Board (Timer→Block), Block ziehen/
+   resizen statt ±-Stepper, Verhältnis „Meine Zeiten" ↔ Zeiterfassungs-Board (Meine Zeiten
+   schrumpft ggf. auf die Freigabe-Funktion).
 3. **V3/V4:** automatische Tätigkeitserfassung (Abschnitt 3).

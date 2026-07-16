@@ -87,6 +87,16 @@ export function zeitenVon(orders: Order[], user: { id: string; name: string }): 
   return out;
 }
 
+/**
+ * Eigene Zeitbuchungen eines Nutzers an EINEM Tag (Zeiterfassungs-Board). Sortiert nach
+ * Startminute (Blöcke ohne startMin ans Ende) — die Timeline positioniert danach.
+ */
+export function zeitenAmTag(orders: Order[], user: { id: string; name: string }, datum: string): ZeitRow[] {
+  return zeitenVon(orders, user)
+    .filter((r) => r.time.datum === datum)
+    .sort((a, b) => (a.time.startMin ?? 1e9) - (b.time.startMin ?? 1e9));
+}
+
 /** Hat der Auftrag noch nicht freigegebene (erfasste) Zeiten? */
 export function hasOffeneZeiten(o: Order): boolean {
   return o.times.some((t) => t.status === 'erfasst');
