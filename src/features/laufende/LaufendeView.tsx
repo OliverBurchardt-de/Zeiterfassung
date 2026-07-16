@@ -3,29 +3,48 @@ import { Trash2 } from 'lucide-react';
 import type { Order, TimeEntry } from '@/lib/types';
 import { useStore, useCurrentUser } from '@/state/store';
 import { useVisibleOrders, istEigeneZeit } from '@/state/selectors';
-import { ART, formatHours, erfassteStunden, artNeedsNotiz, isLaufendeArt, AUFWANDSARTEN, needsAufwandsart, TIME_STATUS } from '@/lib/art';
+import { ART, formatHours, erfassteStunden, artNeedsNotiz, AUFWANDSARTEN, needsAufwandsart, TIME_STATUS } from '@/lib/art';
+import { verhaltenFor } from '@/lib/ordertypes';
 import { rolePolicy } from '@/lib/tokens';
 import type { Aufwandsart } from '@/lib/types';
 import { heute } from '@/lib/heute';
 
 /**
- * Modul „Laufende Buchungen": Auftragsarten ohne Status-Flow (Laufende Steuerberatung,
- * Mehraufwand). Pro Mandant ein Block, in dem nur Zeit gebucht wird — mit Pflicht-Notiz.
+ * Modul „Buchungen": Zeiterfassung für alles, was NICHT im Planungs-Board liegt
+ * (Entscheidung 15.07.2026, docs/zeiterfassung-board-konzept.md §1):
+ *  - LAUFENDE Aufträge (Laufende Steuerberatung, Mehraufwand) — Zeit mit Pflicht-Notiz.
+ *  - SONSTIGE Aufträge (Anträge, Außenprüfungen, Prüfung von Steuerbescheiden …) — ebenfalls
+ *    bebuchbar, damit keine Zeit verloren geht; mit Suchfeld, da es viele sein können.
  * Sichtbarkeit wie überall: nur die für den angemeldeten Nutzer sichtbaren Aufträge.
+ * (Die tagesorientierte Timeline-Sicht — Zeiterfassungs-Board — folgt als eigenes Feature.)
  */
 export function LaufendeView() {
   const orders = useVisibleOrders();
+  const [suche, setSuche] = useState('');
 
-  const byMandant = useMemo(() => {
+  const gruppiert = (liste: Order[]): Array<[string, Order[]]> => {
     const map = new Map<string, Order[]>();
-    for (const o of orders) {
-      if (!isLaufendeArt(o.artKey)) continue;
+    for (const o of liste) {
       const list = map.get(o.mandant) ?? [];
       list.push(o);
       map.set(o.mandant, list);
     }
     return Array.from(map.entries());
-  }, [orders]);
+  };
+
+  const laufende = useMemo(
+    () => gruppiert(orders.filter((o) => verhaltenFor(o.ordertype) === 'laufend')),
+    [orders],
+  );
+  const sonstige = useMemo(() => {
+    const q = suche.trim().toLowerCase();
+    const liste = orders.filter((o) => {
+      if (verhaltenFor(o.ordertype) !== 'sonstige') return false;
+      if (!q) return true;
+      return `${o.mandant} ${o.mandantNr} ${o.auftragsNr} ${o.art}`.toLowerCase().includes(q);
+    });
+    return gruppiert(liste);
+  }, [orders, suche]);
 
   return (
     <div className="placeholder">
@@ -37,13 +56,41 @@ export function LaufendeView() {
       </p>
 
       <div className="laufende">
-        {byMandant.map(([mandant, list]) => (
+        {laufende.map(([mandant, list]) => (
           <div className="panel" key={mandant}>
             <div className="panel__title"><h4>{mandant}</h4></div>
             {list.map((o) => <LaufendeOrder key={o.id} order={o} />)}
           </div>
         ))}
-        {byMandant.length === 0 && <div className="panel"><p className="muted">Keine laufenden Aufträge.</p></div>}
+        {laufende.length === 0 && <div className="panel"><p className="muted">Keine laufenden Aufträge.</p></div>}
+      </div>
+
+      <h2 style={{ fontSize: 'var(--bk-fs-h2)', marginTop: 32, marginBottom: 4 }}>Sonstige Aufträge</h2>
+      <p className="muted" style={{ marginBottom: 12 }}>
+        Aktive Aufträge außerhalb der Planung (z. B. Anträge, Außenprüfungen, Prüfung von
+        Steuerbescheiden). Zeiten werden hier gebucht und wie üblich nach Freigabe übertragen.
+      </p>
+      <div className="field" style={{ maxWidth: 420, marginBottom: 16 }}>
+        <input
+          className="input"
+          placeholder="Mandant oder Auftrag suchen …"
+          value={suche}
+          onChange={(e) => setSuche(e.target.value)}
+          aria-label="Sonstige Aufträge durchsuchen"
+        />
+      </div>
+      <div className="laufende">
+        {sonstige.map(([mandant, list]) => (
+          <div className="panel" key={mandant}>
+            <div className="panel__title"><h4>{mandant}</h4></div>
+            {list.map((o) => <LaufendeOrder key={o.id} order={o} />)}
+          </div>
+        ))}
+        {sonstige.length === 0 && (
+          <div className="panel">
+            <p className="muted">{suche.trim() ? 'Keine Treffer.' : 'Keine sonstigen Aufträge.'}</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -86,7 +133,8 @@ function LaufendeOrder({ order }: { order: Order }) {
     <div className="laufende-order">
       <div className="laufende-order__head">
         <span className="art-badge" style={{ background: art.color }}>{art.label}</span>
-        <span className="laufende-order__art">{order.art}</span>
+        {/* Auftragsnummer + VJ zur Unterscheidung — je Mandant können mehrere gleichartige liegen. */}
+        <span className="laufende-order__art">{order.art} · {order.auftragsNr} · VJ {order.vj}</span>
         <span className="muted laufende-order__sum">{formatHours(gesamt)} gebucht</span>
       </div>
 

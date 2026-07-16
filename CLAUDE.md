@@ -45,9 +45,16 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
   **nur im Auftrags-Detail**: Checkliste **und** Besonderheiten klappen dort als **Flyout** am
   jeweiligen Knopf aus (`CardFlyout` + `ChecklistBody`/`BesonderheitenBody`) — auf den
   Board-Karten bewusst nicht sichtbar (kompakte Kacheln).
+- **Verhalten je Auftragsart** (Entscheidung 15.07.2026, `docs/zeiterfassung-board-konzept.md` §1):
+  `verhaltenFor(ordertype)` in `src/lib/ordertypes.ts` liefert `planbar | laufend | sonstige |
+  intern` (unbekannte Codes fail-safe `sonstige`; Grenzfall 614 dort dokumentiert umschaltbar).
+  **Board/KPIs/Filterleiste/Planung/Controlling zeigen nur `planbar`** (`istPlanbar`, zentral in
+  `useFilteredOrders`); **`sonstige` sind bebuchbar** über das Modul „Buchungen" (LaufendeView,
+  eigener Abschnitt mit Suche) — nur nicht planbar. Keim der M2-Admin-Konfig.
 - **Laufende Arten** (Beratung/Mehraufwand, `LAUFENDE_ARTEN`) nicht im Board, sondern im Modul
-  „Laufende Buchungen" — Zeitbuchung mit Pflicht-Notiz (`artNeedsNotiz`). Schnellbuchung aus dem
-  Auftrag heraus (`QuickTimeDialog`) bucht über Mandant+Art aufs passende laufende Order.
+  „Buchungen" (Abschnitt „Laufende Buchungen") — Zeitbuchung mit Pflicht-Notiz (`artNeedsNotiz`).
+  Schnellbuchung aus dem Auftrag heraus (`QuickTimeDialog`) bucht über Mandant+Art aufs passende
+  laufende Order.
 - **Teilaufträge** (ordertype-genau via `hasTeilauftraege`/`teilauftragRhythmus`): Monats- **oder**
   Quartals-Suborders am Order (`suborders[]`), „erledigt" via `setSuborderDone`
   (DATEV `date_work_completed`).

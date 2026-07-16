@@ -86,8 +86,10 @@ vorgemerkt**, damit das Datenmodell der Zeiterfassung (Abschnitt 2) so gebaut wi
 
 ## 4. Einordnung in die Roadmap
 
-1. **Jetzt:** Auftragsart-Konfiguration (Abschnitt 1) ins Projekt gießen + Planungs-Board auf
-   `planbar` filtern. Damit ist die saubere Datenbasis gesetzt und das „zu viel" behoben.
+1. ✅ **Umgesetzt (15.07.2026):** Auftragsart-Konfiguration (Abschnitt 1) ins Projekt gegossen
+   (`verhaltenFor` in `src/lib/ordertypes.ts`) + Planungs-Board/KPIs/Filter/Planung/Controlling
+   auf `planbar` gefiltert; `sonstige` bebuchbar im Modul „Buchungen" (Abschnitt „Sonstige
+   Aufträge" mit Suche). E2E-Suite: `tools/e2e/e2e-verhalten.mjs`.
 2. **Danach:** Zeiterfassungs-Board (Abschnitt 2) als eigenes Feature entwerfen und bauen
    (nach den Ingentis-Vorbildern).
 3. **V3/V4:** automatische Tätigkeitserfassung (Abschnitt 3).

@@ -2,8 +2,8 @@ import { Check } from 'lucide-react';
 import { useStore } from '@/state/store';
 import { useVisibleOrders } from '@/state/selectors';
 import { EMPLOYEES } from '@/mock/orders';
-import { ART, isLaufendeArt } from '@/lib/art';
-import { ORDERTYPE_GROUPS } from '@/lib/ordertypes';
+import { ART } from '@/lib/art';
+import { ORDERTYPES, artKeyForOrdertype, istPlanbar } from '@/lib/ordertypes';
 import type { ArtKey, Employee, Order } from '@/lib/types';
 import { API_MODE } from '@/api/mode';
 import { initialenAus } from '@/api/mapping';
@@ -22,8 +22,15 @@ function employeesFrom(orders: Order[]): Employee[] {
   return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name, 'de'));
 }
 
-// Board-Filter = nicht-interne DATEV-Gruppen (laufende Arten leben im Modul „Laufende Buchungen").
-const ART_FILTER: ArtKey[] = ORDERTYPE_GROUPS.filter((g) => !g.internal && g.art).map((g) => g.art as ArtKey);
+// Board-Filter = nur Buckets, in denen PLANBARE Auftragsarten liegen (Entscheidung 15.07.2026) —
+// sonst böte die Leiste Filter an, die im Board nie Treffer haben können.
+const ART_FILTER: ArtKey[] = Array.from(
+  new Set(
+    ORDERTYPES.filter((t) => istPlanbar(t.ordertype))
+      .map((t) => artKeyForOrdertype(t.ordertype, t.groupId))
+      .filter((a): a is ArtKey => a !== null),
+  ),
+);
 const ART_LABEL: Record<ArtKey, string> = {
   fibu: 'Finanzbuchhaltung', lohn: 'Lohnbuchführung', ja: 'Jahresabschluss', est: 'Private Steuern',
   beratung: 'Steuerliche Beratung', wirtschaft: 'Wirtschaftliche Beratung', hausverwaltung: 'Hausverwaltung',
@@ -31,10 +38,10 @@ const ART_LABEL: Record<ArtKey, string> = {
 };
 
 export function FilterSidebar() {
-  // Dieselbe Basis wie das Board: sichtbare Aufträge ohne laufende Arten — sonst zeigen die
-  // Zähler Zahlen, die der Nutzer gar nicht sehen darf bzw. die dem Board widersprechen.
+  // Dieselbe Basis wie das Board: sichtbare, PLANBARE Aufträge — sonst zeigen die
+  // Zähler Zahlen, die dem Board widersprechen.
   const visible = useVisibleOrders();
-  const orders = visible.filter((o) => !isLaufendeArt(o.artKey));
+  const orders = visible.filter((o) => istPlanbar(o.ordertype));
   const filters = useStore((s) => s.filters);
   const setEmployee = useStore((s) => s.setEmployee);
   const setMonat = useStore((s) => s.setMonat);

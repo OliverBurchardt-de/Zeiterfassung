@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import type { Order, Note, TimeEntry, User, AuftragsAnforderung } from '@/lib/types';
 import { useStore, noteOffen } from './store';
-import { erfassteStunden, isLaufendeArt } from '@/lib/art';
+import { erfassteStunden } from '@/lib/art';
+import { istPlanbar } from '@/lib/ordertypes';
 import { heute } from '@/lib/heute';
 
 // ---- Sichtbarkeit / Zugriff ---------------------------------------------
@@ -136,8 +137,10 @@ export function useFilteredOrders(): Order[] {
   const f = useStore((s) => s.filters);
 
   return orders.filter((o) => {
-    // Laufende Buchungs-Arten (Beratung/Mehraufwand) gehören nicht ins Kanban-Board
-    if (isLaufendeArt(o.artKey)) return false;
+    // Nur PLANBARE Auftragsarten gehören ins Kanban-Board (Entscheidung 15.07.2026,
+    // docs/zeiterfassung-board-konzept.md §1) — laufende, sonstige und interne nicht.
+    // Sonstige bleiben bebuchbar über das Buchungs-Modul (LaufendeView, Abschnitt „Sonstige").
+    if (!istPlanbar(o.ordertype)) return false;
     if (f.employeeId !== 'team' && o.bearbeiterId !== f.employeeId) return false;
     if (f.monat !== 'alle' && o.monat !== f.monat) return false;
     if (f.vj !== 'alle' && o.vj !== f.vj) return false;

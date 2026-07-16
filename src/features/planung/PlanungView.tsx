@@ -8,7 +8,8 @@ import type { Order } from '@/lib/types';
 import { useStore, useCurrentUser } from '@/state/store';
 import { useVisibleOrders, umplanungFreiMoeglich } from '@/state/selectors';
 import { rolePolicy } from '@/lib/tokens';
-import { ART, formatHours, erfassteStunden, isLaufendeArt } from '@/lib/art';
+import { ART, formatHours, erfassteStunden } from '@/lib/art';
+import { istPlanbar } from '@/lib/ordertypes';
 import { arbeitstage, monthRange } from '@/lib/monate';
 import { EMPLOYEES, DEMO_KALENDER } from '@/mock/orders';
 import { API_MODE } from '@/api/mode';
@@ -70,7 +71,8 @@ export function PlanungView() {
   const kapazitaet = (m: string) => Math.round(tagessoll * arbeitstage(m) * (tageProWoche / 5));
 
   const meine = useMemo(
-    () => (empId ? orders.filter((o) => o.bearbeiterId === empId && !isLaufendeArt(o.artKey)) : []),
+    // Geplant wird nur, was planbar ist (Entscheidung 15.07.2026) — wie im Board.
+    () => (empId ? orders.filter((o) => o.bearbeiterId === empId && istPlanbar(o.ordertype)) : []),
     [orders, empId],
   );
   const pool = meine.filter((o) => !o.monat);

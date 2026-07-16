@@ -136,3 +136,51 @@ export const LAUFENDE_ORDERTYPES: Record<string, ArtKey> = {
 export function artKeyForOrdertype(ordertype: string, groupId: number): ArtKey | null {
   return LAUFENDE_ORDERTYPES[ordertype] ?? ORDERTYPE_GROUP_TO_ART[groupId] ?? null;
 }
+
+/**
+ * Verhalten einer Auftragsart in der App (Entscheidung des Auftraggebers 15.07.2026, je Ordertype
+ * per Excel-Durchsprache festgelegt — `docs/zeiterfassung-board-konzept.md` §1):
+ *  - 'planbar'  → erscheint im Planungs-Board und wird auf Monate geplant (Kernprozess).
+ *  - 'laufend'  → läuft im Hintergrund mit (Modul „Laufende Buchungen": Zeit + Pflicht-Notiz).
+ *  - 'sonstige' → aktive Mandatsarbeit, NICHT im Board — aber bebuchbar (Sicht „Sonstige Aufträge";
+ *                 später Teil des Zeiterfassungs-Boards).
+ *  - 'intern'   → kanzleiintern (Verwaltung/Abwesenheit), nie im Board.
+ * Keim der M2-Admin-Konfiguration (dann pro Kanzlei im Admin-Bereich pflegbar).
+ */
+export type OrdertypeVerhalten = 'planbar' | 'laufend' | 'sonstige' | 'intern';
+
+/** Die zu planenden Auftragsarten (Board) — abgestimmte Liste vom 15.07.2026. */
+const PLANBARE_ORDERTYPES = new Set([
+  '106', '107', '108', '310', '320', // Buchführung + Reporting
+  '202', // Lohnbuchführung
+  '301', '302', '303', // Jahresabschluss/EÜR/betr. StE
+  '501', '502', '504', '505', // Private Steuern
+  '800', '802', // Hausverwaltung
+  'FinVermV', 'MaBV', 'JAP', // Vorbehaltsaufgaben
+]);
+
+/**
+ * Verhalten eines Ordertypes bestimmen. Unbekannte Codes gelten fail-safe als 'sonstige'
+ * (bebuchbar, aber nicht im Board — nichts geht verloren, nichts verstopft die Planung).
+ *
+ * Grenzfall 614 (Begleitung Außenprüfung DRV, Entscheidung 15.07.2026): vorerst 'sonstige';
+ * kann später hier auf 'planbar' ODER — als Mehraufwand im Lohn-Kontext — via
+ * LAUFENDE_ORDERTYPES auf 'laufend' umgestellt werden (Ein-Zeilen-Wechsel).
+ */
+export function verhaltenFor(ordertype: string): OrdertypeVerhalten {
+  if (LAUFENDE_ORDERTYPES[ordertype]) return 'laufend';
+  if (PLANBARE_ORDERTYPES.has(ordertype)) return 'planbar';
+  const info = ORDERTYPE_BY_CODE[ordertype];
+  if (info && ORDERTYPE_GROUPS.find((g) => g.id === info.groupId)?.internal) return 'intern';
+  return 'sonstige';
+}
+
+/** Kurzform: gehört dieser Ordertype ins Planungs-Board? */
+export function istPlanbar(ordertype: string): boolean {
+  return verhaltenFor(ordertype) === 'planbar';
+}
+
+/** Kurzform: aktive Mandatsarbeit außerhalb des Boards (bebuchbar über „Sonstige Aufträge"). */
+export function istSonstige(ordertype: string): boolean {
+  return verhaltenFor(ordertype) === 'sonstige';
+}

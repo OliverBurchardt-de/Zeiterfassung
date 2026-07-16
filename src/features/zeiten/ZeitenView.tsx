@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { Order } from '@/lib/types';
 import { useStore } from '@/state/store';
 import { ART, formatHours, isLaufendeArt, AUFWANDSARTEN, TIME_STATUS } from '@/lib/art';
+import { istPlanbar } from '@/lib/ordertypes';
 import { STATUS, rolePolicy } from '@/lib/tokens';
 import { zeitenVon, ohneZeit } from '@/state/selectors';
 import { useCurrentUser } from '@/state/store';
@@ -28,7 +29,8 @@ export function ZeitenView() {
   const summeGesamt = alle.reduce((s, z) => s + z.time.dauer, 0);
   const darfFreigeben = rolePolicy.canReleaseOwnTime(role);
 
-  const ohne = orders.filter((o) => o.bearbeiter === meName && !isLaufendeArt(o.artKey) && ohneZeit(o));
+  // Erinnert nur an PLANBARE Aufträge ohne Zeit — sonstige/laufende haben kein Zeit-Soll je Auftrag.
+  const ohne = orders.filter((o) => o.bearbeiter === meName && istPlanbar(o.ordertype) && ohneZeit(o));
 
   return (
     <div className="placeholder">
