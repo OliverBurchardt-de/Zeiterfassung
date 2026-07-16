@@ -1,6 +1,7 @@
 import type {
   User,
   OrderView,
+  DatevClient,
   TimeEntry,
   Note,
   NoteComment,
@@ -149,5 +150,7 @@ export interface DatevPort {
   health(): Promise<boolean>;
   getOrders(): Promise<OrderView[]>;
   getOrder(id: string): Promise<OrderView | undefined>;
+  /** Mandanten-Stammdaten (Client Master Data) — Namensaufloesung am Board; Adapter cacht. */
+  getClients(): Promise<DatevClient[]>;
   postExpensePosting(p: ExpensePosting): Promise<{ id: string }>;
 }

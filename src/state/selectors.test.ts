@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canComplete, istUeberfaellig, auslastungPct, heuteErfasst, sichtbareAuftraege, umplanungFreiMoeglich, zeitenVon, istEigeneZeit } from './selectors';
+import { canComplete, istUeberfaellig, auslastungPct, heuteErfasst, sichtbareAuftraege, umplanungFreiMoeglich, zeitenVon, istEigeneZeit, naechsterOffenerTeilauftrag } from './selectors';
 import { HEUTE, MOCK_ORDERS } from '@/mock/orders';
 import type { Order, User } from '@/lib/types';
 
@@ -103,5 +103,30 @@ describe('heuteErfasst', () => {
       ],
     });
     expect(heuteErfasst([o]).gesamt).toBe(2);
+  });
+});
+
+describe('naechsterOffenerTeilauftrag', () => {
+  const basis = MOCK_ORDERS[0];
+  it('liefert den chronologisch naechsten OFFENEN Teilauftrag (Entscheidung 15.07.2026)', () => {
+    const o: Order = {
+      ...basis,
+      suborders: [
+        { id: 's3', monat: 'Mär 2026', soll: 1, erfasst: 0 },
+        { id: 's1', monat: 'Jan 2026', soll: 1, erfasst: 0, erledigtAm: '2026-02-05' },
+        { id: 's4', monat: 'Apr 2026', soll: 1, erfasst: 0 },
+        { id: 's2', monat: 'Feb 2026', soll: 1, erfasst: 0, erledigtAm: '2026-03-04' },
+      ],
+    };
+    expect(naechsterOffenerTeilauftrag(o)?.monat).toBe('Mär 2026');
+  });
+  it('undefined ohne Teilauftraege; undefined wenn alle erledigt', () => {
+    expect(naechsterOffenerTeilauftrag({ ...basis, suborders: undefined })).toBeUndefined();
+    expect(
+      naechsterOffenerTeilauftrag({
+        ...basis,
+        suborders: [{ id: 's1', monat: 'Jan 2026', soll: 1, erfasst: 0, erledigtAm: '2026-02-01' }],
+      }),
+    ).toBeUndefined();
   });
 });

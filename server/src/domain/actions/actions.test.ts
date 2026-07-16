@@ -25,6 +25,7 @@ const datev: DatevPort = {
   health: async () => true,
   getOrders: async () => ORDERS,
   getOrder: async (id) => ORDERS.find((o) => o.id === id),
+  getClients: async () => [],
   postExpensePosting: async () => ({ id: 'mock' }),
 };
 

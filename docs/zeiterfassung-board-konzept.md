@@ -90,6 +90,10 @@ vorgemerkt**, damit das Datenmodell der Zeiterfassung (Abschnitt 2) so gebaut wi
    (`verhaltenFor` in `src/lib/ordertypes.ts`) + Planungs-Board/KPIs/Filter/Planung/Controlling
    auf `planbar` gefiltert; `sonstige` bebuchbar im Modul „Buchungen" (Abschnitt „Sonstige
    Aufträge" mit Suche). E2E-Suite: `tools/e2e/e2e-verhalten.mjs`.
+   Ebenfalls ✅ (gleicher Tag): **Mandanten-Klarnamen** am Board (Client-Master-Data-Lookup,
+   gecacht), **Teilaufträge** via `expand=suborders` — Karte zeigt **nur den nächsten offenen**
+   Teilauftrag; Monatsfilter chronologisch + nur nach vorn; Buchungen-Suche über Mandant/
+   Mandantennr./Auftrag. E2E: `tools/e2e/e2e-teilauftrag.mjs`.
 2. **Danach:** Zeiterfassungs-Board (Abschnitt 2) als eigenes Feature entwerfen und bauen
    (nach den Ingentis-Vorbildern).
 3. **V3/V4:** automatische Tätigkeitserfassung (Abschnitt 3).

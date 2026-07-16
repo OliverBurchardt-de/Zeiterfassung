@@ -32,29 +32,44 @@ export function LaufendeView() {
     return Array.from(map.entries());
   };
 
-  const laufende = useMemo(
-    () => gruppiert(orders.filter((o) => verhaltenFor(o.ordertype) === 'laufend')),
-    [orders],
-  );
-  const sonstige = useMemo(() => {
+  // EINE Suche über beide Abschnitte — nach Mandant, Mandantennummer, Auftrag oder Art
+  // (Feedback 15.07.2026: ohne Suche findet man in den Buchungen nichts).
+  const passtZurSuche = (o: Order): boolean => {
     const q = suche.trim().toLowerCase();
-    const liste = orders.filter((o) => {
-      if (verhaltenFor(o.ordertype) !== 'sonstige') return false;
-      if (!q) return true;
-      return `${o.mandant} ${o.mandantNr} ${o.auftragsNr} ${o.art}`.toLowerCase().includes(q);
-    });
-    return gruppiert(liste);
-  }, [orders, suche]);
+    if (!q) return true;
+    return `${o.mandant} ${o.mandantNr} ${o.auftragsNr} ${o.art}`.toLowerCase().includes(q);
+  };
+  const laufende = useMemo(
+    () => gruppiert(orders.filter((o) => verhaltenFor(o.ordertype) === 'laufend' && passtZurSuche(o))),
+    [orders, suche], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const sonstige = useMemo(
+    () => gruppiert(orders.filter((o) => verhaltenFor(o.ordertype) === 'sonstige' && passtZurSuche(o))),
+    [orders, suche], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   return (
     <div className="placeholder">
       <div className="eyebrow" style={{ color: 'var(--bk-blue)' }}>Zeiterfassung</div>
-      <h1 style={{ fontSize: 'var(--bk-fs-h1)', marginBottom: 4 }}>Laufende Buchungen</h1>
-      <p className="muted" style={{ marginBottom: 20 }}>
-        Beratungsleistungen und Mehraufwand werden hier laufend gebucht — ohne Status-Ablauf.
-        Eine Notiz ist bei diesen Aufträgen Pflicht.
+      <h1 style={{ fontSize: 'var(--bk-fs-h1)', marginBottom: 4 }}>Buchungen</h1>
+      <p className="muted" style={{ marginBottom: 12 }}>
+        Zeiterfassung für Aufträge außerhalb der Planung: laufende Leistungen (mit Pflicht-Notiz)
+        und sonstige aktive Aufträge.
       </p>
+      <div className="field" style={{ maxWidth: 420, marginBottom: 20 }}>
+        <input
+          className="input"
+          placeholder="Mandant, Mandantennr. oder Auftrag suchen …"
+          value={suche}
+          onChange={(e) => setSuche(e.target.value)}
+          aria-label="Buchungen durchsuchen"
+        />
+      </div>
 
+      <h2 style={{ fontSize: 'var(--bk-fs-h2)', marginBottom: 4 }}>Laufende Buchungen</h2>
+      <p className="muted" style={{ marginBottom: 12 }}>
+        Beratungsleistungen und Mehraufwand — eine Notiz ist bei diesen Aufträgen Pflicht.
+      </p>
       <div className="laufende">
         {laufende.map(([mandant, list]) => (
           <div className="panel" key={mandant}>
@@ -62,7 +77,9 @@ export function LaufendeView() {
             {list.map((o) => <LaufendeOrder key={o.id} order={o} />)}
           </div>
         ))}
-        {laufende.length === 0 && <div className="panel"><p className="muted">Keine laufenden Aufträge.</p></div>}
+        {laufende.length === 0 && (
+          <div className="panel"><p className="muted">{suche.trim() ? 'Keine Treffer.' : 'Keine laufenden Aufträge.'}</p></div>
+        )}
       </div>
 
       <h2 style={{ fontSize: 'var(--bk-fs-h2)', marginTop: 32, marginBottom: 4 }}>Sonstige Aufträge</h2>
@@ -70,15 +87,6 @@ export function LaufendeView() {
         Aktive Aufträge außerhalb der Planung (z. B. Anträge, Außenprüfungen, Prüfung von
         Steuerbescheiden). Zeiten werden hier gebucht und wie üblich nach Freigabe übertragen.
       </p>
-      <div className="field" style={{ maxWidth: 420, marginBottom: 16 }}>
-        <input
-          className="input"
-          placeholder="Mandant oder Auftrag suchen …"
-          value={suche}
-          onChange={(e) => setSuche(e.target.value)}
-          aria-label="Sonstige Aufträge durchsuchen"
-        />
-      </div>
       <div className="laufende">
         {sonstige.map(([mandant, list]) => (
           <div className="panel" key={mandant}>

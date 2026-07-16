@@ -3,6 +3,7 @@ import type { Order, Note, TimeEntry, User, AuftragsAnforderung } from '@/lib/ty
 import { useStore, noteOffen } from './store';
 import { erfassteStunden } from '@/lib/art';
 import { istPlanbar } from '@/lib/ordertypes';
+import { parseMonat } from '@/lib/monate';
 import { heute } from '@/lib/heute';
 
 // ---- Sichtbarkeit / Zugriff ---------------------------------------------
@@ -154,6 +155,22 @@ export function useFilteredOrders(): Order[] {
     }
     return true;
   });
+}
+
+/**
+ * Nächster OFFENER Teilauftrag eines Auftrags (Entscheidung 15.07.2026): Auf der Karte zählt
+ * nur der nächste noch nicht abgeschlossene Monat/Quartal — nicht die ganze Liste. Sortiert
+ * chronologisch über den Monat (Suborder kommen aus DATEV nicht garantiert sortiert).
+ */
+export function naechsterOffenerTeilauftrag(o: Order) {
+  const offene = (o.suborders ?? []).filter((s) => !s.erledigtAm);
+  if (offene.length === 0) return undefined;
+  return [...offene].sort((a, b) => {
+    const pa = parseMonat(a.monat);
+    const pb = parseMonat(b.monat);
+    if (!pa || !pb) return 0;
+    return pa.year - pb.year || pa.monthIndex - pb.monthIndex;
+  })[0];
 }
 
 /** KPI-Kennzahlen für die gefilterte Sicht */

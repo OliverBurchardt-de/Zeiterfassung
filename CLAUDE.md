@@ -57,7 +57,13 @@ Freigaben laufen zwischen **Mitarbeiter** und **mandatsverantwortlichem Partner*
   laufende Order.
 - **Teilaufträge** (ordertype-genau via `hasTeilauftraege`/`teilauftragRhythmus`): Monats- **oder**
   Quartals-Suborders am Order (`suborders[]`), „erledigt" via `setSuborderDone`
-  (DATEV `date_work_completed`).
+  (DATEV `date_work_completed`). Server-Modus lädt sie via **`expand=suborders`** in einem Abruf
+  mit; die Board-Karte zeigt **nur den nächsten offenen** Teilauftrag
+  (`naechsterOffenerTeilauftrag` in `selectors.ts`, Chip `chip--teil`; Entscheidung 15.07.2026).
+- **Mandanten-Klarnamen** (Server-Modus): Board-Aggregat löst `clientId` über
+  `datev.getClients()` (Client Master Data, `master-data/v1/clients`) auf — im HTTP-Adapter
+  10 Min. gecacht, Ausfall nicht-fatal (Fallback clientId). Monatsfilter im Board: chronologisch,
+  nur ab aktuellem Monat (`heute()`).
 - **Freigaben** (Partner-Cockpit) und **Meine Zeiten** sind reine Sichten über `orders[]`
   (Selektoren `offeneUmplanungen`/`offeneReviewFreigaben`/`zeitenVon`). Das Partner-Cockpit umfasst
   **nur Umplanungen + Review-Notes** — **Zeiten brauchen keine Partner-Freigabe** (s. u.).

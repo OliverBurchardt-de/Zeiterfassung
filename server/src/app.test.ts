@@ -325,6 +325,11 @@ describe('Board-API', () => {
     expect(board[0].partnerName).toBe('O. Burchardt');
     expect(board[0].clientName).toBe('Hotel Seeblick KG');
     expect(board[0].plannedEnd).toBe('2026-03-31');
+    // Teilauftraege (expand): kommen mit Periode + Abschlussdatum durch — Maerz ist der
+    // naechste offene (Jan/Feb erledigt, s. Mock-Adapter).
+    const subs = board[0].suborders as Array<{ name: string; dateWorkCompleted?: string }>;
+    expect(subs).toHaveLength(4);
+    expect(subs.filter((s) => !s.dateWorkCompleted).map((s) => s.name)).toEqual(['März 2026', 'April 2026']);
   });
 
   it('enthaelt gebuchte Zeiten, Notes samt Autor-Namen und den Board-Status', async () => {

@@ -36,12 +36,12 @@ check(pageText.includes('betriebswirtschaftliche Beratung') || pageText.includes
   'Sonstige Aufträge (701/607) erscheinen im Buchungs-Modul');
 
 // Suche in Sonstigen
-await p.fill('input[aria-label="Sonstige Aufträge durchsuchen"]', 'Außenprüfung');
+await p.fill('input[aria-label="Buchungen durchsuchen"]', 'Außenprüfung');
 await p.waitForTimeout(300);
 const nachSuche = await p.locator('body').innerText();
 check(nachSuche.includes('Außenprüfung') && !nachSuche.includes('betriebswirtschaftliche Beratung'),
   'Suche filtert die sonstigen Aufträge');
-await p.fill('input[aria-label="Sonstige Aufträge durchsuchen"]', '');
+await p.fill('input[aria-label="Buchungen durchsuchen"]', '');
 await p.waitForTimeout(300);
 
 // Zeit auf einen SONSTIGEN Auftrag buchen (Außenprüfung): Panel finden, Dauer eintragen, buchen

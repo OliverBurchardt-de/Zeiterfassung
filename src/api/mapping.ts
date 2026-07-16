@@ -72,7 +72,14 @@ export function mapBoardOrder(dto: ApiBoardOrder): Order {
     bearbeiterId: dto.responsibleId ?? '',
     partner: dto.partnerName ?? '',
     checklist: dto.checklist.map((c) => ({ id: c.id, label: c.label, done: c.done, herkunft: c.herkunft })),
-    suborders: undefined, // Teilaufträge kommen mit der Suborder-API (Etappe 3)
+    // Teilaufträge: Monat aus dem Leistungszeitraum (period_from), erledigt = date_work_completed.
+    suborders: dto.suborders?.map((s) => ({
+      id: String(s.number),
+      monat: monatAus(s.periodFrom ?? s.periodTo) || s.name,
+      soll: s.plannedHours ?? 0,
+      erfasst: 0, // Ist je Teilauftrag liefert erst der DATEV-Kostenabruf (späterer Schritt)
+      erledigtAm: s.dateWorkCompleted,
+    })),
     notes: dto.notes.map((n) => ({
       id: n.id,
       text: n.text,

@@ -1,6 +1,6 @@
 import { Agent } from 'node:https';
 import type { DatevPort, ExpensePosting } from '../domain/ports';
-import type { OrderView } from '../domain/types';
+import type { OrderView, SuborderView, DatevClient } from '../domain/types';
 import type { DatevConfig } from '../config';
 
 /**
@@ -36,6 +36,18 @@ export function mapDatevOrder(raw: Record<string, unknown>): OrderView {
     return m ? `${m[3]}-${m[2]}-${m[1]}` : undefined;
   };
 
+  // Teilauftraege (via `expand=suborders` mitgeladen): reduziert auf die App-relevanten Felder.
+  const suborders: SuborderView[] | undefined = Array.isArray(raw.suborders)
+    ? (raw.suborders as Record<string, unknown>[]).map((s) => ({
+        number: num(s.suborder_number) ?? 0,
+        name: str(s.suborder_name) ?? '',
+        periodFrom: isoDate(s.period_from),
+        periodTo: isoDate(s.period_to),
+        plannedHours: num(s.planned_hours),
+        dateWorkCompleted: isoDate(s.date_work_completed),
+      }))
+    : undefined;
+
   return {
     id: String(raw.id ?? raw.order_id ?? ''),
     orderNumber: num(raw.order_number) ?? 0,
@@ -52,8 +64,18 @@ export function mapDatevOrder(raw: Record<string, unknown>): OrderView {
     billingStatus: str(raw.billing_status) || undefined,
     plannedStart: isoDate(raw.planned_start),
     plannedEnd: isoDate(raw.planned_end),
-    // clientName/clientNumber kommen aus den Client Master Data (eigener Lookup, spaeterer
-    // M2-Schritt) — hier bewusst leer; das Frontend faellt auf die clientId zurueck.
+    // clientName/clientNumber loest das Board-Aggregat ueber getClients() auf (Master Data).
+    ...(suborders && suborders.length ? { suborders } : {}),
+  };
+}
+
+/** Client-Master-Data-Zeile -> DatevClient (differing_name hat Vorrang vor name, wie in EO). */
+export function mapDatevClient(raw: Record<string, unknown>): DatevClient {
+  const name = raw.differing_name ?? raw.name;
+  return {
+    id: String(raw.id ?? ''),
+    name: name === null || name === undefined ? '' : String(name),
+    number: raw.number === null || raw.number === undefined ? undefined : String(raw.number),
   };
 }
 
@@ -77,6 +99,12 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
     cfg.auth === 'ntlm' && cfg.tlsInsecure && base.startsWith('https:')
       ? new Agent({ keepAlive: true, rejectUnauthorized: false })
       : undefined;
+
+  // Cache fuer die Mandanten-Stammdaten (siehe getClients).
+  const CLIENTS_CACHE_MS = 10 * 60 * 1000;
+  let clientsCache: DatevClient[] | null = null;
+  let clientsCacheTime = 0;
+  let clientsInFlight: Promise<DatevClient[]> | null = null;
 
   const headers: Record<string, string> = {
     Accept: 'application/json; charset=utf-8',
@@ -162,9 +190,31 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
     },
 
     async getOrders() {
-      const q = cfg.ordersFilter ? `?filter=${encodeURIComponent(cfg.ordersFilter)}` : '';
-      const raw = await request<Record<string, unknown>[]>(`order-management/v1/orders${q}`);
+      // expand=suborders: Teilauftraege in EINEM Abruf mitladen (statt 1 Detail-GET je Auftrag)
+      // — Basis der Karten-Anzeige „naechster offener Teilauftrag".
+      const params = new URLSearchParams({ expand: 'suborders' });
+      if (cfg.ordersFilter) params.set('filter', cfg.ordersFilter);
+      const raw = await request<Record<string, unknown>[]>(`order-management/v1/orders?${params.toString()}`);
       return (raw ?? []).map(mapDatevOrder);
+    },
+
+    async getClients() {
+      // Stammdaten aendern sich selten: 10 Minuten cachen, damit nicht jeder Board-Aufruf die
+      // komplette Mandantenliste zieht; parallele Aufrufe teilen sich denselben Abruf.
+      const now = Date.now();
+      if (clientsCache && now - clientsCacheTime < CLIENTS_CACHE_MS) return clientsCache;
+      if (!clientsInFlight) {
+        clientsInFlight = request<Record<string, unknown>[]>('master-data/v1/clients')
+          .then((raw) => {
+            clientsCache = (raw ?? []).map(mapDatevClient);
+            clientsCacheTime = Date.now();
+            return clientsCache;
+          })
+          .finally(() => {
+            clientsInFlight = null;
+          });
+      }
+      return clientsInFlight;
     },
 
     async getOrder(id) {

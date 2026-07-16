@@ -28,6 +28,14 @@ const SAMPLE_ORDERS: OrderView[] = [
     billingStatus: 'partially invoiced',
     plannedStart: '2026-03-01',
     plannedEnd: '2026-03-31',
+    // Monats-Teilauftraege (202 Lohn): Januar/Februar abgeschlossen, Maerz ist der naechste
+    // offene — Basis der Karten-Anzeige „Teilauftrag ..." im Server-Modus.
+    suborders: [
+      { number: 1, name: 'Januar 2026', periodFrom: '2026-01-01', periodTo: '2026-01-31', plannedHours: 1.5, dateWorkCompleted: '2026-02-05' },
+      { number: 2, name: 'Februar 2026', periodFrom: '2026-02-01', periodTo: '2026-02-28', plannedHours: 1.5, dateWorkCompleted: '2026-03-04' },
+      { number: 3, name: 'März 2026', periodFrom: '2026-03-01', periodTo: '2026-03-31', plannedHours: 1.5 },
+      { number: 4, name: 'April 2026', periodFrom: '2026-04-01', periodTo: '2026-04-30', plannedHours: 1.5 },
+    ],
   },
   {
     id: '9001',
@@ -72,6 +80,13 @@ export function createMockDatevAdapter(): DatevPort {
     },
     async getOrder(id) {
       return SAMPLE_ORDERS.find((o) => o.id === id);
+    },
+    async getClients() {
+      // Stammdaten passend zu den Beispiel-Auftraegen (clientName tragen die Orders hier ohnehin).
+      return [
+        { id: 'client-1', name: 'Hotel Seeblick KG', number: '10230' },
+        { id: 'client-2', name: 'Praxis Dr. Wagner', number: '10475' },
+      ];
     },
     async postExpensePosting(_posting: ExpensePosting) {
       postingCounter += 1;

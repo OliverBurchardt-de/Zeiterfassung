@@ -4,7 +4,7 @@ import type { Order } from '@/lib/types';
 import { ART, formatTimer, formatHours, erfassteStunden } from '@/lib/art';
 import { STATUS } from '@/lib/tokens';
 import { offeneNotes, useStore, timerSeconds } from '@/state/store';
-import { hasOffeneZeiten } from '@/state/selectors';
+import { hasOffeneZeiten, naechsterOffenerTeilauftrag } from '@/state/selectors';
 
 /**
  * Reine Darstellung einer Karte – wird sowohl im Board als auch im Drag-Overlay genutzt.
@@ -31,6 +31,14 @@ function CardInner({ order }: { order: Order }) {
         <span className="chip">Soll {order.soll} h</span>
         <span className="chip">Ist {formatHours(erfassteStunden(order.times))}</span>
         <span className="chip">{order.monat || 'ungeplant'}</span>
+        {/* Teilauftrags-Aufträge (FiBu/Lohn/Reporting): NUR den nächsten offenen Monat zeigen
+            (Entscheidung 15.07.2026) — erledigt = abgehakt, die Karte zeigt, was ansteht. */}
+        {(() => {
+          const next = naechsterOffenerTeilauftrag(order);
+          if (next) return <span className="chip chip--teil">Teilauftrag {next.monat}</span>;
+          if (order.suborders?.length) return <span className="chip chip--teil">Teilaufträge erledigt</span>;
+          return null;
+        })()}
       </div>
 
       <div className="card__state">

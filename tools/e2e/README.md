@@ -12,6 +12,7 @@ und einen Browser — dafür prüfen sie die App durchgehend wie ein echter Benu
 | `e2e-codexfixes.mjs` | Codex-Review-Fixes: echtes Arbeitsdatum, Zeit-Ownership, Gate-Seed, Planungs-IDs |
 | `e2e-demo-regression.mjs` | Demo-Modus unverändert (Mock-Daten, HEUTE-Stichtag) |
 | `e2e-verhalten.mjs` | Auftragsart-Behandlung (Demo, Port 5173): Board nur planbar, Filterleiste ohne leere Buckets, Sektion „Sonstige Aufträge" buchbar + Suche |
+| `e2e-teilauftrag.mjs` | Server-Modus: Karte zeigt NUR den nächsten offenen Teilauftrag + Mandanten-Klarname |
 
 ## Ausführen
 

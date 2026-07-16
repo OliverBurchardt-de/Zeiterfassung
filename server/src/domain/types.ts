@@ -68,12 +68,35 @@ export interface OrderView {
   plannedEnd?: string;
   /**
    * Mandanten-Anzeige (Name/Nummer). DATEV-Orders tragen nur die client_id (GUID) — Name/Nummer
-   * kommen aus den Client Master Data. Der Mock liefert sie direkt; der HTTP-Adapter ergaenzt sie
-   * in einem spaeteren M2-Schritt (Client-Master-Data-Lookup). Optional: Frontend faellt auf die
-   * clientId zurueck.
+   * kommen aus den Client Master Data (Lookup im Board-Aggregat via datev.getClients()). Der Mock
+   * liefert sie direkt. Optional: Frontend faellt auf die clientId zurueck.
    */
   clientName?: string;
   clientNumber?: string;
+  /**
+   * Teilauftraege (DATEV suborders, via `expand` mitgeladen) — nur bei Ordertypes mit
+   * Teilauftrags-Rhythmus gefuellt. Basis der Karten-Anzeige „naechster offener Teilauftrag".
+   */
+  suborders?: SuborderView[];
+}
+
+/** Teilauftrag eines Auftrags (DATEV suborder) — reduziert auf die App-relevanten Felder. */
+export interface SuborderView {
+  number: number; // suborder_number (eindeutig je Auftrag)
+  name: string; // suborder_name, z. B. "Januar 2026"
+  /** Leistungszeitraum (ISO "JJJJ-MM-TT") — bestimmt den Teilauftrags-Monat. */
+  periodFrom?: string;
+  periodTo?: string;
+  plannedHours?: number;
+  /** DATEV date_work_completed — gesetzt = Teilauftrag abgeschlossen. */
+  dateWorkCompleted?: string;
+}
+
+/** Mandanten-Stammdaten (Client Master Data) — fuer die Namensaufloesung am Board. */
+export interface DatevClient {
+  id: string; // GUID (referenziert von Order.clientId)
+  name: string;
+  number?: string;
 }
 
 /**

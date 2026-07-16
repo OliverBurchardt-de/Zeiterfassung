@@ -103,7 +103,19 @@ export interface ApiBoardOrder {
   umplanungenVerbraucht: number;
   responsibleName?: string;
   partnerName?: string;
+  /** Teilaufträge (DATEV suborders, via expand mitgeladen) — nur bei Ordertypes mit Rhythmus. */
+  suborders?: ApiSuborder[];
   times: ApiTimeEntry[];
   notes: ApiNote[];
   checklist: ApiChecklistItem[];
+}
+
+export interface ApiSuborder {
+  number: number;
+  name: string;
+  periodFrom?: string;
+  periodTo?: string;
+  plannedHours?: number;
+  /** DATEV date_work_completed — gesetzt = abgeschlossen. */
+  dateWorkCompleted?: string;
 }

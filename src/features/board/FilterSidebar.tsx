@@ -7,6 +7,8 @@ import { ORDERTYPES, artKeyForOrdertype, istPlanbar } from '@/lib/ordertypes';
 import type { ArtKey, Employee, Order } from '@/lib/types';
 import { API_MODE } from '@/api/mode';
 import { initialenAus } from '@/api/mapping';
+import { parseMonat } from '@/lib/monate';
+import { heute } from '@/lib/heute';
 
 /**
  * Server-Modus: Die Mitarbeiter-Liste aus den sichtbaren Aufträgen ableiten (Bearbeiter-IDs
@@ -49,7 +51,20 @@ export function FilterSidebar() {
   const toggleArt = useStore((s) => s.toggleArt);
   const toggleQuick = useStore((s) => s.toggleQuick);
 
-  const monate = ['alle', ...Array.from(new Set(orders.map((o) => o.monat).filter(Boolean)))];
+  // Monatsfilter: chronologisch sortiert und nur nach vorn (ab aktuellem Monat) — vergangene
+  // Monate haben im Arbeitsvorrat nichts zu suchen (Feedback 15.07.2026).
+  const heuteMonat = (() => {
+    const h = heute();
+    return { year: Number(h.slice(0, 4)), monthIndex: Number(h.slice(5, 7)) - 1 };
+  })();
+  const monate = [
+    'alle',
+    ...Array.from(new Set(orders.map((o) => o.monat).filter(Boolean)))
+      .map((m) => ({ m, p: parseMonat(m) }))
+      .filter((x) => x.p && (x.p.year > heuteMonat.year || (x.p.year === heuteMonat.year && x.p.monthIndex >= heuteMonat.monthIndex)))
+      .sort((a, b) => a.p!.year - b.p!.year || a.p!.monthIndex - b.p!.monthIndex)
+      .map((x) => x.m),
+  ];
   const jahre = Array.from(new Set(orders.map((o) => o.vj))).sort((a, b) => b - a);
   const countFor = (id: string) => orders.filter((o) => o.bearbeiterId === id).length;
 

@@ -43,11 +43,16 @@ export interface BoardOrder extends OrderView {
 export function createBoardActions(repos: Repositories, datev: DatevPort) {
   return {
     async list(actor: PublicUser): Promise<BoardOrder[]> {
-      const [orders, users, overlays] = await Promise.all([
+      // getClients() ist adapterseitig gecacht (10 Min.) — der Namens-Lookup verteuert den
+      // Board-Aufruf also nur beim ersten Mal. Faellt der Stammdaten-Abruf aus, bleibt das
+      // Board nutzbar (Frontend zeigt dann die clientId) — deshalb catch -> leere Liste.
+      const [orders, users, overlays, clients] = await Promise.all([
         datev.getOrders(),
         repos.users.list(),
         repos.overlays.list(),
+        datev.getClients().catch(() => []),
       ]);
+      const clientById = new Map(clients.map((c) => [c.id, c]));
       const visible = visibleOrders(orders, actor);
       // Note-/Kommentar-Autoren tragen die APP-User-ID (authorId); Auftrags-Bearbeiter/-Partner
       // dagegen die DATEV-Mitarbeiter-ID (responsibleId/partnerId). Deshalb zwei getrennte Lookups.
@@ -84,8 +89,12 @@ export function createBoardActions(repos: Repositories, datev: DatevPort) {
             })),
           );
           const overlay = overlayByOrder.get(o.id);
+          const client = clientById.get(o.clientId);
           return {
             ...o,
+            // Mandanten-Klarname aus den Master Data — der Mock traegt ihn bereits am Auftrag.
+            clientName: o.clientName ?? client?.name,
+            clientNumber: o.clientNumber ?? client?.number,
             boardStatus: overlay?.boardStatus,
             umplanungenVerbraucht: overlay?.umplanungenVerbraucht ?? 0,
             responsibleName: nameByDatev(o.responsibleId),
