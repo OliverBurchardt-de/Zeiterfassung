@@ -10,6 +10,18 @@
 > Nächster Schritt: **Phase 1 — DATEV-Spike** (on-prem; ich liefere Skript/Checkliste, werte aus).
 
 ## Offen — abgestimmt
+- **Auftragsart-Behandlung (saubere Datenbasis)** — pro DATEV-`ordertype` ein Verhalten:
+  **planbar** (Board) · **laufend** (Hintergrund/Mehraufwand) · **sonstige** (buchbar, nicht im
+  Board) · **intern**. Board zeigt nur `planbar` (behebt „zu viel"). Vollständige Einordnung +
+  Grenzfall 614: `docs/zeiterfassung-board-konzept.md` §1 (abgestimmt 15.07.2026, Excel-Durchsprache).
+- **Zeiterfassungs-Board (memtime-Stil)** — eigene Kachel neben dem Planungs-Board: grafische
+  Tages-Timeline, Mandant→Aufträge per Drag & Drop, Lücken sichtbar („Tag voll?"), Buchung nach
+  DATEV auch für *sonstige* Aufträge. Konzept: `docs/zeiterfassung-board-konzept.md` §2. UX-Vorbild:
+  memtime.com + Ingentis-Kanzleisuite (Screenshots folgen).
+- **V3/V4: Automatische Tätigkeitserfassung (memtime-Stil)** — passives, **lokales** Erfassen von
+  Programmen/Dokumenten/Terminen als Erinnerungshilfe, Nutzer zieht Blöcke auf Aufträge; Daten
+  bleiben auf dem Gerät (Datenschutz). Bewusst später; Datenmodell soll andockbar bleiben.
+  `docs/zeiterfassung-board-konzept.md` §3.
 - **ABC-Analyse (Mandanten-Rentabilität)** — Umsatz/Kosten/Deckungsbeitrag je Mandant aus der
   DATEV-API (`/orders/monthlyvalues`, `/invoices`; Kosten alternativ Ist-Stunden × eigener
   Stundensatz). Vorgesehen **nach v1**; Konzept + Feld-Mapping: `docs/abc-analyse-konzept.md`

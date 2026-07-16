@@ -82,6 +82,7 @@ design_handoff_zeiterfassung/   verbindliche Design-Referenz (Prototyp, Screensh
 
 **Planung, Abnahme & Qualität**
 - `docs/m2-plan.md` — Fahrplan von M1 (Mock) zu M2 (Backend + DATEV)
+- `docs/zeiterfassung-board-konzept.md` — Auftragsart-Behandlung (planbar/laufend/sonstige/intern) + Zeiterfassungs-Board (memtime-Stil) + V3/V4-Ausblick
 - `docs/abc-analyse-konzept.md` — ABC-Analyse (Mandanten-Rentabilität): API-Felder, Logik, Andockpunkt (vorgesehen, nicht v1)
 - `docs/ideen-backlog.md` — Ideen-/Aufgaben-Backlog
 - `docs/m1-abnahme.md` — M1-Abnahme-Checkliste
