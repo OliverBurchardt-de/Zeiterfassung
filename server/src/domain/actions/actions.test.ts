@@ -109,6 +109,20 @@ describe('Zeit-Aktionen', () => {
     expect(e.dauer).toBe(0.1);
   });
 
+  it('Tagesgrenze ist nebenlaeufigkeitsfest: zwei parallele 8-h-Buchungen -> genau eine geht durch (P1-4)', async () => {
+    // Verschiedene Idempotenz-Schluessel: die alte, getrennte Summe+Insert-Logik haette beide
+    // dieselbe Summe 0 sehen lassen und 16 h eingefuegt. Atomar darf nur eine durchgehen.
+    const ergebnisse = await Promise.allSettled([
+      actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-05', dauer: 8, idempotencyKey: 'par-1' }),
+      actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-05', dauer: 8, idempotencyKey: 'par-2' }),
+    ]);
+    const erfolg = ergebnisse.filter((r) => r.status === 'fulfilled').length;
+    const abgelehnt = ergebnisse.filter((r) => r.status === 'rejected').length;
+    expect(erfolg).toBe(1);
+    expect(abgelehnt).toBe(1);
+    expect(await repos.times.sumByUserAndDate('u-wolf', '2026-07-05')).toBeLessThanOrEqual(12);
+  });
+
   it('Idempotenz-Wiederholung zaehlt nicht doppelt gegen die Tagesgrenze', async () => {
     const a = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 12, idempotencyKey: 'kx' });
     // Retry mit demselben Schluessel: Tag ist "voll", aber der Request ist DIESELBE Buchung.

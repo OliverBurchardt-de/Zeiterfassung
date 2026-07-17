@@ -27,6 +27,14 @@ export interface UserRepository {
 /** Zeiteintraege. IDs/Zeitstempel vergibt die Domaenen-Aktion, nicht das Repository. */
 export interface TimeEntryRepository {
   insert(entry: TimeEntry): Promise<void>;
+  /**
+   * Atomar (Review P1-4): prueft die Tagessumme des Nutzers und fuegt NUR ein, wenn `maxStunden`
+   * eingehalten wird — Pruefung + Insert nebenlaeufigkeitsfest in EINEM Schritt (MSSQL:
+   * Transaktion mit Sperre; Memory: synchron, daher nicht zwischen zwei awaits unterbrechbar).
+   * `{ ok:false, bereits }` = Grenze wuerde ueberschritten. Wirft bei doppeltem Idempotenz-
+   * Schluessel (Unique-Index), damit die Aktion den Parallelfall wie bisher aufloesen kann.
+   */
+  insertWithinDailyLimit(entry: TimeEntry, maxStunden: number): Promise<{ ok: true } | { ok: false; bereits: number }>;
   findById(id: string): Promise<TimeEntry | undefined>;
   /** Fuer Wiederholungs-Requests: gleicher Key -> vorhandenen Eintrag liefern statt Dublette. */
   findByIdempotencyKey(key: string): Promise<TimeEntry | undefined>;

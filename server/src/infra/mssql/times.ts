@@ -59,6 +59,50 @@ export function createMssqlTimeEntryRepository(pool: ConnectionPool): TimeEntryR
                    @aufwandsart, @cost_position, @datev_posting_id, @idempotency_key, @created_at)`
         );
     },
+    async insertWithinDailyLimit(e, maxStunden) {
+      // Pruefung + Insert in EINER Transaktion (Review P1-4). SERIALIZABLE + UPDLOCK/HOLDLOCK auf
+      // die Summenabfrage: parallele Buchungen desselben Nutzers/Tages werden serialisiert, koennen
+      // also nicht gemeinsam ueber die Grenze einfuegen.
+      const tx = new sql.Transaction(pool);
+      await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+      try {
+        const r = await new sql.Request(tx)
+          .input('user_id', sql.NVarChar(64), e.userId)
+          .input('work_date', sql.VarChar(10), e.datum)
+          .query(
+            `SELECT COALESCE(SUM(hours), 0) AS summe FROM dbo.time_entries WITH (UPDLOCK, HOLDLOCK)
+             WHERE user_id = @user_id AND work_date = @work_date`
+          );
+        const bereits = Number(r.recordset[0]?.summe ?? 0);
+        const summe = Math.round((bereits + e.dauer) * 100) / 100;
+        if (summe > maxStunden) {
+          await tx.rollback();
+          return { ok: false, bereits };
+        }
+        await bindFachfelder(new sql.Request(tx), e)
+          .input('id', sql.NVarChar(64), e.id)
+          .input('user_id', sql.NVarChar(64), e.userId)
+          .input('order_id', sql.NVarChar(64), e.orderId)
+          .input('idempotency_key', sql.NVarChar(100), e.idempotencyKey)
+          .input('created_at', sql.DateTime2, new Date(e.createdAt))
+          .query(
+            `INSERT INTO dbo.time_entries (${COLS})
+             VALUES (@id, @user_id, @order_id, @suborder_id, @work_date, @hours, @note, @status,
+                     @aufwandsart, @cost_position, @datev_posting_id, @idempotency_key, @created_at)`
+          );
+        await tx.commit();
+        return { ok: true };
+      } catch (err) {
+        // Doppelter Idempotenz-Schluessel (Unique-Index) o. Ae. — Transaktion zurueckrollen und
+        // den Fehler durchreichen; die Domaenen-Aktion loest den Parallelfall auf.
+        try {
+          await tx.rollback();
+        } catch {
+          /* bereits beendet */
+        }
+        throw err;
+      }
+    },
     async findById(id) {
       const r = await pool
         .request()

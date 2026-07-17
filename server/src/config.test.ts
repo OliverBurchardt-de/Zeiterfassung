@@ -9,6 +9,7 @@ const KEYS = [
   'NODE_ENV', 'COOKIE_SECRET', 'DB_MODE', 'DB_HOST', 'DB_USER', 'DB_PASSWORD',
   'DATEV_MODE', 'DATEV_AUTH', 'DATEV_USER', 'DATEV_PASSWORD', 'DATEV_TLS_INSECURE',
   'SYNC_ENABLED', 'SYNC_NIGHTLY_AT', 'SYNC_DELTA_EVERY_MIN', 'SYNC_OUTBOX_ENABLED', 'SYNC_OUTBOX_EVERY_MIN',
+  'PORT', 'SESSION_TTL_MS', 'TRUST_PROXY',
 ] as const;
 let saved: Record<string, string | undefined>;
 
@@ -100,5 +101,25 @@ describe('loadConfig — Synchronisierung', () => {
     const config = loadConfig();
     expect(config.sync.nightlyAt).toBe('23:30');
     expect(config.sync.deltaEveryMin).toBe(45);
+  });
+});
+
+describe('loadConfig — Zahlen-/Proxy-Validierung (Review P3-2 / P2-9)', () => {
+  it('negativer/ungueltiger PORT bricht ab (kein TimeoutNegativeWarning-Footgun)', () => {
+    process.env.PORT = '-1';
+    expect(() => loadConfig()).toThrow(/PORT/);
+  });
+
+  it('nicht-numerische SESSION_TTL_MS bricht ab', () => {
+    process.env.SESSION_TTL_MS = 'acht Stunden';
+    expect(() => loadConfig()).toThrow(/SESSION_TTL_MS/);
+  });
+
+  it('trustProxy: Default aus, "true" an, konkrete Adresse durchgereicht', () => {
+    expect(loadConfig().trustProxy).toBe(false);
+    process.env.TRUST_PROXY = 'true';
+    expect(loadConfig().trustProxy).toBe(true);
+    process.env.TRUST_PROXY = '10.100.230.1';
+    expect(loadConfig().trustProxy).toBe('10.100.230.1');
   });
 });

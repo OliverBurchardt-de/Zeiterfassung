@@ -25,6 +25,23 @@ export interface AppDeps extends AuthDeps {
 export function buildApp(config: Config, deps: AppDeps): FastifyInstance {
   const app = Fastify({
     logger: config.nodeEnv !== 'test',
+    // Hinter dem Reverse Proxy die echte Client-IP aus X-Forwarded-For lesen — aber nur dem
+    // konfigurierten Proxy vertrauen (Review P2-9). Ohne das waere req.ip die Proxy-Adresse und
+    // der IP-Login-Schutz sperrte alle Nutzer gemeinsam.
+    trustProxy: config.trustProxy,
+    // Body-Obergrenze (Review P3-2): unsere Nutzlasten sind klein (JSON). 256 KB reicht satt und
+    // deckelt uebergrosse Requests. Datei-Uploads (Attachments) bekommen spaeter eine eigene Route.
+    bodyLimit: 256 * 1024,
+  });
+
+  // Zentrale Security-Header (Review P3-2) — ohne zusaetzliche Abhaengigkeit (kein helmet noetig),
+  // die API liefert nur JSON. Restriktive CSP (keine aktiven Inhalte), MIME-/Frame-/Referrer-Schutz.
+  app.addHook('onSend', async (_req, reply, payload) => {
+    reply.header('X-Content-Type-Options', 'nosniff');
+    reply.header('X-Frame-Options', 'DENY');
+    reply.header('Referrer-Policy', 'no-referrer');
+    reply.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+    return payload;
   });
 
   app.register(cookie, { secret: config.cookieSecret });

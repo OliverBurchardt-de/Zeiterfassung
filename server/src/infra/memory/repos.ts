@@ -43,6 +43,20 @@ export function createMemoryTimeEntryRepository(entries: TimeEntry[] = []): Time
       }
       entries.push({ ...entry });
     },
+    async insertWithinDailyLimit(entry, maxStunden) {
+      // Synchroner Rumpf (kein await zwischen Summe und Insert) => im Ein-Prozess-Betrieb atomar:
+      // zwei parallele bookTime-Aufrufe koennen nicht dieselbe alte Summe sehen (Review P1-4).
+      const bereits = entries
+        .filter((e) => e.userId === entry.userId && e.datum === entry.datum)
+        .reduce((s, e) => s + e.dauer, 0);
+      const summe = Math.round((bereits + entry.dauer) * 100) / 100;
+      if (summe > maxStunden) return { ok: false, bereits };
+      if (entries.some((e) => e.idempotencyKey === entry.idempotencyKey)) {
+        throw new Error('unique violation: idempotency_key');
+      }
+      entries.push({ ...entry });
+      return { ok: true };
+    },
     async findById(id) {
       return entries.find((e) => e.id === id);
     },

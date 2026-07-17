@@ -63,9 +63,26 @@ export interface Config {
   nodeEnv: string;
   /** Session-Lebensdauer in ms (Default 8 h — ein Arbeitstag). */
   sessionTtlMs: number;
+  /**
+   * Fastify trustProxy (Review P2-9): hinter einem Reverse Proxy muss der App-Server wissen, welchem
+   * Proxy er den X-Forwarded-For-Header glauben darf, damit `req.ip` die echte Client-IP ist (Basis
+   * des IP-Login-Schutzes). `false` = kein Proxy (Direktbetrieb). Sonst eine konkrete Proxy-Adresse
+   * bzw. Liste — bewusst KEINE pauschale Vertrauensstellung beliebiger Header.
+   */
+  trustProxy: boolean | string;
   datev: DatevConfig;
   db: DbConfig;
   sync: SyncConfig;
+}
+
+/** Positive, endliche Ganzzahl aus einer Umgebungsvariable (Review P3-2): sonst Fail-Fast. */
+function posInt(name: string, raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw === '') return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
+    throw new Error(`${name} muss eine positive Ganzzahl sein, war: "${raw}".`);
+  }
+  return n;
 }
 
 const DEV_SECRET = 'dev-insecure-secret-change-me';
@@ -126,12 +143,18 @@ export function loadConfig(): Config {
     outboxEveryMin: Math.max(1, Number(process.env.SYNC_OUTBOX_EVERY_MIN ?? 5)),
   };
 
+  // trustProxy: leer/'false' = kein Proxy; 'true' = erster Hop; sonst konkrete Adresse/Liste.
+  const trustProxyRaw = process.env.TRUST_PROXY ?? '';
+  const trustProxy: boolean | string =
+    trustProxyRaw === '' || trustProxyRaw === 'false' ? false : trustProxyRaw === 'true' ? true : trustProxyRaw;
+
   return {
-    port: Number(process.env.PORT ?? 3001),
+    port: posInt('PORT', process.env.PORT, 3001),
     host: process.env.HOST ?? '0.0.0.0',
     cookieSecret,
     nodeEnv,
-    sessionTtlMs: Number(process.env.SESSION_TTL_MS ?? 8 * 60 * 60 * 1000),
+    sessionTtlMs: posInt('SESSION_TTL_MS', process.env.SESSION_TTL_MS, 8 * 60 * 60 * 1000),
+    trustProxy,
     datev: {
       mode: datevMode,
       baseUrl: process.env.DATEV_BASE_URL ?? 'http://localhost:58454/datev/api',
@@ -144,7 +167,7 @@ export function loadConfig(): Config {
     db: {
       mode: dbMode,
       host: process.env.DB_HOST ?? 'localhost',
-      port: Number(process.env.DB_PORT ?? 1433),
+      port: posInt('DB_PORT', process.env.DB_PORT, 1433),
       instanceName: process.env.DB_INSTANCE ?? '',
       database: process.env.DB_NAME ?? 'Zeiterfassung',
       user: dbUser,

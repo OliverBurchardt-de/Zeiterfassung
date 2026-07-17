@@ -375,12 +375,11 @@ describe('Login-Schutz (Review P3.7)', () => {
     }
     const gesperrt = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'wolf', password: 'demo' } });
     expect(gesperrt.statusCode).toBe(429);
-    // Anderer Nutzer von anderer "IP" ist nicht betroffen — inject nutzt dieselbe Quell-IP,
-    // daher hier nur der Konto-Schluessel pruefbar: klein ist gesperrt ueber die IP-Sperre?
-    // Nein: IP-Sperre greift erst nach 5 IP-Fehlversuchen — die 5 obigen zaehlen auch fuer die
-    // IP, also ist die Quelle jetzt ebenfalls gesperrt. Das ist gewollt (eine Quelle, viele Namen).
+    // P2-9: Das KONTO-Limit ist scharf (5), das IP-Limit bewusst lockerer (50). Ein Kollege
+    // (klein) an derselben Quelle darf sich also weiter anmelden — 5 Fehlversuche eines Einzelnen
+    // sperren nicht alle Nutzer hinter demselben Proxy/NAT aus.
     const klein = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'klein', password: 'demo' } });
-    expect(klein.statusCode).toBe(429);
+    expect(klein.statusCode).toBe(200);
   });
 
   it('deaktivierter Nutzer verliert sofort den Zugriff (laufende Session inklusive)', async () => {

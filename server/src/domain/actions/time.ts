@@ -100,19 +100,6 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
         if (bestehend) return gleicheBuchungOderKonflikt(actor, input, bestehend);
       }
 
-      // Tagesgrenze (Fachregel 12.07.2026): mehr als 12 h sind an einem Arbeitstag nicht buchbar
-      // — ueber ALLE Auftraege des Nutzers summiert. Prueft NACH der Idempotenz-Weiche, damit
-      // ein Wiederholungs-Request die bereits gezaehlte Buchung nicht doppelt anrechnet.
-      const bereitsGebucht = await repos.times.sumByUserAndDate(actor.id, input.datum);
-      // Auf 2 Nachkommastellen runden — sonst kippte 11.9 + 0.1 durch Gleitkomma-Rauschen.
-      const tagessumme = Math.round((bereitsGebucht + input.dauer) * 100) / 100;
-      if (tagessumme > LIMITS.DAUER_MAX_STUNDEN) {
-        throw new DomainError(
-          'conflict',
-          `Tagesgrenze ueberschritten: max. ${LIMITS.DAUER_MAX_STUNDEN} h pro Tag (bereits gebucht: ${bereitsGebucht} h)`
-        );
-      }
-
       const entry: TimeEntry = {
         id: clock.newId(),
         userId: actor.id,
@@ -126,18 +113,28 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
         idempotencyKey: input.idempotencyKey ?? clock.newId(),
         createdAt: clock.now(),
       };
+      // Tagesgrenze (Fachregel 12.07.2026): max. 12 h/Tag ueber ALLE Auftraege des Nutzers.
+      // Pruefung + Insert ATOMAR (Review P1-4): parallele Buchungen koennen nicht gemeinsam
+      // ueber die Grenze einfuegen (fruehere getrennte Summe+Insert war nicht nebenlaeufigkeitsfest).
+      let ergebnis: { ok: true } | { ok: false; bereits: number };
       try {
-        await repos.times.insert(entry);
+        ergebnis = await repos.times.insertWithinDailyLimit(entry, LIMITS.DAUER_MAX_STUNDEN);
       } catch (err) {
         // Parallelfall (Review P2.5): zwei gleichzeitige Requests mit demselben Schluessel —
-        // beide passieren die Vorpruefung, der zweite Insert faellt auf den Unique-Index
-        // (uq_time_idem bzw. Memory-Pendant). Kontrolliert aufloesen statt internem Fehler:
-        // den inzwischen vorhandenen Eintrag laden und wie einen Wiederholungsfall behandeln.
+        // der zweite Insert faellt auf den Unique-Index (uq_time_idem bzw. Memory-Pendant).
+        // Kontrolliert aufloesen: den inzwischen vorhandenen Eintrag wie einen Wiederholungsfall
+        // behandeln.
         if (input.idempotencyKey) {
           const inzwischen = await repos.times.findByIdempotencyKey(input.idempotencyKey);
           if (inzwischen) return gleicheBuchungOderKonflikt(actor, input, inzwischen);
         }
         throw err;
+      }
+      if (!ergebnis.ok) {
+        throw new DomainError(
+          'conflict',
+          `Tagesgrenze ueberschritten: max. ${LIMITS.DAUER_MAX_STUNDEN} h pro Tag (bereits gebucht: ${ergebnis.bereits} h)`
+        );
       }
       return entry;
     },

@@ -5,9 +5,10 @@ import { hashPassword, verifyPassword } from '../auth/passwords';
 import { createLoginSchutz } from '../auth/loginSchutz';
 import { toPublicUser } from '../domain/types';
 
+// Laengen-Obergrenzen (Review P3-2): kein unbegrenzt langer Benutzername/Passwort-Body.
 const LoginBody = z.object({
-  username: z.string().min(1),
-  password: z.string().min(1),
+  username: z.string().min(1).max(200),
+  password: z.string().min(1).max(1000),
 });
 
 export interface AuthRouteOpts {
@@ -24,10 +25,13 @@ export interface AuthRouteOpts {
 const dummyHashPromise = hashPassword('timing-equalizer-dummy');
 
 export function authRoutes(app: FastifyInstance, deps: AuthDeps, opts: AuthRouteOpts): void {
-  // Fehlversuchs-Sperre je Benutzername UND je Client-IP (Review P3.7). Der Benutzername-
-  // Schluessel schuetzt das Konto (auch bei wechselnden IPs), der IP-Schluessel bremst
-  // das Durchprobieren vieler Namen von einer Quelle.
-  const schutz = createLoginSchutz();
+  // Fehlversuchs-Sperre GETRENNT je Konto und je Client-IP (Review P2-9). Das Konto-Limit ist
+  // scharf (5); das IP-Limit ist bewusst lockerer (50), weil hinter dem Reverse Proxy / NAT viele
+  // legitime Nutzer dieselbe IP teilen — sonst sperrten 5 Fehlversuche eines Einzelnen alle aus.
+  // Voraussetzung fuer eine SINNVOLLE IP ist die trustProxy-Konfiguration (app.ts): ohne sie waere
+  // req.ip hinter einem Proxy immer die Proxy-Adresse.
+  const kontoSchutz = createLoginSchutz();
+  const ipSchutz = createLoginSchutz({ maxVersuche: 50 });
 
   app.post('/api/auth/login', async (req, reply) => {
     const parsed = LoginBody.safeParse(req.body);
@@ -37,7 +41,7 @@ export function authRoutes(app: FastifyInstance, deps: AuthDeps, opts: AuthRoute
     const { username, password } = parsed.data;
     const userKey = `u:${username.toLowerCase()}`;
     const ipKey = `ip:${req.ip}`;
-    if (schutz.gesperrt(userKey) || schutz.gesperrt(ipKey)) {
+    if (kontoSchutz.gesperrt(userKey) || ipSchutz.gesperrt(ipKey)) {
       req.log.warn({ username, ip: req.ip }, 'Login gesperrt (zu viele Fehlversuche)');
       return reply.code(429).send({ error: 'Zu viele Fehlversuche — bitte in einigen Minuten erneut versuchen.' });
     }
@@ -48,14 +52,14 @@ export function authRoutes(app: FastifyInstance, deps: AuthDeps, opts: AuthRoute
       // Fehlversuch protokollieren OHNE Passwort (Review P3.7); in der Antwort bewusst
       // keine Unterscheidung, ob Benutzer oder Passwort falsch ist.
       // BEIDE Zaehler immer erhoehen (kein ||-Kurzschluss — sonst zaehlte die IP nicht mit).
-      const kontoGesperrt = schutz.fehlversuch(userKey);
-      const ipGesperrt = schutz.fehlversuch(ipKey);
+      const kontoGesperrt = kontoSchutz.fehlversuch(userKey);
+      const ipGesperrt = ipSchutz.fehlversuch(ipKey);
       const jetztGesperrt = kontoGesperrt || ipGesperrt;
       req.log.warn({ username, ip: req.ip, gesperrt: jetztGesperrt }, 'Login fehlgeschlagen');
       return reply.code(401).send({ error: 'Benutzername oder Passwort falsch' });
     }
-    schutz.erfolg(userKey);
-    schutz.erfolg(ipKey);
+    kontoSchutz.erfolg(userKey);
+    ipSchutz.erfolg(ipKey);
     const sid = deps.sessions.create(user.id);
     reply.setCookie(SESSION_COOKIE, sid, {
       httpOnly: true,
