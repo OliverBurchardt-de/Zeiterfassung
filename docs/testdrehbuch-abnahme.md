@@ -6,10 +6,13 @@
 
 ## Wer testet was?
 
-- **Automatisiert (mache ich, läuft schon):** Ich fahre die App im Browser durch (Playwright-E2E)
-  und prüfe Klick-Abläufe technisch — Login, Buchen/Freigeben/Löschen, Statuswechsel, Checkliste,
-  Zeiterfassungs-Board, Auftragsart-Filter. Diese Suiten liegen in `tools/e2e/` und sind vor jedem
-  Push grün. **Das ersetzt aber nicht deinen Blick.**
+- **Automatisiert (mache ich):** Zwei Ebenen, die man nicht verwechseln darf:
+  - **In der CI (bei jedem Push automatisch):** Typecheck, Lint, die Unit-/Integrationstests
+    (Frontend + Server) und der Build. Das läuft bei jeder Änderung durch.
+  - **Die Browser-E2E-Suiten** (`tools/e2e/`, Login/Buchen/Checkliste/Zeiterfassungs-Board …)
+    starte ich **manuell** — sie brauchen laufende Prozesse + Browser und sind **kein**
+    CI-Bestandteil (siehe `tools/e2e/README.md`). Ich führe sie vor größeren Übergaben aus und
+    nenne dann Datum/Commit des letzten grünen Laufs. **Das ersetzt aber nicht deinen Blick.**
 - **Du testest (die eigentliche Abnahme):** ob es **fachlich richtig aussieht** und sich richtig
   anfühlt — richtige Mandanten, richtige Auftragsarten, sinnvolle Teilaufträge, echte DATEV-Daten.
   Das kann nur jemand beurteilen, der die Kanzlei-Daten kennt. Und die **Echtdaten** kann ich

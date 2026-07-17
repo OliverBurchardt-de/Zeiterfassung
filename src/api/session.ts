@@ -46,7 +46,12 @@ export async function apiLogout(): Promise<void> {
   } catch {
     // Server nicht erreichbar → trotzdem lokal abmelden.
   } finally {
-    useStore.setState({ currentUserId: null, role: 'mitarbeiter', isAdmin: false, orders: [], syncError: null });
+    // Session VOLLSTAENDIG leeren (Review P2-4): auch users + offene Karte, damit auf einem
+    // gemeinsam genutzten Arbeitsplatz nach dem Abmelden keine Nutzer-/Auftragsdaten zurueckbleiben.
+    useStore.setState({
+      currentUserId: null, role: 'mitarbeiter', isAdmin: false,
+      users: [], orders: [], openCardId: null, syncError: null,
+    });
   }
 }
 

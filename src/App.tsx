@@ -28,10 +28,19 @@ export function App() {
   const [restoring, setRestoring] = useState(API_MODE);
   const openCardId = useStore((s) => s.openCardId);
   const currentUserId = useStore((s) => s.currentUserId);
+  const isAdmin = useStore((s) => s.isAdmin);
 
   useEffect(() => {
     if (API_MODE) void apiRestore().finally(() => setRestoring(false));
   }, []);
+
+  // Render-Gate (Review P2-4): die Verwaltung haengt NICHT allein am lokalen Modul-Zustand.
+  // Wechselt der angemeldete Nutzer (Ab-/Anmeldung) oder verliert er das Adminrecht, faellt die
+  // Ansicht sofort auf das Board zurueck — sonst koennte die Verwaltung nach einem Nutzerwechsel
+  // im weiter gemounteten App sichtbar bleiben.
+  useEffect(() => {
+    if (module === 'verwaltung' && !isAdmin) setModule('board');
+  }, [module, isAdmin, currentUserId]);
 
   if (restoring) {
     return (
@@ -68,7 +77,7 @@ export function App() {
 
       {module === 'controlling' && <ControllingView />}
 
-      {module === 'verwaltung' && <VerwaltungView />}
+      {module === 'verwaltung' && isAdmin && <VerwaltungView />}
 
       {module === 'zeiten' && <ZeitenView />}
       {module === 'freigaben' && <FreigabenView />}

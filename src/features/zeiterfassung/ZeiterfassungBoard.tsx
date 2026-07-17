@@ -26,7 +26,7 @@ const DAY_END = 20 * 60; // 20:00
 const SLOT = 30; // Minuten je Raster-Zeile
 const HOUR_PX = 60;
 const PX_PER_MIN = HOUR_PX / 60;
-const TAGES_SOLL = 8; // Stunden — Basis für „Tag voll?"
+const DEFAULT_TAGES_SOLL = 8; // Fallback, wenn der Nutzer (noch) kein Profil-Tagessoll hat
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const label = (min: number) => `${pad(Math.floor(min / 60))}:${pad(min % 60)}`;
@@ -78,8 +78,10 @@ export function ZeiterfassungBoard() {
     });
   }, [orders, me, datum]);
 
+  // Tagessoll aus dem Nutzerprofil (Review P2-1): Teilzeitkraefte haben z. B. 6 h, nicht pauschal 8.
+  const tagesSoll = me?.tagessoll ?? DEFAULT_TAGES_SOLL;
   const summe = buchungen.reduce((s, b) => s + b.row.time.dauer, 0);
-  const fuellPct = Math.min(100, Math.round((summe / TAGES_SOLL) * 100));
+  const fuellPct = Math.min(100, Math.round((summe / tagesSoll) * 100));
 
   const slots: number[] = [];
   for (let m = DAY_START; m < DAY_END; m += SLOT) slots.push(m);
@@ -107,6 +109,11 @@ export function ZeiterfassungBoard() {
       <h1 style={{ fontSize: 'var(--bk-fs-h1)', marginBottom: 4 }}>Zeiterfassungs-Board</h1>
       <p className="muted" style={{ marginBottom: 20 }}>
         Tag wählen, Auftrag suchen und auf die Uhrzeit ziehen. Lücken siehst du direkt in der Timeline.
+        <br />
+        <span style={{ fontSize: 12 }}>
+          Hinweis: Die Uhrzeit-Position ist eine Erfassungshilfe für den Überblick — gespeichert
+          werden Datum und Dauer (DATEV kennt keine Start-Uhrzeit).
+        </span>
       </p>
 
       <DndContext sensors={sensors} onDragStart={(e: DragStartEvent) => setDragId(String(e.active.id))} onDragEnd={onDragEnd}>
@@ -129,7 +136,7 @@ export function ZeiterfassungBoard() {
 
             <div className="ze__sum" style={{ marginTop: 18 }}>
               <div className="ze__sum-num">{formatHours(summe)}</div>
-              <div className="muted" style={{ fontSize: 12 }}>von {TAGES_SOLL} h · {fuellPct}%</div>
+              <div className="muted" style={{ fontSize: 12 }}>von {formatHours(tagesSoll)} · {fuellPct}%</div>
               <div className="ze__bar"><div className="ze__bar-fill" style={{ width: `${fuellPct}%` }} /></div>
             </div>
           </aside>
@@ -175,7 +182,8 @@ export function ZeiterfassungBoard() {
                     <div className="ze__step">
                       <button className="icon-btn" aria-label="kürzer" onClick={() => setDraft({ ...draft, dauer: Math.max(0.25, Math.round((draft.dauer - 0.25) * 100) / 100) })}><Minus size={13} /></button>
                       <span className="ze__block-dur">{formatHours(draft.dauer)}</span>
-                      <button className="icon-btn" aria-label="länger" onClick={() => setDraft({ ...draft, dauer: Math.round((draft.dauer + 0.25) * 100) / 100 })}><Plus size={13} /></button>
+                      {/* Nicht ueber das Timeline-Ende (20:00) hinaus verlaengern (Review P2-1). */}
+                      <button className="icon-btn" aria-label="länger" onClick={() => setDraft({ ...draft, dauer: Math.min((DAY_END - draft.startMin) / 60, Math.round((draft.dauer + 0.25) * 100) / 100) })}><Plus size={13} /></button>
                     </div>
                   </div>
                   <div className="ze__block-mandant">{draft.order.mandant} · {draft.order.art}</div>
