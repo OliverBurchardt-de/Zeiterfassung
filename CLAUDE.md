@@ -213,3 +213,16 @@ Snapshot in MS SQL persistieren (Neustart-fest), echter DATEV-Delta-Filter, Outb
 Fach-Aktionen **befüllen**. Als Nächstes (Etappe 3): restliche Aktionen (Umplanung/Planung/
 Anforderungen/Besonderheiten/Suborders/Attachments/Nutzer-API), Checklisten-Vorlagen serverseitig
 verwalten (löst die bewusste Vorlagen-Duplikation ab) + Outbox-Befüllung aus Zeit-/Statusaktionen.
+**Härtungsrunde Review 17.07.2026 (umgesetzt; `docs/reviews/2026-07-17-abarbeitung.md`):**
+serverseitig verbindlich gemacht bzw. gehärtet — Checklisten-Pflichtvorlage nur noch serverseitig
+(`seedMandatoryChecklist`, Gate prüft Vorhandensein+Erledigung → Bypass zu, P1-1); Ordertype-
+Buchungsregeln (`domain/ordertypeRules.ts`: Pflicht-Notiz laufende Arten, Teilauftragszugehörigkeit,
+ua/uv nur Unterlagen-Ordertypes, P1-3/P2-2); 12-h-Tagesgrenze atomar (`insertWithinDailyLimit`,
+MSSQL SERIALIZABLE+UPDLOCK, Memory synchron, P1-4); echte DATEV-`suborder.id` durchs Modell geführt
+(`datevId`, P1-2-Leseweg); Login-Schutz Proxy-fest (`trustProxy`, getrennte Konto-/IP-Limits,
+TTL-Sweep, P2-9); Security-Header + Body-Limit + Config-Fail-Fast (PORT/TTL/DB_PORT, P3-2);
+DATEV-Timeouts (`DATEV_TIMEOUT_MS`) + tiefer Health-Check authentifiziert (P2-7); Verwaltung-Render-
+Gate + Session-Vollreset (P2-4); Zeiterfassungs-Board mit echtem Tagessoll + Timeline-Grenze (P2-1).
+Bewusst offen (nächste Pakete): DATEV-Rückschreibung live (P1-2 Writeback), restliche
+Serverpersistenz (P2-8), Dependency-Upgrade (P1-5), N+1/Skalierung (P2-6), Status-Mapping live
+(P2-5), Temp-ID-Race (P2-3), Audit-Umfang (P3-1).
