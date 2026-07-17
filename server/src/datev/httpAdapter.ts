@@ -127,8 +127,11 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
 
   /** Transport 1: fetch (Basic/none) — der Produktionsweg. */
   async function requestFetch<T>(path: string, init?: RequestInit): Promise<T> {
+    // Hartes Timeout (Review P2-7): ein haengender DATEV-Dienst darf Requests/Warm-up nicht
+    // dauerhaft binden. AbortSignal.timeout bricht den Abruf nach cfg.timeoutMs ab.
     const res = await fetch(`${base}/${path}`, {
       ...init,
+      signal: AbortSignal.timeout(cfg.timeoutMs),
       headers: { ...headers, ...(init?.headers as Record<string, string> | undefined) },
     });
     if (!res.ok) {
@@ -152,7 +155,11 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
     const { domain, username } = splitDomainUser(cfg.user);
     const method = (init?.method ?? 'GET').toLowerCase() as 'get' | 'post' | 'put';
     const fn = httpntlm[method];
-    return new Promise<T>((resolve, reject) => {
+    // httpntlm kennt keine AbortSignal-Option — Timeout via Promise.race (Review P2-7).
+    const abbruch = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`DATEV ${method.toUpperCase()} ${path} -> Timeout nach ${cfg.timeoutMs} ms`)), cfg.timeoutMs).unref?.()
+    );
+    const anfrage = new Promise<T>((resolve, reject) => {
       fn(
         {
           url: `${base}/${path}`,
@@ -179,6 +186,7 @@ export function createHttpDatevAdapter(cfg: DatevConfig): DatevPort {
         },
       );
     });
+    return Promise.race([anfrage, abbruch]);
   }
 
   async function request<T>(path: string, init?: { method?: string; body?: string; headers?: Record<string, string> }): Promise<T> {

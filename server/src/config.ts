@@ -16,6 +16,8 @@ export interface DatevConfig {
   password: string;
   /** Optionaler OData-Filter für getOrders, z. B. "creation_year eq 2026" (gegen ~7.500 Aufträge). */
   ordersFilter: string;
+  /** Hartes Timeout je DATEV-Aufruf in ms (Review P2-7): ein haengender Dienst bindet keine Requests. */
+  timeoutMs: number;
   /**
    * NUR Entwicklung: Zertifikatsprüfung aus (Zugriff über IP → Zertifikatsname passt nicht).
    * In Produktion verboten (Fail-Fast) — dort über den DNS-Hostnamen zugreifen.
@@ -162,6 +164,7 @@ export function loadConfig(): Config {
       user: datevUser,
       password: datevPassword,
       ordersFilter: process.env.DATEV_ORDERS_FILTER ?? '',
+      timeoutMs: posInt('DATEV_TIMEOUT_MS', process.env.DATEV_TIMEOUT_MS, 30_000),
       tlsInsecure,
     },
     db: {
