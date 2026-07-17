@@ -38,6 +38,24 @@ export interface DbConfig {
   trustServerCertificate: boolean;
 }
 
+/**
+ * Automatische Synchronisierung (docs/synchronisierung-konzept.md). Steuert den nächtlichen
+ * Lese-Sync (DATEV → Snapshot) und den Outbox-Arbeiter (App → DATEV). Standard: an im
+ * Echtdaten-Modus (DATEV_MODE=http), aus im Mock/Demo-Modus.
+ */
+export interface SyncConfig {
+  /** Lese-Sync + Lese-Weiche aktiv (Board liest aus dem Snapshot statt live). */
+  enabled: boolean;
+  /** Uhrzeit des nächtlichen Voll-Laufs im 24-h-Format "HH:MM". */
+  nightlyAt: string;
+  /** Abstand des Delta-Laufs in Minuten; 0 = kein Delta-Lauf. */
+  deltaEveryMin: number;
+  /** Outbox-Arbeiter aktiv (Rückschreibung nach DATEV). */
+  outboxEnabled: boolean;
+  /** Abstand, in dem die Outbox-Warteschlange abgearbeitet wird (Minuten). */
+  outboxEveryMin: number;
+}
+
 export interface Config {
   port: number;
   host: string;
@@ -47,6 +65,7 @@ export interface Config {
   sessionTtlMs: number;
   datev: DatevConfig;
   db: DbConfig;
+  sync: SyncConfig;
 }
 
 const DEV_SECRET = 'dev-insecure-secret-change-me';
@@ -92,6 +111,21 @@ export function loadConfig(): Config {
     throw new Error('DB_MODE=mssql verlangt DB_HOST, DB_USER und DB_PASSWORD (siehe .env.example).');
   }
 
+  // Sync standardmaessig an im Echtdaten-Modus, aus im Mock/Demo-Modus (dort gibt es nichts zu
+  // spiegeln). Einzeln per Umgebungsvariable uebersteuerbar.
+  const syncDefault = datevMode === 'http';
+  const nightlyAt = process.env.SYNC_NIGHTLY_AT ?? '05:00';
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(nightlyAt)) {
+    throw new Error(`SYNC_NIGHTLY_AT muss "HH:MM" (24-h) sein, war: "${nightlyAt}".`);
+  }
+  const sync: SyncConfig = {
+    enabled: (process.env.SYNC_ENABLED ?? String(syncDefault)) === 'true',
+    nightlyAt,
+    deltaEveryMin: Math.max(0, Number(process.env.SYNC_DELTA_EVERY_MIN ?? 0)),
+    outboxEnabled: (process.env.SYNC_OUTBOX_ENABLED ?? String(syncDefault)) === 'true',
+    outboxEveryMin: Math.max(1, Number(process.env.SYNC_OUTBOX_EVERY_MIN ?? 5)),
+  };
+
   return {
     port: Number(process.env.PORT ?? 3001),
     host: process.env.HOST ?? '0.0.0.0',
@@ -118,5 +152,6 @@ export function loadConfig(): Config {
       encrypt: (process.env.DB_ENCRYPT ?? 'true') !== 'false',
       trustServerCertificate: (process.env.DB_TRUST_CERT ?? 'true') !== 'false',
     },
+    sync,
   };
 }

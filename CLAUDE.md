@@ -197,7 +197,19 @@ Parallelfall kontrolliert); Statuswechsel atomar über `repos.statusTransaktion.
 + Protokoll; Deaktivierung wirkt sofort (`User.active`, Repos filtern); versionierte
 **DB-Migrationen** (`server/db/migrations/` + `schema_migrations`; Checklisten-Änderung =
 Migration 001); eigenes Server-ESLint + CI-Schritt; `npm run coverage`; E2E-Suiten reproduzierbar
-in `tools/e2e/`. Als Nächstes
-(Etappe 3): restliche Aktionen (Umplanung/Planung/Anforderungen/Besonderheiten/Suborders/
-Attachments/Nutzer-API), Checklisten-Vorlagen serverseitig verwalten (löst die bewusste
-Vorlagen-Duplikation ab) + DATEV-Outbox-Sync-Job.
+in `tools/e2e/`.
+**Automatische Synchronisierung — Grundgerüst umgesetzt (`docs/synchronisierung-konzept.md`):**
+Der Server liest im Echtdaten-Modus nicht mehr live pro Board-Aufruf, sondern aus einem
+**Snapshot** (`server/src/sync/orderSnapshot.ts`, im Prozess), den ein eingebauter **Zeitplaner**
+(`sync/scheduler.ts`, keine externe Cron) pflegt: nächtlicher Voll-Lauf (`SYNC_NIGHTLY_AT`,
+Standard 05:00) + optionaler Delta-Lauf (`SYNC_DELTA_EVERY_MIN`) über `runOrderSync`
+(`sync/syncOrders.ts`); das Board liest über die **Lese-Weiche** `sync/snapshotDatev.ts` (Snapshot
+statt live, Erst-Zugriff füllt einmalig, In-Flight-Dedupe). Rückschreibung (App→DATEV) über den
+**Outbox-Arbeiter** `sync/outboxWorker.ts` (leert `repos.outbox` nach DATEV, Wiederholung →
+endgültiger Fehler nach `maxAttempts`), getaktet per Intervall (`SYNC_OUTBOX_EVERY_MIN`).
+Konfiguration in `config.ts` (`SyncConfig`, Default an bei `DATEV_MODE=http`), Verdrahtung in
+`server.ts`. Tests: `server/src/sync/sync.test.ts` (+ Config-Fälle). Bewusst offen (Konzept §7):
+Snapshot in MS SQL persistieren (Neustart-fest), echter DATEV-Delta-Filter, Outbox aus den
+Fach-Aktionen **befüllen**. Als Nächstes (Etappe 3): restliche Aktionen (Umplanung/Planung/
+Anforderungen/Besonderheiten/Suborders/Attachments/Nutzer-API), Checklisten-Vorlagen serverseitig
+verwalten (löst die bewusste Vorlagen-Duplikation ab) + Outbox-Befüllung aus Zeit-/Statusaktionen.
