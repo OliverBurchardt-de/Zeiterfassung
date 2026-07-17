@@ -104,6 +104,8 @@ export interface Besonderheit {
  */
 export interface Suborder {
   id: string;
+  /** Echte DATEV-Teilauftrags-ID (Server-Modus) — Basis der späteren DATEV-Rückschreibung (P1-2). */
+  datevId?: string;
   monat: string; // "Jan 2025"
   soll: number; // Planstunden des Monats
   erfasst: number; // erfasste Stunden (Mock-Anzeige)

@@ -5,6 +5,7 @@ import type { RequireVisibleOrder } from './access';
 import { DomainError } from '../errors';
 import { isValidTimeDuration } from '../rules';
 import { LIMITS, isValidIsoDate } from '../limits';
+import { ordertypeNeedsNotiz, ordertypeHasTeilauftraege } from '../ordertypeRules';
 
 export interface BookTimeInput {
   orderId: string;
@@ -62,7 +63,7 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
     async bookTime(actor: PublicUser, input: BookTimeInput): Promise<TimeEntry> {
       // Nur auf sichtbare/zugewiesene Auftraege buchen — sonst landeten (nach Freigabe/Sync)
       // Aufwandsbuchungen auf fremden Mandaten (Review-Befund 5).
-      await requireVisibleOrder(actor, input.orderId);
+      const order = await requireVisibleOrder(actor, input.orderId);
       if (!isValidTimeDuration(input.dauer)) {
         throw new DomainError('invalid', `Dauer muss zwischen 0 und ${LIMITS.DAUER_MAX_STUNDEN} Stunden liegen (max. 2 Nachkommastellen)`);
       }
@@ -70,6 +71,25 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
       if (!isValidIsoDate(input.datum)) throw new DomainError('invalid', 'kein gueltiges Datum (JJJJ-MM-TT)');
       if ((input.notiz ?? '').length > LIMITS.TEXT_MAX) {
         throw new DomainError('invalid', `Notiz ist zu lang (max. ${LIMITS.TEXT_MAX} Zeichen)`);
+      }
+
+      // Ordertype-Buchungsregeln serverseitig verbindlich (Review P1-3): bisher nur im Browser.
+      // (1) Pflicht-Notiz auf laufenden Arten (Mehraufwand/lfd. Beratung).
+      if (ordertypeNeedsNotiz(order.ordertype) && !(input.notiz ?? '').trim()) {
+        throw new DomainError('invalid', 'Fuer diese Auftragsart ist eine Notiz Pflicht');
+      }
+      // (2) Teilauftragszuordnung gegen den geladenen Auftrag pruefen: die suborderId muss ein
+      // echter Teilauftrag DIESES Auftrags sein — und nur Ordertypes mit Teilaufträgen haben welche.
+      if (input.suborderId !== undefined) {
+        if (!ordertypeHasTeilauftraege(order.ordertype)) {
+          throw new DomainError('invalid', 'Diese Auftragsart hat keine Teilauftraege');
+        }
+        // Robust gegen beide Adressierungen: echte DATEV-suborder.id ODER die suborder_number,
+        // die das Frontend heute als id sendet (bis die echte ID durchs Frontendmodell geführt ist).
+        const gehoert = (order.suborders ?? []).some(
+          (s) => s.id === input.suborderId || String(s.number) === input.suborderId
+        );
+        if (!gehoert) throw new DomainError('invalid', 'Teilauftrag gehoert nicht zu diesem Auftrag');
       }
 
       // Idempotenz (gehaertet, Review P2.5): gleicher Client-Key liefert die vorhandene Buchung

@@ -31,10 +31,10 @@ const SAMPLE_ORDERS: OrderView[] = [
     // Monats-Teilauftraege (202 Lohn): Januar/Februar abgeschlossen, Maerz ist der naechste
     // offene — Basis der Karten-Anzeige „Teilauftrag ..." im Server-Modus.
     suborders: [
-      { number: 1, name: 'Januar 2026', periodFrom: '2026-01-01', periodTo: '2026-01-31', plannedHours: 1.5, dateWorkCompleted: '2026-02-05' },
-      { number: 2, name: 'Februar 2026', periodFrom: '2026-02-01', periodTo: '2026-02-28', plannedHours: 1.5, dateWorkCompleted: '2026-03-04' },
-      { number: 3, name: 'März 2026', periodFrom: '2026-03-01', periodTo: '2026-03-31', plannedHours: 1.5 },
-      { number: 4, name: 'April 2026', periodFrom: '2026-04-01', periodTo: '2026-04-30', plannedHours: 1.5 },
+      { id: 'sub-9993-1', number: 1, name: 'Januar 2026', periodFrom: '2026-01-01', periodTo: '2026-01-31', plannedHours: 1.5, dateWorkCompleted: '2026-02-05' },
+      { id: 'sub-9993-2', number: 2, name: 'Februar 2026', periodFrom: '2026-02-01', periodTo: '2026-02-28', plannedHours: 1.5, dateWorkCompleted: '2026-03-04' },
+      { id: 'sub-9993-3', number: 3, name: 'März 2026', periodFrom: '2026-03-01', periodTo: '2026-03-31', plannedHours: 1.5 },
+      { id: 'sub-9993-4', number: 4, name: 'April 2026', periodFrom: '2026-04-01', periodTo: '2026-04-30', plannedHours: 1.5 },
     ],
   },
   {

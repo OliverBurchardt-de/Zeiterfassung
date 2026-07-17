@@ -4,39 +4,51 @@ import type { Clock } from '../clock';
 import type { RequireVisibleOrder } from './access';
 import { DomainError } from '../errors';
 import { LIMITS } from '../limits';
+import { defaultChecklistLabels } from '../checklistTemplates';
 
 /**
  * Checklisten-Aktionen (serverseitig verbindlich). Die Checkliste ist die Grundlage der
  * „Erledigt"-Sperre (canCompleteOrder in status.ts) — deshalb liegt ihre Pflege hier, nicht im
  * Client. Jede Aktion prueft zuerst die Sichtbarkeit des Auftrags (requireVisibleOrder) und dass
  * der Punkt wirklich zu diesem Auftrag gehoert (kein Fremd-Auftrag ueber eine bekannte Punkt-ID).
- *
- * Das automatische Vorbefuellen aus Vorlagen (Ordertype-Katalog/Verwaltung) ist bewusst NICHT hier:
- * es haengt an der serverseitigen Vorlagen-Verwaltung, die als eigener Schritt folgt. Bis dahin
- * pflegt der Nutzer die Punkte manuell (add/remove), was hier persistiert wird.
  */
 
 /**
- * Instanziiert die Checkliste eines Auftrags EINMALIG aus Vorlagen-Labels. Idempotent: existieren
- * bereits Punkte, bleibt alles unveraendert (kein Doppel-Seed) — auch bei gleichzeitigen Aufrufen
- * der sicherste Fall. Gemeinsame Mechanik von `ensure` (Client-Vorlagen beim ersten Oeffnen) und
- * dem „Erledigt"-Gate in status.ts (Server-Default-Vorlage vor der Gate-Pruefung).
+ * Stellt die serverseitig definierten PFLICHTPUNKTE eines Ordertypes sicher (Review 17.07., P1-1).
+ *
+ * Frueher konnte der Client beim ersten `ensure` beliebige (auch verkuerzte) Labels als
+ * Pflichtvorlage schicken, oder vorab einen trivialen manuellen Punkt anlegen — sobald IRGENDein
+ * Punkt existierte, unterblieb das Seeding und das „Erledigt"-Gate war umgehbar. Jetzt gilt:
+ *  - Die Pflichtvorlage kommt AUSSCHLIESSLICH serverseitig aus `defaultChecklistLabels` (nie vom
+ *    Browser).
+ *  - Fehlende Pflichtpunkte werden ergaenzt, AUCH wenn bereits (manuelle) Punkte existieren —
+ *    ein vorab angelegter manueller Punkt kann das Seeding nicht mehr verhindern.
+ *  - Abgeglichen wird gegen die vorhandenen 'vorlage'-Punkte (fehlende Herkunft gilt fail-safe als
+ *    'vorlage'); ein manueller Punkt mit gleichem Text zaehlt NICHT als Pflichtpunkt.
+ * Idempotent und auch bei gleichzeitigen Aufrufen sicher (schlimmstenfalls ein zweiter Punkt mit
+ * gleichem Label — nie ein FEHLENDER Pflichtpunkt).
  */
-export async function seedChecklist(
+export async function seedMandatoryChecklist(
   repos: Repositories,
   clock: Clock,
   orderId: string,
-  labels: string[]
+  ordertype: string
 ): Promise<ChecklistItem[]> {
+  const pflichtLabels = defaultChecklistLabels(ordertype);
   const existing = await repos.checklists.listByOrder(orderId);
-  if (existing.length > 0) return existing;
-  // Vorlagen-Punkte sind Pflichtpunkte: herkunft 'vorlage' -> nie loeschbar (Review 12.07., P1.2).
-  const items: ChecklistItem[] = labels
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((label, i) => ({ id: clock.newId(), orderId, label, done: false, position: i, herkunft: 'vorlage' as const }));
-  if (items.length) await repos.checklists.insertMany(items);
-  return items;
+  if (pflichtLabels.length === 0) return existing;
+  const vorhandeneVorlagen = new Set(
+    existing.filter((i) => (i.herkunft ?? 'vorlage') === 'vorlage').map((i) => i.label)
+  );
+  const fehlende = pflichtLabels.filter((l) => !vorhandeneVorlagen.has(l));
+  if (fehlende.length === 0) return existing;
+  const basePos = existing.length ? Math.max(...existing.map((i) => i.position)) + 1 : 0;
+  // Pflichtpunkte: herkunft 'vorlage' -> nie loeschbar (Review 12.07., P1.2).
+  const neu: ChecklistItem[] = fehlende.map((label, i) => ({
+    id: clock.newId(), orderId, label, done: false, position: basePos + i, herkunft: 'vorlage' as const,
+  }));
+  await repos.checklists.insertMany(neu);
+  return [...existing, ...neu];
 }
 
 export function createChecklistActions(repos: Repositories, clock: Clock, requireVisibleOrder: RequireVisibleOrder) {
@@ -49,19 +61,15 @@ export function createChecklistActions(repos: Repositories, clock: Clock, requir
 
   return {
     /**
-     * Checkliste einmalig aus Client-Vorlagen-Labels instanziieren (die Vorlagen sind dort
-     * admin-gepflegt) — Mechanik und Idempotenz siehe `seedChecklist`.
+     * Stellt die serverseitigen PFLICHTPUNKTE des Auftrags sicher (Review P1-1). Die frueher
+     * uebergebenen Client-Labels sind NICHT mehr die Pflichtvorlage — die Pflicht kommt allein aus
+     * dem Server-Katalog (`seedMandatoryChecklist`). Der `_labels`-Parameter bleibt aus
+     * Kompatibilitaet erhalten, wird aber bewusst ignoriert (admin-gepflegte Vorlagen bekommen
+     * spaeter eine eigene, autorisierte Server-API).
      */
-    async ensure(actor: PublicUser, orderId: string, labels: string[]): Promise<ChecklistItem[]> {
-      await requireVisibleOrder(actor, orderId);
-      // Jedes einzelne Label pruefen (Review P2.4): Laenge passend zum DB-Schema; leere Labels
-      // filtert der Seed bewusst heraus (Vorlagen duerfen Luecken enthalten).
-      for (const label of labels) {
-        if (label.trim().length > LIMITS.LABEL_MAX) {
-          throw new DomainError('invalid', `Checklisten-Label ist zu lang (max. ${LIMITS.LABEL_MAX} Zeichen)`);
-        }
-      }
-      return seedChecklist(repos, clock, orderId, labels);
+    async ensure(actor: PublicUser, orderId: string, _labels: string[]): Promise<ChecklistItem[]> {
+      const order = await requireVisibleOrder(actor, orderId);
+      return seedMandatoryChecklist(repos, clock, orderId, order.ordertype);
     },
 
     async add(actor: PublicUser, orderId: string, label: string): Promise<ChecklistItem> {

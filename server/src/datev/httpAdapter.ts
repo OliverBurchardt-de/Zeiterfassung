@@ -39,6 +39,7 @@ export function mapDatevOrder(raw: Record<string, unknown>): OrderView {
   // Teilauftraege (via `expand=suborders` mitgeladen): reduziert auf die App-relevanten Felder.
   const suborders: SuborderView[] | undefined = Array.isArray(raw.suborders)
     ? (raw.suborders as Record<string, unknown>[]).map((s) => ({
+        id: str(s.id),
         number: num(s.suborder_number) ?? 0,
         name: str(s.suborder_name) ?? '',
         periodFrom: isoDate(s.period_from),

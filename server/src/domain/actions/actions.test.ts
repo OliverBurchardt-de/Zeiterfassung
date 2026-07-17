@@ -18,8 +18,17 @@ const partner: PublicUser = { id: 'u-burchardt', username: 'burchardt', name: 'O
  * server-seitige Gate-Seeding (Codex-Review P2); 202 (Lohn) hat bewusst keine Vorlage.
  */
 const ORDERS: OrderView[] = [
-  { id: 'o1', orderNumber: 1, ordertype: '202', name: 'Testauftrag', status: 'started', clientId: 'c1', responsibleId: 'emp-wolf', partnerId: 'emp-burchardt', isInternal: false, plannedHours: 10 },
+  {
+    id: 'o1', orderNumber: 1, ordertype: '202', name: 'Testauftrag', status: 'started', clientId: 'c1',
+    responsibleId: 'emp-wolf', partnerId: 'emp-burchardt', isInternal: false, plannedHours: 10,
+    suborders: [
+      { id: 'sub-o1-1', number: 1, name: 'Januar 2026' },
+      { id: 'sub-o1-2', number: 2, name: 'Februar 2026' },
+    ],
+  },
   { id: 'o2', orderNumber: 2, ordertype: '301', name: 'Jahresabschluss', status: 'started', clientId: 'c1', responsibleId: 'emp-wolf', partnerId: 'emp-burchardt', isInternal: false, plannedHours: 20 },
+  // o3 = laufender Ordertype 616 (Mehraufwand FiBu): Zeitbuchung braucht serverseitig eine Notiz (P1-3).
+  { id: 'o3', orderNumber: 3, ordertype: '616', name: 'Mehraufwand FiBu', status: 'started', clientId: 'c1', responsibleId: 'emp-wolf', partnerId: 'emp-burchardt', isInternal: false, plannedHours: 5 },
 ];
 const datev: DatevPort = {
   health: async () => true,
@@ -311,13 +320,15 @@ describe('Status-Aktionen', () => {
     expect(overlay.boardStatus).toBe('er');
   });
 
-  it('Gate-Seed ist idempotent: bestehende Client-Checkliste wird nicht ueberschrieben', async () => {
-    // Erst per Client-ensure mit eigenen (admin-editierten) Labels instanziieren …
+  it('ensure uebernimmt keine Client-Labels als Pflicht; Gate seedet die Server-Vorlage (P1-1)', async () => {
+    // Client versucht, eine verkuerzte "Ein-Punkt-Liste" unterzuschieben …
     await actions.checklist.ensure(mitarbeiter, 'o2', ['Einziger Punkt']);
-    // … dann "er" versuchen: das Gate darf KEINE Default-Vorlage dazuseeden.
-    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o2', 'er'), 'conflict');
+    // … das wird ignoriert: es stehen die 3 JA-Pflichtpunkte, NICHT der Client-Punkt.
     const items = await repos.checklists.listByOrder('o2');
-    expect(items.map((i) => i.label)).toEqual(['Einziger Punkt']);
+    expect(items).toHaveLength(3);
+    expect(items.map((i) => i.label)).not.toContain('Einziger Punkt');
+    // Gate bleibt zu, solange die Pflichtpunkte offen sind.
+    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o2', 'er'), 'conflict');
   });
 });
 
@@ -344,19 +355,82 @@ describe('Auftrags-Sichtbarkeit (IDOR-Schutz, Review-Befunde 1-5)', () => {
   });
 });
 
+describe('Serverseitige Ordertype-Buchungsregeln (Review P1-3 / P2-2)', () => {
+  it('laufender Ordertype (616) verlangt eine Pflicht-Notiz', async () => {
+    await expectDomainError(
+      () => actions.time.bookTime(mitarbeiter, { orderId: 'o3', datum: '2026-07-01', dauer: 1 }),
+      'invalid'
+    );
+    // Mit Notiz geht es durch.
+    const e = await actions.time.bookTime(mitarbeiter, { orderId: 'o3', datum: '2026-07-01', dauer: 1, notiz: 'Nacharbeit Juni' });
+    expect(e.notiz).toBe('Nacharbeit Juni');
+  });
+
+  it('nicht-laufender Ordertype (202) braucht keine Notiz', async () => {
+    const e = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1 });
+    expect(e.status).toBe('erfasst');
+  });
+
+  it('suborderId muss ein echter Teilauftrag DIESES Auftrags sein', async () => {
+    // gueltig (per number-String, wie das Frontend sie sendet, oder echter id)
+    const e1 = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-01', dauer: 1, suborderId: '1' });
+    expect(e1.suborderId).toBe('1');
+    const e2 = await actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-02', dauer: 1, suborderId: 'sub-o1-2' });
+    expect(e2.suborderId).toBe('sub-o1-2');
+    // fremde/unbekannte Teilauftrags-ID -> Ablehnung
+    await expectDomainError(
+      () => actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-03', dauer: 1, suborderId: 'sub-fremd' }),
+      'invalid'
+    );
+  });
+
+  it('Ordertype ohne Teilauftraege (301) lehnt jede suborderId ab', async () => {
+    await expectDomainError(
+      () => actions.time.bookTime(mitarbeiter, { orderId: 'o2', datum: '2026-07-01', dauer: 1, suborderId: '1' }),
+      'invalid'
+    );
+  });
+
+  it('ua/uv nur fuer Unterlagen-Ordertypes: 301 erlaubt, 202 abgelehnt (P2-2)', async () => {
+    // o2 = 301 hat Unterlagen-Prozess -> ua erlaubt.
+    const overlay = await actions.status.setStatus(mitarbeiter, 'o2', 'ua');
+    expect(overlay.boardStatus).toBe('ua');
+    // o1 = 202 hat keinen Unterlagen-Prozess -> ua/uv abgelehnt.
+    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o1', 'ua'), 'invalid');
+    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o1', 'uv'), 'invalid');
+  });
+});
+
 describe('Checklisten-Aktionen', () => {
-  it('seedet die Checkliste einmalig aus Vorlagen-Labels (idempotent)', async () => {
-    const items = await actions.checklist.ensure(mitarbeiter, 'o1', ['  A  ', '', 'B']);
-    expect(items.map((i) => i.label)).toEqual(['A', 'B']); // getrimmt, leere raus
-    expect(items.map((i) => i.position)).toEqual([0, 1]);
-    // Zweiter Aufruf mit anderen Labels aendert nichts (existiert bereits).
-    const again = await actions.checklist.ensure(mitarbeiter, 'o1', ['C', 'D', 'E']);
-    expect(again).toHaveLength(2);
-    expect(await repos.checklists.listByOrder('o1')).toHaveLength(2);
+  it('seedet die serverseitige Pflichtvorlage des Ordertypes und ignoriert Client-Labels (P1-1)', async () => {
+    // o2 = Ordertype 301 (JA) -> 3 Server-Pflichtpunkte. Die uebergebenen Client-Labels sind
+    // KEINE Pflichtvorlage mehr und duerfen die Liste nicht bestimmen.
+    const items = await actions.checklist.ensure(mitarbeiter, 'o2', ['boese verkuerzt']);
+    expect(items).toHaveLength(3);
+    expect(items.every((i) => i.herkunft === 'vorlage')).toBe(true);
+    expect(items.map((i) => i.label)).not.toContain('boese verkuerzt');
+    // Idempotent: zweiter Aufruf ergaenzt nichts.
+    const again = await actions.checklist.ensure(mitarbeiter, 'o2', ['C', 'D']);
+    expect(again).toHaveLength(3);
+    expect(await repos.checklists.listByOrder('o2')).toHaveLength(3);
+  });
+
+  it('Ordertype ohne Pflichtvorlage bleibt leer (202 Lohn)', async () => {
+    const items = await actions.checklist.ensure(mitarbeiter, 'o1', ['A', 'B']);
+    expect(items).toHaveLength(0); // 202 hat keine Default-Vorlage; Client-Labels zaehlen nicht
+  });
+
+  it('ein manueller Punkt vor dem Seed verhindert die Pflichtpunkte NICHT (P1-1)', async () => {
+    // Bypass-Versuch: erst einen trivialen manuellen Punkt anlegen, dann ensure.
+    await actions.checklist.add(mitarbeiter, 'o2', 'trivial');
+    const items = await actions.checklist.ensure(mitarbeiter, 'o2', []);
+    // Pflichtpunkte wurden trotzdem ergaenzt (3 Vorlage + 1 manuell).
+    expect(items.filter((i) => i.herkunft === 'vorlage')).toHaveLength(3);
+    expect(items.filter((i) => i.herkunft === 'manuell')).toHaveLength(1);
   });
 
   it('seedet nur fuer sichtbare Auftraege', async () => {
-    await expectDomainError(() => actions.checklist.ensure(anderer, 'o1', ['A']), 'not_found');
+    await expectDomainError(() => actions.checklist.ensure(anderer, 'o2', ['A']), 'not_found');
   });
 
   it('legt einen Punkt an (offen, aufsteigende Position) und listet ihn', async () => {
@@ -396,10 +470,18 @@ describe('Checklisten-Aktionen', () => {
   });
 
   it('Pflichtpunkte aus der Vorlage sind NIE loeschbar (Review P1.2)', async () => {
-    const items = await actions.checklist.ensure(mitarbeiter, 'o1', ['Pflicht A']);
+    const items = await actions.checklist.ensure(mitarbeiter, 'o2', []); // 301 -> Server-Pflichtvorlage
     expect(items[0].herkunft).toBe('vorlage');
-    await expectDomainError(() => actions.checklist.remove(mitarbeiter, 'o1', items[0].id), 'conflict');
-    expect(await repos.checklists.listByOrder('o1')).toHaveLength(1);
+    await expectDomainError(() => actions.checklist.remove(mitarbeiter, 'o2', items[0].id), 'conflict');
+    expect(await repos.checklists.listByOrder('o2')).toHaveLength(3);
+  });
+
+  it('das "Erledigt"-Gate verlangt vorhandene Pflichtpunkte, nicht nur "alle erledigt" (P1-1)', async () => {
+    // Bypass-Versuch: einen einzelnen manuellen Punkt anlegen, abhaken, dann "Erledigt".
+    const p = await actions.checklist.add(mitarbeiter, 'o2', 'trivial');
+    await actions.checklist.setDone(mitarbeiter, 'o2', p.id, true);
+    // Trotz "alle (1) erledigt" bleibt das Gate zu, weil die 3 Pflichtpunkte fehlen/offen sind.
+    await expectDomainError(() => actions.status.setStatus(mitarbeiter, 'o2', 'er'), 'conflict');
   });
 
   it('das "Erledigt"-Gate ist nicht durch Loeschen offener Pflichtpunkte umgehbar', async () => {

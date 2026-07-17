@@ -5,11 +5,22 @@
 
 export interface ChecklistItem {
   done: boolean;
+  label?: string;
+  herkunft?: 'vorlage' | 'manuell';
 }
 
-/** „Erledigt" ist erst moeglich, wenn die Checkliste vollstaendig ist. */
-export function canCompleteOrder(items: ChecklistItem[]): boolean {
-  return items.every((i) => i.done);
+/**
+ * „Erledigt" ist erst moeglich, wenn (1) alle aktiven Punkte erledigt sind UND (2) alle
+ * serverseitigen Pflicht-Labels als Vorlage-Punkte vorhanden sind (Review P1-1). Ohne (2) liesse
+ * sich das Gate mit einer leeren oder verkuerzten Liste umgehen. `mandatoryLabels` leer = kein
+ * Pflicht-Katalog fuer diesen Ordertype (dann genuegt (1)).
+ */
+export function canCompleteOrder(items: ChecklistItem[], mandatoryLabels: string[] = []): boolean {
+  if (!items.every((i) => i.done)) return false;
+  const vorlageLabels = new Set(
+    items.filter((i) => (i.herkunft ?? 'vorlage') === 'vorlage').map((i) => i.label)
+  );
+  return mandatoryLabels.every((l) => vorlageLabels.has(l));
 }
 
 /**

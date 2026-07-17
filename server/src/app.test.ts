@@ -236,30 +236,36 @@ describe('Status-API', () => {
 describe('Checklist-API (Herkunft + Soft-Delete, Review 12.07.)', () => {
   it('Vorlagenpunkt (ensure) ist nicht loeschbar (409), manueller Punkt schon (200)', async () => {
     const app = await makeApp();
-    const { cookieHeader } = await loginCookie(app, 'wolf', 'demo');
+    // 9001 = Ordertype 301 (JA) mit Server-Pflichtvorlage; gehoert klein.
+    const { cookieHeader } = await loginCookie(app, 'klein', 'demo');
     const h = { cookie: cookieHeader };
 
-    // Vorlage instanziieren -> Pflichtpunkt
-    const ens = await app.inject({ method: 'POST', url: '/api/orders/9993/checklist/ensure', headers: h, payload: { labels: ['Pflicht'] } });
+    // Server-Pflichtvorlage instanziieren (Client-Labels werden ignoriert, P1-1).
+    const ens = await app.inject({ method: 'POST', url: '/api/orders/9001/checklist/ensure', headers: h, payload: { labels: ['boese'] } });
     expect(ens.statusCode).toBe(200);
-    const pflicht = (ens.json() as Array<{ id: string; herkunft: string }>)[0];
-    expect(pflicht.herkunft).toBe('vorlage');
+    const pflichtpunkte = ens.json() as Array<{ id: string; herkunft: string; label: string }>;
+    expect(pflichtpunkte).toHaveLength(3);
+    expect(pflichtpunkte.every((p) => p.herkunft === 'vorlage')).toBe(true);
+    expect(pflichtpunkte.map((p) => p.label)).not.toContain('boese');
+    const pflicht = pflichtpunkte[0];
 
     // Manuell ergaenzen -> loeschbar
-    const add = await app.inject({ method: 'POST', url: '/api/orders/9993/checklist', headers: h, payload: { label: 'Zusatz' } });
+    const add = await app.inject({ method: 'POST', url: '/api/orders/9001/checklist', headers: h, payload: { label: 'Zusatz' } });
     expect(add.statusCode).toBe(201);
     expect(add.json().herkunft).toBe('manuell');
 
-    const delPflicht = await app.inject({ method: 'DELETE', url: `/api/orders/9993/checklist/${pflicht.id}`, headers: h });
+    const delPflicht = await app.inject({ method: 'DELETE', url: `/api/orders/9001/checklist/${pflicht.id}`, headers: h });
     expect(delPflicht.statusCode).toBe(409);
 
-    const delZusatz = await app.inject({ method: 'DELETE', url: `/api/orders/9993/checklist/${add.json().id}`, headers: h });
+    const delZusatz = await app.inject({ method: 'DELETE', url: `/api/orders/9001/checklist/${add.json().id}`, headers: h });
     expect(delZusatz.statusCode).toBe(200);
 
-    // Board zeigt nur den aktiven Pflichtpunkt — der geloeschte manuelle taucht nicht mehr auf.
+    // Board zeigt die aktiven Pflichtpunkte — der geloeschte manuelle taucht nicht mehr auf.
     const board = await app.inject({ method: 'GET', url: '/api/board', headers: h });
-    const o = (board.json() as Array<{ id: string; checklist: Array<{ id: string }> }>).find((x) => x.id === '9993');
-    expect(o?.checklist.map((c) => c.id)).toEqual([pflicht.id]);
+    const o = (board.json() as Array<{ id: string; checklist: Array<{ id: string }> }>).find((x) => x.id === '9001');
+    expect(o?.checklist).toHaveLength(3);
+    expect(o?.checklist.map((c) => c.id)).toContain(pflicht.id);
+    expect(o?.checklist.map((c) => c.id)).not.toContain(add.json().id);
   });
 });
 

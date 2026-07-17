@@ -7,7 +7,8 @@ import { DomainError } from '../errors';
 import { canCompleteOrder } from '../rules';
 import { LIMITS } from '../limits';
 import { defaultChecklistLabels } from '../checklistTemplates';
-import { seedChecklist } from './checklist';
+import { seedMandatoryChecklist } from './checklist';
+import { ordertypeHasUnterlagen } from '../ordertypeRules';
 
 function isStatusId(v: string): v is StatusId {
   return (STATUS_IDS as string[]).includes(v);
@@ -30,6 +31,11 @@ export function createStatusActions(repos: Repositories, clock: Clock, requireVi
       // Nur sichtbare/zugewiesene Auftraege umschalten (Review-Befund 2).
       const order = await requireVisibleOrder(actor, orderId);
       if (!isStatusId(toStatus)) throw new DomainError('invalid', `unbekannter Status: ${toStatus}`);
+      // ua/uv sind nur für Ordertypes mit Unterlagen-Prozess gültig (Review P2-2): bisher blockte
+      // das nur der Browser, ein direkter API-Aufruf konnte jeden Auftrag auf ua/uv setzen.
+      if ((toStatus === 'ua' || toStatus === 'uv') && !ordertypeHasUnterlagen(order.ordertype)) {
+        throw new DomainError('invalid', 'Unterlagen-Status (ua/uv) gilt nicht fuer diese Auftragsart');
+      }
       // Board-Position: nicht negativ, ganzzahlig, grosszuegig gedeckelt (Review P2.4).
       if (
         boardPosition !== undefined &&
@@ -42,12 +48,12 @@ export function createStatusActions(repos: Repositories, clock: Clock, requireVi
       const fromStatus = current?.boardStatus;
 
       if (toStatus === 'er') {
-        // Pflicht-Checkliste VOR der Gate-Pruefung sicherstellen: ohne dies waere „Erledigt"
-        // per Board-Drag/API-Aufruf moeglich, bevor die Checkliste je instanziiert wurde —
-        // eine leere Liste gilt als vollstaendig (Codex-Review P2). Idempotent: existieren
-        // bereits Punkte (Client-`ensure` beim ersten Oeffnen), passiert hier nichts.
-        const items = await seedChecklist(repos, clock, orderId, defaultChecklistLabels(order.ordertype));
-        if (!canCompleteOrder(items)) {
+        // Pflicht-Checkliste VOR der Gate-Pruefung serverseitig sicherstellen (Review P1-1):
+        // fehlende Pflichtpunkte werden ergaenzt — auch wenn schon (manuelle) Punkte existieren,
+        // sodass weder eine leere Liste noch ein vorab angelegter Trivial-Punkt das Gate umgeht.
+        const items = await seedMandatoryChecklist(repos, clock, orderId, order.ordertype);
+        // Vollstaendig heisst: alle Punkte erledigt UND alle Pflicht-Labels als Vorlage vorhanden.
+        if (!canCompleteOrder(items, defaultChecklistLabels(order.ordertype))) {
           throw new DomainError('conflict', 'Checkliste ist noch nicht vollstaendig');
         }
       }

@@ -111,6 +111,8 @@ export interface ApiBoardOrder {
 }
 
 export interface ApiSuborder {
+  /** Echte DATEV-Teilauftrags-ID (für die spätere Rückschreibung; Review P1-2). */
+  id?: string;
   number: number;
   name: string;
   periodFrom?: string;

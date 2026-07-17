@@ -75,6 +75,7 @@ export function mapBoardOrder(dto: ApiBoardOrder): Order {
     // Teilaufträge: Monat aus dem Leistungszeitraum (period_from), erledigt = date_work_completed.
     suborders: dto.suborders?.map((s) => ({
       id: String(s.number),
+      datevId: s.id,
       monat: monatAus(s.periodFrom ?? s.periodTo) || s.name,
       soll: s.plannedHours ?? 0,
       erfasst: 0, // Ist je Teilauftrag liefert erst der DATEV-Kostenabruf (späterer Schritt)

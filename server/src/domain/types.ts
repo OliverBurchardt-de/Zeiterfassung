@@ -82,6 +82,12 @@ export interface OrderView {
 
 /** Teilauftrag eines Auftrags (DATEV suborder) — reduziert auf die App-relevanten Felder. */
 export interface SuborderView {
+  /**
+   * Echte DATEV-Teilauftrags-ID (suborder.id) — die der DATEV-POST im URL-Pfad verlangt
+   * (Review P1-2). Wird durchgereicht, damit eine spätere Rückschreibung den korrekten
+   * Teilauftrag adressiert; `number` bleibt für Anzeige/Zuordnung erhalten.
+   */
+  id?: string;
   number: number; // suborder_number (eindeutig je Auftrag)
   name: string; // suborder_name, z. B. "Januar 2026"
   /** Leistungszeitraum (ISO "JJJJ-MM-TT") — bestimmt den Teilauftrags-Monat. */
