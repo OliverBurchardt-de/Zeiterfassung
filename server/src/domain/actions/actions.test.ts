@@ -11,6 +11,7 @@ import { isDomainError } from '../errors';
 const mitarbeiter: PublicUser = { id: 'u-wolf', username: 'wolf', name: 'S. Wolf', role: 'mitarbeiter', admin: false, datevEmployeeId: 'emp-wolf' };
 const anderer: PublicUser = { id: 'u-klein', username: 'klein', name: 'M. Klein', role: 'mitarbeiter', admin: false, datevEmployeeId: 'emp-klein' };
 const partner: PublicUser = { id: 'u-burchardt', username: 'burchardt', name: 'O. Burchardt', role: 'partner', admin: true, datevEmployeeId: 'emp-burchardt' };
+const backoffice: PublicUser = { id: 'u-bo', username: 'backoffice', name: 'B. Ostermann', role: 'backoffice', admin: false, datevEmployeeId: 'emp-bo' };
 
 /**
  * Test-DATEV: 'o1' gehoert dem Mitarbeiter (Partner ist Admin) — 'anderer' (u-klein) sieht es NICHT.
@@ -55,7 +56,7 @@ let repos: Repositories;
 let actions: Actions;
 
 beforeEach(() => {
-  repos = createMemoryRepositories(usersOf([mitarbeiter, anderer, partner]));
+  repos = createMemoryRepositories(usersOf([mitarbeiter, anderer, partner, backoffice]));
   actions = createActions(repos, datev, testClock());
 });
 
@@ -402,6 +403,28 @@ describe('Serverseitige Ordertype-Buchungsregeln (Review P1-3 / P2-2)', () => {
     await expectDomainError(
       () => actions.time.bookTime(mitarbeiter, { orderId: 'o2', datum: '2026-07-01', dauer: 1, suborderId: '1' }),
       'invalid'
+    );
+  });
+
+  it('Backoffice bucht FUER einen anderen Mitarbeiter (Zeit gehoert dem Zielnutzer)', async () => {
+    const e = await actions.time.bookTime(backoffice, { orderId: 'o1', datum: '2026-07-10', dauer: 1, onBehalfOfUserId: 'u-wolf' });
+    expect(e.userId).toBe('u-wolf'); // nicht der Backoffice-Nutzer
+    // Und die Tagesgrenze rechnet fuer den Zielnutzer, nicht fuer das Backoffice.
+    expect(await repos.times.sumByUserAndDate('u-wolf', '2026-07-10')).toBe(1);
+    expect(await repos.times.sumByUserAndDate('u-bo', '2026-07-10')).toBe(0);
+  });
+
+  it('normaler Mitarbeiter darf NICHT fuer andere buchen (forbidden)', async () => {
+    await expectDomainError(
+      () => actions.time.bookTime(mitarbeiter, { orderId: 'o1', datum: '2026-07-10', dauer: 1, onBehalfOfUserId: 'u-klein' }),
+      'forbidden'
+    );
+  });
+
+  it('Buchen fuer einen unbekannten Zielnutzer schlaegt fehl (not_found)', async () => {
+    await expectDomainError(
+      () => actions.time.bookTime(backoffice, { orderId: 'o1', datum: '2026-07-10', dauer: 1, onBehalfOfUserId: 'gibtsnicht' }),
+      'not_found'
     );
   });
 

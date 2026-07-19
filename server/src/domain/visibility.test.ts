@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { visibleOrders } from './visibility';
+import { visibleOrders, canAccessOrder } from './visibility';
 import type { OrderView, PublicUser } from './types';
 
 // Auftraege tragen DATEV-Mitarbeiter-IDs (emp-…) — bewusst NICHT die App-User-IDs (u-…),
@@ -14,10 +14,14 @@ const orders: OrderView[] = [
 const wolf: PublicUser = { id: 'u-wolf', username: 'wolf', name: 'S. Wolf', role: 'mitarbeiter', admin: false, datevEmployeeId: 'emp-wolf' };
 const burchardt: PublicUser = { id: 'u-burchardt', username: 'burchardt', name: 'O. Burchardt', role: 'partner', admin: false, datevEmployeeId: 'emp-burchardt' };
 const admin: PublicUser = { id: 'u-admin', username: 'admin', name: 'Admin', role: 'partner', admin: true };
+const backoffice: PublicUser = { id: 'u-bo', username: 'bo', name: 'B. Ostermann', role: 'backoffice', admin: false, datevEmployeeId: 'emp-bo' };
 
 describe('visibleOrders', () => {
-  it('interne Auftraege sind nie sichtbar', () => {
+  it('interne Auftraege sind nie im Board (auch nicht fuer Admin)', () => {
     expect(visibleOrders(orders, admin).some((o) => o.isInternal)).toBe(false);
+  });
+  it('Backoffice sieht alle Board-Auftraege (bucht fuer alle), aber interne bleiben aus dem Board', () => {
+    expect(visibleOrders(orders, backoffice).map((o) => o.id)).toEqual(['1', '2', '4']);
   });
   it('Mitarbeiter sieht nur eigene zugewiesene', () => {
     expect(visibleOrders(orders, wolf).map((o) => o.id)).toEqual(['1']);
@@ -39,5 +43,14 @@ describe('visibleOrders', () => {
   it('Nicht-Admin ohne datevEmployeeId sieht nichts (fail-closed)', () => {
     const ohneMapping: PublicUser = { id: 'u-neu', username: 'neu', name: 'Neu', role: 'mitarbeiter', admin: false };
     expect(visibleOrders(orders, ohneMapping)).toEqual([]);
+  });
+
+  it('interne Auftraege sind fuer JEDEN bebuchbar (canAccessOrder), auch ohne Zuordnung', () => {
+    const intern = orders.find((o) => o.isInternal)!;
+    const ohneMapping: PublicUser = { id: 'u-neu', username: 'neu', name: 'Neu', role: 'mitarbeiter', admin: false };
+    expect(canAccessOrder(intern, wolf)).toBe(true);
+    expect(canAccessOrder(intern, ohneMapping)).toBe(true);
+    // Ein fremder BOARD-Auftrag bleibt fuer den Nicht-Zustaendigen gesperrt.
+    expect(canAccessOrder(orders.find((o) => o.id === '2')!, wolf)).toBe(false);
   });
 });

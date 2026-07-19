@@ -16,15 +16,22 @@ import type { OrderView, PublicUser } from './types';
  * damit dieser Abgleich verifizierbar ist (Codex-Review P1).
  */
 export function canAccessOrder(order: OrderView, user: PublicUser): boolean {
-  if (order.isInternal) return false;
+  // Interne Auftraege (z. B. Kanzleiverwaltung 9801) sind firmenweit BEBUCHBAR — jeder angemeldete
+  // Nutzer darf darauf Zeit erfassen (nur nicht im Board, s. visibleOrders). Entscheidung 19.07.2026.
+  if (order.isInternal) return true;
   if (user.admin) return true;
+  // Backoffice erfasst/bucht fuer ALLE Mitarbeiter -> sieht alle (Board-)Auftraege.
+  if (user.role === 'backoffice') return true;
   const datevId = user.datevEmployeeId;
   if (!datevId) return false;
   if (user.role === 'partner') return order.partnerId === datevId || order.responsibleId === datevId;
   return order.responsibleId === datevId;
 }
 
-/** Board-Liste eines Nutzers — Filter ueber dasselbe Ein-Auftrag-Praedikat. */
+/**
+ * Board-Liste eines Nutzers. Interne Auftraege gehoeren NIE ins Board (auch nicht fuer Admin),
+ * obwohl sie bebuchbar sind (canAccessOrder) — deshalb hier zusaetzlich herausfiltern.
+ */
 export function visibleOrders(orders: OrderView[], user: PublicUser): OrderView[] {
-  return orders.filter((o) => canAccessOrder(o, user));
+  return orders.filter((o) => !o.isInternal && canAccessOrder(o, user));
 }

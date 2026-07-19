@@ -20,6 +20,11 @@ export interface BookTimeInput {
    * Retry). Ohne Angabe erzeugt der Server einen — dann ist jeder Aufruf eine neue Buchung.
    */
   idempotencyKey?: string;
+  /**
+   * Buchen FUER einen anderen Mitarbeiter (Nacherfassung durch das Backoffice). Nur Backoffice
+   * oder Admin duerfen das setzen (serverseitig erzwungen); die Zeit gehoert dann diesem Nutzer.
+   */
+  onBehalfOfUserId?: string;
 }
 
 /**
@@ -33,8 +38,10 @@ export interface BookTimeInput {
  * herausgeben) UND die Nutzlast uebereinstimmt (409 sonst — Schluessel-Wiederverwendung
  * mit anderem Inhalt ist ein Programmierfehler des Clients, kein Erfolgsfall).
  */
-function gleicheBuchungOderKonflikt(actor: PublicUser, input: BookTimeInput, bestehend: TimeEntry): TimeEntry {
-  if (bestehend.userId !== actor.id) {
+function gleicheBuchungOderKonflikt(zielUserId: string, input: BookTimeInput, bestehend: TimeEntry): TimeEntry {
+  // Ownership-Vergleich gegen den EFFEKTIVEN Nutzer (bei Backoffice-Buchung der Zielmitarbeiter,
+  // sonst der Handelnde) — ein fremder Schluessel liefert nie die fremde Buchung.
+  if (bestehend.userId !== zielUserId) {
     throw new DomainError('forbidden', 'Idempotenz-Schluessel ist bereits vergeben');
   }
   const gleich =
@@ -64,6 +71,18 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
       // Nur auf sichtbare/zugewiesene Auftraege buchen — sonst landeten (nach Freigabe/Sync)
       // Aufwandsbuchungen auf fremden Mandaten (Review-Befund 5).
       const order = await requireVisibleOrder(actor, input.orderId);
+
+      // Buchen fuer einen anderen Mitarbeiter (Backoffice-Nacherfassung): nur Backoffice/Admin,
+      // und nur auf einen existierenden aktiven Nutzer. Sonst gehoert die Zeit dem Handelnden.
+      let zielUserId = actor.id;
+      if (input.onBehalfOfUserId && input.onBehalfOfUserId !== actor.id) {
+        if (actor.role !== 'backoffice' && !actor.admin) {
+          throw new DomainError('forbidden', 'nur Backoffice oder Admin darf fuer andere buchen');
+        }
+        const ziel = await repos.users.findById(input.onBehalfOfUserId);
+        if (!ziel) throw new DomainError('not_found', 'Zielnutzer nicht gefunden');
+        zielUserId = ziel.id;
+      }
       if (!isValidTimeDuration(input.dauer)) {
         throw new DomainError('invalid', `Dauer muss zwischen 0 und ${LIMITS.DAUER_MAX_STUNDEN} Stunden liegen (max. 2 Nachkommastellen)`);
       }
@@ -97,12 +116,12 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
       // wiederverwendeter Schluessel ist ein Konflikt — nie die fremde/alte Buchung.
       if (input.idempotencyKey) {
         const bestehend = await repos.times.findByIdempotencyKey(input.idempotencyKey);
-        if (bestehend) return gleicheBuchungOderKonflikt(actor, input, bestehend);
+        if (bestehend) return gleicheBuchungOderKonflikt(zielUserId, input, bestehend);
       }
 
       const entry: TimeEntry = {
         id: clock.newId(),
-        userId: actor.id,
+        userId: zielUserId,
         orderId: input.orderId,
         suborderId: input.suborderId,
         datum: input.datum,
@@ -126,7 +145,7 @@ export function createTimeActions(repos: Repositories, clock: Clock, requireVisi
         // behandeln.
         if (input.idempotencyKey) {
           const inzwischen = await repos.times.findByIdempotencyKey(input.idempotencyKey);
-          if (inzwischen) return gleicheBuchungOderKonflikt(actor, input, inzwischen);
+          if (inzwischen) return gleicheBuchungOderKonflikt(zielUserId, input, inzwischen);
         }
         throw err;
       }

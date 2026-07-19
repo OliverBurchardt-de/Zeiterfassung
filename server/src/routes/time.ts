@@ -15,6 +15,8 @@ const BookBody = z.object({
   notiz: z.string().max(LIMITS.TEXT_MAX).optional(),
   aufwandsart: z.enum(['mehraufwand', 'dumm']).optional(),
   idempotencyKey: z.string().min(1).max(100).optional(),
+  // Backoffice-Nacherfassung fuer einen anderen Mitarbeiter; Berechtigung prueft die Domaene.
+  onBehalfOfUserId: z.string().min(1).max(64).optional(),
 });
 
 /** Zeiterfassung — jeder bucht/aendert nur EIGENE Zeiten (Durchsetzung in den Aktionen). */

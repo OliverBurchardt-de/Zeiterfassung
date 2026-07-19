@@ -292,11 +292,15 @@ describe('IDOR-Schutz: Auftrags-Sichtbarkeit auf allen Fach-Routen', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it('interner Auftrag ist auch fuer den Admin nicht bebuchbar (404)', async () => {
+  it('interner Auftrag „Kanzleiverwaltung" ist firmenweit BEBUCHBAR (auch fuer Nicht-Zustaendige)', async () => {
     const app = await makeApp();
-    const { cookieHeader } = await loginCookie(app, 'burchardt', 'demo');
-    const res = await app.inject({ method: 'POST', url: '/api/orders/8476/status', headers: { cookie: cookieHeader }, payload: { status: 'bb' } });
-    expect(res.statusCode).toBe(404);
+    // klein ist NICHT Bearbeiter von 8476 (Kanzleiverwaltung) — darf aber interne Zeit erfassen.
+    const { cookieHeader } = await loginCookie(app, 'klein', 'demo');
+    const res = await app.inject({
+      method: 'POST', url: '/api/time', headers: { cookie: cookieHeader },
+      payload: { orderId: '8476', datum: '2026-07-10', dauer: 0.5 },
+    });
+    expect(res.statusCode).toBe(201);
   });
 
   it('positive Kontrolle: auf dem EIGENEN Auftrag ist der Zugriff erlaubt', async () => {
