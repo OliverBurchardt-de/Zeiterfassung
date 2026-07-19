@@ -8,6 +8,8 @@ import type { Order } from '@/lib/types';
 import { useStore, useCurrentUser } from '@/state/store';
 import { useVisibleOrders, zeitenAmTag } from '@/state/selectors';
 import { ART, formatHours, artNeedsNotiz } from '@/lib/art';
+import { rolePolicy } from '@/lib/tokens';
+import { verhaltenFor, istKanzleiverwaltung } from '@/lib/ordertypes';
 import { heute } from '@/lib/heute';
 
 /**
@@ -47,7 +49,9 @@ function datumLabel(iso: string): string {
 interface Draft { order: Order; startMin: number; dauer: number; notiz: string }
 
 export function ZeiterfassungBoard() {
-  const orders = useVisibleOrders();
+  const visible = useVisibleOrders();
+  const alleOrders = useStore((s) => s.orders);
+  const users = useStore((s) => s.users);
   const me = useCurrentUser();
   const addManual = useStore((s) => s.addManualTime);
   const deleteTime = useStore((s) => s.deleteTime);
@@ -56,30 +60,53 @@ export function ZeiterfassungBoard() {
   const [suche, setSuche] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+  // Backoffice/Admin dürfen Zeiten FÜR andere Mitarbeiter erfassen — Auswahl des Zielmitarbeiters.
+  const darfFuerAndere = me ? rolePolicy.canBookForOthers(me.role, me.admin) : false;
+  const [zielUserId, setZielUserId] = useState<string>(() => me?.id ?? '');
+  const zielUser = users.find((u) => u.id === zielUserId) ?? me;
+  const fuerAnderen = !!(zielUser && me && zielUser.id !== me.id);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  // Palette: alle sichtbaren Aufträge, nach Mandant/Mandantennr./AuftragsNr/Art durchsuchbar.
+  // Palette = sichtbare Aufträge PLUS die internen (Kanzleiverwaltung etc.), die firmenweit
+  // bebuchbar sind (nicht im Board, aber hier erfassbar). Nach Mandant/Nr./Auftrag/Art durchsuchbar.
+  const orders = useMemo(() => {
+    const interne = alleOrders.filter((o) => verhaltenFor(o.ordertype) === 'intern');
+    const map = new Map<string, Order>();
+    for (const o of [...visible, ...interne]) map.set(o.id, o);
+    return [...map.values()];
+  }, [visible, alleOrders]);
+
   const treffer = useMemo(() => {
     const q = suche.trim().toLowerCase();
     if (!q) return orders.slice(0, 40);
     return orders.filter((o) => `${o.mandant} ${o.mandantNr} ${o.auftragsNr} ${o.art}`.toLowerCase().includes(q));
   }, [orders, suche]);
 
-  // Gebuchte Blöcke des gewählten Tages. Ohne startMin (z. B. nach Server-Reload) der Reihe
-  // nach ab Tagesbeginn stapeln, damit sie trotzdem sichtbar sind.
+  // Gebuchte Blöcke des gewählten Tages FÜR den Zielmitarbeiter. Ohne startMin (z. B. nach
+  // Server-Reload) der Reihe nach ab Tagesbeginn stapeln, damit sie trotzdem sichtbar sind.
   const buchungen = useMemo(() => {
-    if (!me) return [];
-    const rows = zeitenAmTag(orders, me, datum);
+    if (!zielUser) return [];
+    const rows = zeitenAmTag(orders, zielUser, datum);
     let stapel = DAY_START;
     return rows.map((r) => {
       const start = r.time.startMin ?? stapel;
       stapel = Math.max(stapel, start) + Math.round(r.time.dauer * 60);
       return { row: r, start };
     });
-  }, [orders, me, datum]);
+  }, [orders, zielUser, datum]);
+
+  // Bereits heute auf „Kanzleiverwaltung" (9801) gebuchte Stunden des Zielmitarbeiters — Basis des
+  // Hinweises bei Überschreiten des kvLimitMin (kein hartes Limit, nur Warnung).
+  const kvHeuteStd = useMemo(
+    () =>
+      buchungen
+        .filter((b) => istKanzleiverwaltung(b.row.order.ordertype))
+        .reduce((s, b) => s + b.row.time.dauer, 0),
+    [buchungen],
+  );
 
   // Tagessoll aus dem Nutzerprofil (Review P2-1): Teilzeitkraefte haben z. B. 6 h, nicht pauschal 8.
-  const tagesSoll = me?.tagessoll ?? DEFAULT_TAGES_SOLL;
+  const tagesSoll = zielUser?.tagessoll ?? DEFAULT_TAGES_SOLL;
   const summe = buchungen.reduce((s, b) => s + b.row.time.dauer, 0);
   const fuellPct = Math.min(100, Math.round((summe / tagesSoll) * 100));
 
@@ -99,9 +126,19 @@ export function ZeiterfassungBoard() {
     if (!draft) return;
     const pflicht = artNeedsNotiz(draft.order.artKey);
     if (draft.dauer <= 0 || (pflicht && !draft.notiz.trim())) return;
-    addManual(draft.order.id, datum, draft.dauer, draft.notiz || undefined, undefined, draft.startMin);
+    // Bucht das Backoffice für einen anderen, den Zielnutzer mitgeben (Server erzwingt die Rolle).
+    addManual(draft.order.id, datum, draft.dauer, draft.notiz || undefined, undefined, draft.startMin, fuerAnderen ? zielUser!.id : undefined);
     setDraft(null);
   }
+
+  // Hinweis (kein hartes Limit): Kanzleiverwaltung über dem Tageslimit des Zielmitarbeiters?
+  const kvWarnung = (() => {
+    if (!draft || !istKanzleiverwaltung(draft.order.ordertype)) return null;
+    const limit = zielUser?.kvLimitMin;
+    if (limit == null) return null;
+    const gesamtMin = Math.round((kvHeuteStd + draft.dauer) * 60);
+    return gesamtMin > limit ? { gesamtMin, limit } : null;
+  })();
 
   return (
     <div className="ze">
@@ -120,6 +157,25 @@ export function ZeiterfassungBoard() {
         <div className="ze__grid">
           {/* LINKS: Tagesauswahl */}
           <aside className="panel ze__days">
+            {/* Backoffice/Admin: Zeiten FÜR einen Mitarbeiter erfassen (Nacherfassung). */}
+            {darfFuerAndere && (
+              <div className="field" style={{ marginBottom: 14 }}>
+                <label className="section-label">Zeiten erfassen für</label>
+                <select
+                  className="input"
+                  value={zielUserId}
+                  onChange={(e) => { setZielUserId(e.target.value); setDraft(null); }}
+                >
+                  {me && <option value={me.id}>Mich selbst ({me.name})</option>}
+                  {users.filter((u) => u.aktiv && u.id !== me?.id).map((u) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+                {fuerAnderen && (
+                  <div className="hint">Buchungen gehen auf das Konto von {zielUser?.name}.</div>
+                )}
+              </div>
+            )}
             <h4 style={{ marginBottom: 10 }}>Tag</h4>
             {[0, 1, 2].map((n) => {
               const iso = tagVor(n);
@@ -175,7 +231,7 @@ export function ZeiterfassungBoard() {
               {draft && (
                 <div
                   className="ze__block ze__block--draft"
-                  style={{ top: (draft.startMin - DAY_START) * PX_PER_MIN, height: Math.max(64, draft.dauer * HOUR_PX - 2), borderLeftColor: ART[draft.order.artKey].color }}
+                  style={{ top: (draft.startMin - DAY_START) * PX_PER_MIN, height: Math.max(kvWarnung ? 118 : 64, draft.dauer * HOUR_PX - 2), borderLeftColor: ART[draft.order.artKey].color }}
                 >
                   <div className="ze__block-head">
                     <span className="ze__block-time">{label(draft.startMin)}–{label(draft.startMin + Math.round(draft.dauer * 60))}</span>
@@ -193,6 +249,12 @@ export function ZeiterfassungBoard() {
                     value={draft.notiz}
                     onChange={(e) => setDraft({ ...draft, notiz: e.target.value })}
                   />
+                  {kvWarnung && (
+                    <div className="ze__kv-warn" role="alert">
+                      Mehr als {kvWarnung.limit} Min./Tag auf Kanzleiverwaltung ({kvWarnung.gesamtMin} Min.) —
+                      das braucht eine besondere Begründung und Genehmigung. Buchen ist möglich, bitte im Zweifel abstimmen.
+                    </div>
+                  )}
                   <div className="ze__draft-actions">
                     <button className="btn btn--deep btn--sm" onClick={buchen}>Buchen</button>
                     <button className="btn btn--ghost btn--sm" onClick={() => setDraft(null)}>Abbrechen</button>

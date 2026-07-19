@@ -14,6 +14,7 @@ und einen Browser — dafür prüfen sie die App durchgehend wie ein echter Benu
 | `e2e-verhalten.mjs` | Auftragsart-Behandlung (Demo, Port 5173): Board nur planbar, Filterleiste ohne leere Buckets, Sektion „Sonstige Aufträge" buchbar + Suche |
 | `e2e-teilauftrag.mjs` | Server-Modus: Karte zeigt NUR den nächsten offenen Teilauftrag + Mandanten-Klarname |
 | `e2e-zeiterfassung.mjs` | Zeiterfassungs-Board (Demo, Port 5173): Tagesauswahl, Palette-Suche, Drag&Drop → Entwurf → buchen, Tagessumme, Tageswechsel |
+| `e2e-interne-limits.mjs` | Kanzleiverwaltung bebuchbar + Tageslimit-Hinweis (kein hartes Limit); Backoffice-Rolle bucht für andere (Demo, Port 5173) |
 
 ## Ausführen
 

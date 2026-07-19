@@ -501,6 +501,13 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 .ze__block-notiz { margin-top: 6px; font-size: 12px; padding: 4px 8px; }
 .ze__step { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
 .ze__draft-actions { display: flex; gap: 8px; margin-top: 8px; }
+.ze__kv-warn {
+  margin-top: 6px; font-size: 11px; line-height: 1.35;
+  color: var(--bk-blood-orange, #b23b00);
+  background: color-mix(in srgb, var(--bk-blood-orange, #b23b00) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bk-blood-orange, #b23b00) 35%, transparent);
+  border-radius: 6px; padding: 5px 8px;
+}
 
 .ze__palette { position: sticky; top: 84px; }
 .ze__pal-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; max-height: 70vh; overflow: auto; }

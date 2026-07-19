@@ -106,6 +106,15 @@ export const ORDERTYPES: Ordertype[] = [
   { ordertype: 'FinVermV', name: 'Prüfung nach § 24 FinVermV', groupId: 13 },
   { ordertype: 'JAP', name: 'Jahresabschlussprüfung', groupId: 13 },
   { ordertype: 'MaBV', name: 'Prüfung nach § 16 MaBV', groupId: 13 },
+  // 9 Verwaltung (intern) — nicht im Board, aber als interne Zeit bebuchbar (z. B. Kanzleiverwaltung).
+  { ordertype: '9801', name: 'Kanzleiverwaltung', groupId: 9 },
+  { ordertype: '9802', name: 'Internes Rechnungswesen', groupId: 9 },
+  { ordertype: '9804', name: 'EDV', groupId: 9 },
+  { ordertype: '9806', name: 'Fortbildung', groupId: 9 },
+  { ordertype: '9807', name: 'Fremdarbeiten', groupId: 9 },
+  // 10 Abwesenheit (intern) — in der Regel über den DATEV-Mitarbeiterkalender, hier nur der Vollständigkeit.
+  { ordertype: '9901', name: 'Urlaub', groupId: 10 },
+  { ordertype: '9903', name: 'Krankheit', groupId: 10 },
 ];
 
 /** Schneller Zugriff auf einen Ordertype über seinen Code. */

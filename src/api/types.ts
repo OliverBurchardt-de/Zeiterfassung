@@ -41,6 +41,8 @@ export interface ApiBookTimeInput {
   aufwandsart?: 'mehraufwand' | 'dumm';
   /** Verhindert Doppelbuchung bei Retry; hier zugleich die temporäre Client-ID des Eintrags. */
   idempotencyKey?: string;
+  /** Backoffice-Nacherfassung für einen anderen Mitarbeiter (nur Backoffice/Admin, serverseitig geprüft). */
+  onBehalfOfUserId?: string;
 }
 
 /**
