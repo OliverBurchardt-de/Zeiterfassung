@@ -37,6 +37,7 @@ const ART_LABEL: Record<ArtKey, string> = {
   fibu: 'Finanzbuchhaltung', lohn: 'Lohnbuchführung', ja: 'Jahresabschluss', est: 'Private Steuern',
   beratung: 'Steuerliche Beratung', wirtschaft: 'Wirtschaftliche Beratung', hausverwaltung: 'Hausverwaltung',
   vorbehalt: 'Vorbehaltsaufgaben', lfd_beratung: 'Laufende Steuerberatung', mehraufwand: 'Mehraufwand',
+  intern: 'Intern', // nie im Board-Filter (planbar-Filter blendet interne aus) — nur zur Typvollständigkeit
 };
 
 export function FilterSidebar() {

@@ -12,11 +12,13 @@ export const MOCK_USERS: User[] = [
   {
     id: 'u-sw', name: 'S. Wolf', initials: 'SW', email: 's.wolf@burchardt-kollegen.de',
     role: 'mitarbeiter', admin: false, aktiv: true, datevId: '1012', tagessoll: 8, arbeitstageProWoche: 5,
+    kvLimitMin: 45, // max. 45 Min./Tag auf Kanzleiverwaltung, sonst Hinweis
   },
   {
     // Teilzeit: kürzere Arbeitstage (6 h) an allen 5 Tagen
     id: 'u-mk', name: 'M. Klein', initials: 'MK', email: 'm.klein@burchardt-kollegen.de',
     role: 'mitarbeiter', admin: false, aktiv: true, datevId: '1015', tagessoll: 6, arbeitstageProWoche: 5,
+    kvLimitMin: 30,
   },
   {
     id: 'u-tb', name: 'T. Berg', initials: 'TB', email: 't.berg@burchardt-kollegen.de',
@@ -32,5 +34,10 @@ export const MOCK_USERS: User[] = [
     // Mandate" in der Demo prüfbar (O. Burchardt sieht als Admin ohnehin alles).
     id: 'u-ap', name: 'A. Peters', initials: 'AP', email: 'a.peters@burchardt-kollegen.de',
     role: 'partner', admin: false, aktiv: true, datevId: '1002', tagessoll: 8, arbeitstageProWoche: 5,
+  },
+  {
+    // Backoffice: darf Zeiten FÜR ALLE Mitarbeiter buchen (Nacherfassung), aber kein Admin.
+    id: 'u-bo', name: 'B. Ostermann', initials: 'BO', email: 'b.ostermann@burchardt-kollegen.de',
+    role: 'backoffice', admin: false, aktiv: true, datevId: '1030', tagessoll: 8, arbeitstageProWoche: 5,
   },
 ];

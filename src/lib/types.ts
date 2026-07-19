@@ -12,7 +12,8 @@ export type { StatusId, NoteKind, NoteState, Role };
 export type ArtKey =
   | 'fibu' | 'lohn' | 'ja' | 'est' | 'beratung'
   | 'wirtschaft' | 'hausverwaltung' | 'vorbehalt'
-  | 'mehraufwand' | 'lfd_beratung';
+  | 'mehraufwand' | 'lfd_beratung'
+  | 'intern'; // interne Kanzlei-Aufträge (z. B. Kanzleiverwaltung 9801) — nicht im Board, aber bebuchbar
 
 export interface Comment {
   id: string;
@@ -213,4 +214,10 @@ export interface User {
   datevId: string; // DATEV-Mitarbeiter-ID
   tagessoll: number; // Stunden pro Arbeitstag
   arbeitstageProWoche: number; // Arbeitstage/Woche (Teilzeit: < 5) — Basis der Kapazität
+  /**
+   * Tageslimit für Buchungen auf „Kanzleiverwaltung" (Ordertype 9801) in MINUTEN.
+   * undefined = unbegrenzt. Kein hartes Limit: bei Überschreiten warnt die App nur, dass mehr
+   * eine besondere Begründung/Genehmigung braucht (Entscheidung 19.07.2026).
+   */
+  kvLimitMin?: number;
 }

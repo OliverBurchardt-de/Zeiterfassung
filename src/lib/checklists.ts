@@ -20,6 +20,7 @@ export const CHECKLIST_TEMPLATES: Record<ArtKey, string[]> = {
   vorbehalt: [],
   lfd_beratung: [],
   mehraufwand: [],
+  intern: [],
 };
 
 /** Frische Checkliste (alle Punkte offen) aus der Bucket-Vorlage einer Auftragsart erzeugen. */

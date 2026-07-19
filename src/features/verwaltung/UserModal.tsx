@@ -25,7 +25,7 @@ function UserForm({ existing }: { existing?: User }) {
 
   const [d, setD] = useState<UserDraft>(
     existing
-      ? { name: existing.name, initials: existing.initials, email: existing.email, role: existing.role, admin: existing.admin, datevId: existing.datevId, tagessoll: existing.tagessoll, arbeitstageProWoche: existing.arbeitstageProWoche }
+      ? { name: existing.name, initials: existing.initials, email: existing.email, role: existing.role, admin: existing.admin, datevId: existing.datevId, tagessoll: existing.tagessoll, arbeitstageProWoche: existing.arbeitstageProWoche, kvLimitMin: existing.kvLimitMin }
       : EMPTY,
   );
 
@@ -74,6 +74,7 @@ function UserForm({ existing }: { existing?: User }) {
               <select className="input" value={d.role} onChange={(e) => setD({ ...d, role: e.target.value as Role })}>
                 <option value="mitarbeiter">Mitarbeiter</option>
                 <option value="partner">Partner</option>
+                <option value="backoffice">Backoffice (bucht für alle)</option>
               </select>
             </div>
             <div className="field">
@@ -102,6 +103,21 @@ function UserForm({ existing }: { existing?: User }) {
                 Wochenstunden: {Math.round(d.tagessoll * d.arbeitstageProWoche * 10) / 10} h
                 {d.arbeitstageProWoche < 5 ? ' · Teilzeit' : ''}
               </div>
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Kanzleiverwaltung-Limit (Minuten/Tag)</label>
+            <input
+              className="input" type="number" min={0} step={5}
+              value={d.kvLimitMin ?? ''}
+              placeholder="leer = unbegrenzt"
+              onChange={(e) => setD({ ...d, kvLimitMin: e.target.value === '' ? undefined : Math.max(0, Number(e.target.value)) })}
+            />
+            <div className="hint">
+              Höchstzeit für „Kanzleiverwaltung" pro Tag. Wird sie überschritten, wird die Buchung
+              nicht abgelehnt — der Mitarbeiter bekommt einen Hinweis, dass mehr eine besondere
+              Begründung und Genehmigung braucht. Leer = keine Begrenzung.
             </div>
           </div>
 

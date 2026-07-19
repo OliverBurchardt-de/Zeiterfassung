@@ -14,6 +14,8 @@ export interface ApiUser {
   role: Role;
   admin: boolean;
   datevEmployeeId?: string;
+  /** Tageslimit „Kanzleiverwaltung" in Minuten; undefined = unbegrenzt. */
+  kvLimitMin?: number;
 }
 
 export interface ApiTimeEntry {

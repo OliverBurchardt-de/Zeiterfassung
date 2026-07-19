@@ -1,7 +1,7 @@
 import type { Order, ArtKey, Employee, Besonderheit, Suborder } from '@/lib/types';
 import { checklistFor } from '@/lib/checklists';
 import { teilauftragRhythmus } from '@/lib/art';
-import { artKeyForOrdertype, ordertypeInfo } from '@/lib/ordertypes';
+import { artKeyForOrdertype, ordertypeInfo, verhaltenFor } from '@/lib/ordertypes';
 import { monthRange, monatBounds } from '@/lib/monate';
 
 /**
@@ -310,6 +310,16 @@ const BASE_ORDERS: OrderSeed[] = [
     bearbeiter: 'T. Berg', bearbeiterId: 'tb', partner: 'O. Burchardt',
     checklist: [], notes: [], times: [],
   },
+  {
+    // Interner Sammelauftrag „Kanzleiverwaltung" (Ordertype 9801) — nicht im Board, aber im
+    // Zeiterfassungs-Board von allen bebuchbar; Ziel des Tageslimits (kvLimitMin je Mitarbeiter).
+    id: 'kv1', mandant: 'Kanzlei (intern)', mandantNr: '—', auftragsNr: 'INTERN-9801',
+    ordertype: '9801', vj: 2025,
+    fristStart: '', fristEnde: '', monat: '',
+    soll: 0, seiten: 0, kosten: 0, status: 'av',
+    bearbeiter: 'S. Wolf', bearbeiterId: 'sw', partner: 'O. Burchardt',
+    checklist: [], notes: [], times: [],
+  },
 ];
 
 /**
@@ -318,8 +328,10 @@ const BASE_ORDERS: OrderSeed[] = [
  */
 export const MOCK_ORDERS: Order[] = BASE_ORDERS.map((o) => {
   const info = ordertypeInfo(o.ordertype);
-  // artKey = Bucket aus dem Ordertype ableiten (wie der DATEV-Adapter beim Import); Fallback nur defensiv.
-  const artKey: ArtKey = artKeyForOrdertype(o.ordertype, info?.groupId ?? 0) ?? 'beratung';
+  // artKey = Bucket aus dem Ordertype ableiten (wie der DATEV-Adapter beim Import). Interne Arten
+  // (Kanzleiverwaltung etc.) haben keinen Board-Bucket → eigener 'intern'-Key; sonst defensiv 'beratung'.
+  const artKey: ArtKey =
+    artKeyForOrdertype(o.ordertype, info?.groupId ?? 0) ?? (verhaltenFor(o.ordertype) === 'intern' ? 'intern' : 'beratung');
   const rhythmus = teilauftragRhythmus(o.ordertype);
   return {
     ...o,

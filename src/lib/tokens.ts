@@ -34,7 +34,12 @@ export const NOTE_STATE: Record<NoteState, { label: string; color: string; soft:
   freigegeben: { label: 'Freigegeben',                     color: '#2E7D5B', soft: '#DCEDE4' },
 };
 
-export type Role = 'mitarbeiter' | 'partner';
+export type Role = 'mitarbeiter' | 'partner' | 'backoffice';
+
+/** Anzeige-Beschriftung einer Rolle (UI-einheitlich). */
+export function roleLabel(role: Role): string {
+  return role === 'partner' ? 'Partner' : role === 'backoffice' ? 'Backoffice' : 'Mitarbeiter';
+}
 
 // Rollen-Policy für Review Notes / Fragen (durchsetzen, nicht in der UI verstreuen)
 //
@@ -64,7 +69,9 @@ export const notePolicy = {
 export const rolePolicy = {
   canRequestUmplanung: (role: Role) => role === 'mitarbeiter',
   canApproveUmplanung: (role: Role) => role === 'partner',
-  canReleaseOwnTime:   (role: Role) => role === 'mitarbeiter',
+  canReleaseOwnTime:   (role: Role) => role === 'mitarbeiter' || role === 'backoffice',
   // Bearbeiter zuweisen/ändern: der (mandatsverantwortliche) Partner; Admin zusätzlich via isAdmin.
   canAssignOrder:      (role: Role) => role === 'partner',
+  // Zeiten FÜR ANDERE Mitarbeiter buchen: das Backoffice (und der Admin). Serverseitig erzwungen.
+  canBookForOthers:    (role: Role, admin: boolean) => role === 'backoffice' || admin,
 };

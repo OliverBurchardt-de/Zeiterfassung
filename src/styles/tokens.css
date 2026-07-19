@@ -94,6 +94,7 @@
   --bk-art-vorbehalt:      #8A5A9B; /* Vorbehaltsaufgaben (JAP/MaBV/§24 FinVermV) */
   --bk-art-lfd-beratung:   #E5A11C; /* Laufende Steuerberatung */
   --bk-art-mehraufwand:    #333333; /* Mehraufwand / Dumm gelaufen */
+  --bk-art-intern:         #6B7280; /* Interne Kanzlei-Aufträge (Kanzleiverwaltung etc.) */
 
   /* Typografie */
   --bk-font-display: 'Petrona', 'Cambria', Georgia, serif;

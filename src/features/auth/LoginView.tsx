@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LogIn } from 'lucide-react';
 import { useStore } from '@/state/store';
+import { roleLabel } from '@/lib/tokens';
 import { API_MODE } from '@/api/mode';
 import { apiLogin } from '@/api/session';
 import { ApiError } from '@/api/client';
@@ -136,7 +137,7 @@ function DemoLogin() {
                 <span className="avatar avatar--24">{u.initials}</span>
                 <span className="login__user-text">
                   <span className="login__user-name">{u.name}</span>
-                  <span className="muted">{u.role === 'partner' ? 'Partner' : 'Mitarbeiter'}{u.admin ? ' · Admin' : ''}</span>
+                  <span className="muted">{roleLabel(u.role)}{u.admin ? ' · Admin' : ''}</span>
                 </span>
               </button>
             ))}

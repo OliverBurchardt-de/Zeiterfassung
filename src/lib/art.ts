@@ -20,6 +20,7 @@ export const ART: Record<ArtKey, { label: string; color: string }> = {
   vorbehalt: { label: 'VBA', color: 'var(--bk-art-vorbehalt)' },
   lfd_beratung: { label: 'lfd. StB', color: 'var(--bk-art-lfd-beratung)' },
   mehraufwand: { label: 'MEHR', color: 'var(--bk-art-mehraufwand)' },
+  intern: { label: 'INTERN', color: 'var(--bk-art-intern)' },
 };
 
 /**

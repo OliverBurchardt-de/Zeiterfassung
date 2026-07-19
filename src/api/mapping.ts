@@ -31,6 +31,7 @@ export function mapApiUser(u: ApiUser): User {
     datevId: u.datevEmployeeId ?? '',
     tagessoll: 8,
     arbeitstageProWoche: 5,
+    kvLimitMin: u.kvLimitMin,
   };
 }
 

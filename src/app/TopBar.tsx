@@ -1,4 +1,5 @@
 import { Search, LogOut } from 'lucide-react';
+import { roleLabel } from '@/lib/tokens';
 import type { ModuleKey } from '@/App';
 import { useStore, useCurrentUser } from '@/state/store';
 import { API_MODE } from '@/api/mode';
@@ -26,7 +27,7 @@ export function TopBar({ module, onModule }: { module: ModuleKey; onModule: (m: 
   // Server-Modus: Session auch serverseitig beenden (Cookie ungültig machen).
   const logout = API_MODE ? () => void apiLogout() : mockLogout;
 
-  const rolle = me?.role === 'partner' ? 'Partner' : 'Mitarbeiter';
+  const rolle = me ? roleLabel(me.role) : 'Mitarbeiter';
 
   return (
     <header className="topbar">

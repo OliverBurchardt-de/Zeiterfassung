@@ -180,6 +180,16 @@ export function istPlanbar(ordertype: string): boolean {
   return verhaltenFor(ordertype) === 'planbar';
 }
 
+/**
+ * DATEV-Ordertype „Kanzleiverwaltung" — der interne Sammelauftrag, dessen Bebuchung begrenzt
+ * werden soll (Entscheidung 19.07.2026: max. X Min./Tag je Mitarbeiter, sonst Hinweis). Nur DIESER
+ * Auftrag ist betroffen, nicht Urlaub/Krankheit (die laufen über den DATEV-Mitarbeiterkalender).
+ */
+export const KANZLEIVERWALTUNG_ORDERTYPE = '9801';
+export function istKanzleiverwaltung(ordertype: string): boolean {
+  return ordertype === KANZLEIVERWALTUNG_ORDERTYPE;
+}
+
 /** Kurzform: aktive Mandatsarbeit außerhalb des Boards (bebuchbar über „Sonstige Aufträge"). */
 export function istSonstige(ordertype: string): boolean {
   return verhaltenFor(ordertype) === 'sonstige';

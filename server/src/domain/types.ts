@@ -1,6 +1,6 @@
 /** Fachliche Kerntypen der Domain-Schicht. Kennen weder Datenbank noch DATEV. */
 
-export type Role = 'mitarbeiter' | 'partner';
+export type Role = 'mitarbeiter' | 'partner' | 'backoffice';
 
 /** Die 10 Kanban-Board-Status (App-intern; Spiegel von src/lib/tokens.ts StatusId). 'er' = Erledigt. */
 export type StatusId = 'av' | 'ua' | 'uv' | 'bb' | 'rf' | 'rn' | 'fg' | 'am' | 'fa' | 'er';
@@ -28,6 +28,8 @@ export interface User {
    * Fehlend = aktiv.
    */
   active?: boolean;
+  /** Tageslimit „Kanzleiverwaltung" (Ordertype 9801) in Minuten; undefined = unbegrenzt. */
+  kvLimitMin?: number;
 }
 
 /** Nutzer-Sicht ohne Geheimnisse — alles, was nach aussen gehen darf. */
