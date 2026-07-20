@@ -11,7 +11,7 @@
   WAS DU VORHER VOM ASP-ANBIETER BRAUCHST:
     1. Die genaue Adresse (Host + Port), unter der DATEVconnect jetzt von
        aussen erreichbar ist. Beispiel:
-         https://10.100.230.11:58452/datev/api
+         https://<HOST>:<PORT>/datev/api
        (NICHT "localhost" - das galt nur auf dem ASP-Server selbst.)
     2. Welche Anmeldung von aussen gilt:
          -Auth ntlm   Windows-Domaenenkonto "DOMAIN\benutzer" + Windows-Passwort
@@ -26,10 +26,10 @@
   ------------------------------------------------------------------
   AUFRUF-BEISPIELE (in PowerShell, kein Installieren noetig):
 
-    powershell -ExecutionPolicy Bypass -File .\datev-extern-test.ps1 -BaseUrl "https://10.100.230.11:58452/datev/api" -Auth basic -Insecure
+    powershell -ExecutionPolicy Bypass -File .\datev-extern-test.ps1 -BaseUrl "https://<HOST>:<PORT>/datev/api" -Auth basic -Insecure
 
     # Windows-SSO statt Basic Auth:
-    powershell -ExecutionPolicy Bypass -File .\datev-extern-test.ps1 -BaseUrl "https://10.100.230.11:58452/datev/api" -Auth sso -Insecure
+    powershell -ExecutionPolicy Bypass -File .\datev-extern-test.ps1 -BaseUrl "https://<HOST>:<PORT>/datev/api" -Auth sso -Insecure
 #>
 
 param(

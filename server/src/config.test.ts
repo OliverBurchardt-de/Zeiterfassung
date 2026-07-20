@@ -119,7 +119,7 @@ describe('loadConfig — Zahlen-/Proxy-Validierung (Review P3-2 / P2-9)', () => 
     expect(loadConfig().trustProxy).toBe(false);
     process.env.TRUST_PROXY = 'true';
     expect(loadConfig().trustProxy).toBe(true);
-    process.env.TRUST_PROXY = '10.100.230.1';
-    expect(loadConfig().trustProxy).toBe('10.100.230.1');
+    process.env.TRUST_PROXY = '192.0.2.1';
+    expect(loadConfig().trustProxy).toBe('192.0.2.1');
   });
 });

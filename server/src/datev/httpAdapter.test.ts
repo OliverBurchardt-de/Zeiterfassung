@@ -3,7 +3,7 @@ import { mapDatevOrder, mapDatevClient, splitDomainUser } from './httpAdapter';
 
 describe('splitDomainUser', () => {
   it('zerlegt DOMAIN\\benutzer', () => {
-    expect(splitDomainUser('DOMK230\\OBurchardt')).toEqual({ domain: 'DOMK230', username: 'OBurchardt' });
+    expect(splitDomainUser('MUSTERDOM\\mmustermann')).toEqual({ domain: 'MUSTERDOM', username: 'mmustermann' });
   });
   it('ohne Backslash: nur Benutzer, leere Domaene', () => {
     expect(splitDomainUser('techuser')).toEqual({ domain: '', username: 'techuser' });
