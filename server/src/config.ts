@@ -164,7 +164,10 @@ export function loadConfig(): Config {
       user: datevUser,
       password: datevPassword,
       ordersFilter: process.env.DATEV_ORDERS_FILTER ?? '',
-      timeoutMs: posInt('DATEV_TIMEOUT_MS', process.env.DATEV_TIMEOUT_MS, 30_000),
+      // Der Live-Abruf orders?expand=suborders dauert am Echtsystem ~35 s ueber VPN (s. httpAdapter).
+      // Default deshalb 90 s, damit der erste, ungecachte Board-Abruf NICHT ins Timeout laeuft
+      // (30 s < 35 s hiess: schlaegt immer fehl). Ueber DATEV_TIMEOUT_MS ueberschreibbar.
+      timeoutMs: posInt('DATEV_TIMEOUT_MS', process.env.DATEV_TIMEOUT_MS, 90_000),
       tlsInsecure,
     },
     db: {
