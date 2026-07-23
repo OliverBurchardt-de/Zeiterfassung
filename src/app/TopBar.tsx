@@ -2,6 +2,7 @@ import { Search, LogOut } from 'lucide-react';
 import { roleLabel } from '@/lib/tokens';
 import type { ModuleKey } from '@/App';
 import { useStore, useCurrentUser } from '@/state/store';
+import { useOffeneAufgabenCount } from '@/state/selectors';
 import { API_MODE } from '@/api/mode';
 import { apiLogout } from '@/api/session';
 
@@ -14,6 +15,7 @@ const MODULES: { key: ModuleKey; label: string; adminOnly?: boolean }[] = [
   { key: 'laufende', label: 'Buchungen' },
   { key: 'controlling', label: 'Controlling' },
   { key: 'zeiten', label: 'Meine Zeiten' },
+  { key: 'aufgaben', label: 'Aufgaben' },
   { key: 'freigaben', label: 'Freigaben' },
   { key: 'verwaltung', label: 'Verwaltung', adminOnly: true },
 ];
@@ -24,6 +26,7 @@ export function TopBar({ module, onModule }: { module: ModuleKey; onModule: (m: 
   const setSuche = useStore((s) => s.setSuche);
   const mockLogout = useStore((s) => s.logout);
   const me = useCurrentUser();
+  const offeneAufgaben = useOffeneAufgabenCount();
   // Server-Modus: Session auch serverseitig beenden (Cookie ungültig machen).
   const logout = API_MODE ? () => void apiLogout() : mockLogout;
 
@@ -41,6 +44,7 @@ export function TopBar({ module, onModule }: { module: ModuleKey; onModule: (m: 
             onClick={() => onModule(m.key)}
           >
             {m.label}
+            {m.key === 'aufgaben' && offeneAufgaben > 0 && <span className="nav-pill__badge">{offeneAufgaben}</span>}
           </button>
         ))}
       </nav>

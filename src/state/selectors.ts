@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { Order, Note, TimeEntry, User, AuftragsAnforderung } from '@/lib/types';
+import type { Order, Note, TimeEntry, User, AuftragsAnforderung, Task } from '@/lib/types';
 import { useStore, noteOffen } from './store';
 import { erfassteStunden } from '@/lib/art';
 import { istPlanbar } from '@/lib/ordertypes';
@@ -213,4 +213,46 @@ export function heuteErfasst(orders: Order[]): { gesamt: number; perMandant: { m
     .sort((a, b) => b.stunden - a.stunden)
     .slice(0, 5);
   return { gesamt, perMandant };
+}
+
+// ---- Aufgaben (To-Dos) ---------------------------------------------------
+
+/**
+ * Ist eine offene Aufgabe überfällig? (Fälligkeit vor dem heutigen Stichtag — heute() respektiert
+ * Demo-Stichtag bzw. echtes Datum.) Erledigte oder terminlose Aufgaben sind nie überfällig.
+ */
+export function taskUeberfaellig(t: Task): boolean {
+  return t.status === 'offen' && !!t.faelligkeit && t.faelligkeit < heute();
+}
+
+/** Sortierung einer Aufgabenliste: manuell (nach position) oder nach Frist (terminlose ans Ende). */
+export function sortiereAufgaben(tasks: Task[], modus: 'manuell' | 'frist'): Task[] {
+  const kopie = [...tasks];
+  if (modus === 'frist') {
+    // Terminlose nach hinten (hoher Ersatzschlüssel); bei Gleichstand die manuelle Reihenfolge.
+    return kopie.sort((a, b) => (a.faelligkeit ?? '9999-99-99').localeCompare(b.faelligkeit ?? '9999-99-99') || a.position - b.position);
+  }
+  return kopie.sort((a, b) => a.position - b.position);
+}
+
+/** Aufgaben, die einem Nutzer zugewiesen sind (seine To-Do-Liste). */
+export function aufgabenFuer(tasks: Task[], userId: string): Task[] {
+  return tasks.filter((t) => t.zugewiesenAnId === userId);
+}
+
+/** Aufgaben, die ein Nutzer anderen gegeben hat (vergeben, nicht sich selbst). */
+export function vonMirVergeben(tasks: Task[], userId: string): Task[] {
+  return tasks.filter((t) => t.erstelltVonId === userId && t.zugewiesenAnId !== userId);
+}
+
+/** Aufgaben, die an einem konkreten Auftrag hängen. */
+export function aufgabenZuAuftrag(tasks: Task[], orderId: string): Task[] {
+  return tasks.filter((t) => t.orderId === orderId);
+}
+
+/** Anzahl offener, mir zugewiesener Aufgaben (Navigations-Badge). */
+export function useOffeneAufgabenCount(): number {
+  const tasks = useStore((s) => s.tasks);
+  const userId = useStore((s) => s.currentUserId);
+  return useMemo(() => (userId ? tasks.filter((t) => t.zugewiesenAnId === userId && t.status === 'offen').length : 0), [tasks, userId]);
 }

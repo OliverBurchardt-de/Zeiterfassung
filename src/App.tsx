@@ -11,6 +11,7 @@ import { ControllingView } from '@/features/controlling/ControllingView';
 import { FreigabenView } from '@/features/freigaben/FreigabenView';
 import { ZeitenView } from '@/features/zeiten/ZeitenView';
 import { ZeiterfassungBoard } from '@/features/zeiterfassung/ZeiterfassungBoard';
+import { AufgabenView } from '@/features/aufgaben/AufgabenView';
 import { VerwaltungView } from '@/features/verwaltung/VerwaltungView';
 import { UserModal } from '@/features/verwaltung/UserModal';
 import { LoginView } from '@/features/auth/LoginView';
@@ -19,7 +20,7 @@ import { useStore } from '@/state/store';
 import { API_MODE } from '@/api/mode';
 import { apiRestore } from '@/api/session';
 
-export type ModuleKey = 'board' | 'zeiterfassung' | 'planung' | 'laufende' | 'controlling' | 'zeiten' | 'freigaben' | 'verwaltung';
+export type ModuleKey = 'board' | 'zeiterfassung' | 'planung' | 'laufende' | 'controlling' | 'zeiten' | 'aufgaben' | 'freigaben' | 'verwaltung';
 
 export function App() {
   const [module, setModule] = useState<ModuleKey>('board');
@@ -80,6 +81,7 @@ export function App() {
       {module === 'verwaltung' && isAdmin && <VerwaltungView />}
 
       {module === 'zeiten' && <ZeitenView />}
+      {module === 'aufgaben' && <AufgabenView />}
       {module === 'freigaben' && <FreigabenView />}
 
       {openCardId && <OrderModal orderId={openCardId} />}

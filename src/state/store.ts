@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User, Aufwandsart, AuftragsAnforderung } from '@/lib/types';
+import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User, Aufwandsart, AuftragsAnforderung, Task, TaskStatus } from '@/lib/types';
 import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
 import { heute } from '@/lib/heute';
 import { MOCK_USERS } from '@/mock/users';
+import { MOCK_TASKS } from '@/mock/tasks';
 import { monatBounds } from '@/lib/monate';
 import { hasUnterlagenProzess } from '@/lib/art';
 import { umplanungFreiMoeglich } from '@/lib/regeln';
@@ -42,6 +43,9 @@ export type UserDraft = Omit<User, 'id' | 'aktiv'>;
 
 /** Eingabedaten einer neuen Auftrags-Anforderung (ohne Meta/Status, die der Store setzt). */
 export type AnforderungDraft = Pick<AuftragsAnforderung, 'mandant' | 'mandantNr' | 'ordertype' | 'art' | 'vj' | 'zeitraum' | 'notiz'>;
+
+/** Eingabedaten einer neuen Aufgabe (Meta wie id/Urheber/Status/Position setzt der Store). */
+export type TaskDraft = Pick<Task, 'titel' | 'beschreibung' | 'zugewiesenAnId' | 'zugewiesenAn' | 'faelligkeit' | 'orderId'>;
 
 interface AppState {
   orders: Order[];
@@ -153,6 +157,16 @@ interface AppState {
   deleteNote: (orderId: string, noteId: string) => void;
   addAttachments: (orderId: string, noteId: string, attachments: Attachment[]) => void;
   removeAttachment: (orderId: string, noteId: string, attachmentId: string) => void;
+
+  // Aufgaben (Modul „Aufgaben" + To-Do-Bereich im Auftrag). App-intern, kein DATEV-Bezug.
+  // Server-Persistenz folgt als Etappe (aktuell wie die übrigen lokalen Teile im Browser gehalten).
+  tasks: Task[];
+  addTask: (draft: TaskDraft, author: User) => void;
+  updateTask: (id: string, patch: Partial<Pick<Task, 'titel' | 'beschreibung' | 'faelligkeit' | 'orderId'>>) => void;
+  assignTask: (id: string, userId: string, userName: string) => void; // Aufgabe einem Kollegen (neu) zuweisen
+  setTaskStatus: (id: string, status: TaskStatus) => void; // abhaken / wieder öffnen
+  reorderTasks: (orderedIds: string[]) => void; // manuelle Reihenfolge nach Drag & Drop festschreiben
+  deleteTask: (id: string) => void;
 }
 
 const uid = () => crypto.randomUUID();
@@ -582,6 +596,60 @@ export const useStore = create<AppState>()(persist((set, get) => ({
       ...n, attachments: n.attachments.filter((a) => a.id !== attachmentId),
     }))),
   })),
+
+  // ---- Aufgaben ----------------------------------------------------------
+  tasks: API_MODE ? [] : MOCK_TASKS,
+  addTask: (draft, author) => set((s) => {
+    if (!draft.titel.trim()) return {};
+    // Neue Aufgaben landen unten: höchste vorhandene Position + 1.
+    const maxPos = s.tasks.reduce((m, t) => Math.max(m, t.position), -1);
+    const task: Task = {
+      id: uid(),
+      titel: draft.titel.trim(),
+      beschreibung: draft.beschreibung?.trim() || undefined,
+      status: 'offen',
+      erstelltVonId: author.id,
+      erstelltVon: author.name,
+      // Ohne ausdrückliche Zuweisung gehört die Aufgabe dem Urheber selbst (eigene To-Do-Liste).
+      zugewiesenAnId: draft.zugewiesenAnId || author.id,
+      zugewiesenAn: draft.zugewiesenAn || author.name,
+      faelligkeit: draft.faelligkeit || undefined,
+      position: maxPos + 1,
+      orderId: draft.orderId || undefined,
+      erstelltAm: heute(),
+    };
+    return { tasks: [...s.tasks, task] };
+  }),
+  updateTask: (id, patch) => set((s) => ({
+    tasks: s.tasks.map((t) => (t.id === id
+      ? {
+          ...t,
+          ...(patch.titel !== undefined ? { titel: patch.titel } : {}),
+          ...(patch.beschreibung !== undefined ? { beschreibung: patch.beschreibung || undefined } : {}),
+          // faelligkeit gezielt löschbar: leerer String → Datum entfernen (undefined).
+          ...(patch.faelligkeit !== undefined ? { faelligkeit: patch.faelligkeit || undefined } : {}),
+          ...(patch.orderId !== undefined ? { orderId: patch.orderId || undefined } : {}),
+        }
+      : t)),
+  })),
+  assignTask: (id, userId, userName) => set((s) => ({
+    tasks: s.tasks.map((t) => (t.id === id ? { ...t, zugewiesenAnId: userId, zugewiesenAn: userName } : t)),
+  })),
+  setTaskStatus: (id, status) => set((s) => ({
+    tasks: s.tasks.map((t) => (t.id === id
+      ? { ...t, status, erledigtAm: status === 'erledigt' ? heute() : undefined }
+      : t)),
+  })),
+  // Reihenfolge nach Drag & Drop: die gezogenen Aufgaben belegen dieselben Positions-Slots
+  // (aufsteigend) in ihrer neuen Reihenfolge — der Rest bleibt unberührt.
+  reorderTasks: (orderedIds) => set((s) => {
+    const slots = orderedIds
+      .map((id) => s.tasks.find((t) => t.id === id)?.position ?? 0)
+      .sort((a, b) => a - b);
+    const neuePos = new Map(orderedIds.map((id, i) => [id, slots[i]]));
+    return { tasks: s.tasks.map((t) => (neuePos.has(t.id) ? { ...t, position: neuePos.get(t.id)! } : t)) };
+  }),
+  deleteTask: (id) => set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) })),
 }), {
   // Klick-Prototyp: Stand im Browser sichern, damit ein Reload nichts verwirft.
   // version bei Änderungen am Mock-Datenmodell erhöhen → alter Stand wird verworfen.
@@ -590,10 +658,11 @@ export const useStore = create<AppState>()(persist((set, get) => ({
   // (Session-Cookie, apiRestore); sonst zeigte ein Reload veraltete Stände.
   name: API_MODE ? 'bk-zeiterfassung-api' : 'bk-zeiterfassung',
   // 14: Checklisten-Punkte tragen eine Herkunft (vorlage/manuell, Review 12.07.) → neu seeden.
-  version: 14,
+  // 15: neues Modul „Aufgaben" (tasks[]) → mitpersistieren, Mock neu seeden.
+  version: 15,
   partialize: (s) => (API_MODE
-    ? { besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, anforderungen: s.anforderungen }
-    : { orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId, anforderungen: s.anforderungen }),
+    ? { besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, anforderungen: s.anforderungen, tasks: s.tasks }
+    : { orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId, anforderungen: s.anforderungen, tasks: s.tasks }),
   // Rolle/Admin-Recht werden bewusst NICHT persistiert, sondern beim Laden aus dem angemeldeten
   // Nutzer abgeleitet (eine Quelle der Wahrheit). Ohne dies fiele ein Partner nach Reload auf
   // „mitarbeiter" zurück (Review-Befund 1). Deaktivierte/gelöschte Nutzer werden abgemeldet.

@@ -8,6 +8,7 @@ import type { Order } from '@/lib/types';
 import { TimePanel } from '@/features/time/TimePanel';
 import { QuickTimeDialog } from '@/features/time/QuickTimeDialog';
 import { NotesSection } from '@/features/notes/NotesSection';
+import { OrderTasksSection } from '@/features/aufgaben/OrderTasksSection';
 import { CardFlyout, type FlyoutKind } from '@/features/board/CardFlyout';
 import { canComplete, offeneChecklist, umplanungFreiMoeglich, umplanungRegelGilt, freieUmplanungenRest } from '@/state/selectors';
 import { CHECKLIST_TEMPLATES_BY_ORDERTYPE } from '@/lib/checklists';
@@ -269,6 +270,8 @@ export function OrderModal({ orderId }: { orderId: string }) {
           {hasTeilauftraege(order.ordertype) && order.suborders && <TeilauftragPanel order={order} />}
 
           <NotesSection order={order} />
+
+          <OrderTasksSection order={order} />
         </div>
       </div>
 

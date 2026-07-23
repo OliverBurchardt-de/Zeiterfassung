@@ -518,3 +518,76 @@ input, select, textarea { font-family: inherit; font-size: var(--bk-fs-body); co
 .ze__pal-card.is-drag { cursor: grabbing; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
 .ze__pal-body { min-width: 0; }
 .ze__pal-mandant { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- Modul „Aufgaben" (To-Dos) ------------------------------------------ */
+.nav-pill__badge {
+  margin-left: 6px; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--bk-blood-orange); color: #fff; font-size: 11px; font-weight: 700;
+}
+.btn--xs { padding: 3px 8px; font-size: 12px; }
+.icon-btn--sm { padding: 2px; }
+
+.aufgaben { max-width: 900px; display: flex; flex-direction: column; gap: 14px; }
+.aufgaben__bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.aufgaben__tabs { display: flex; gap: 6px; }
+.aufgaben__sort { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.aufgaben__sort .type-pill { cursor: pointer; background: var(--bk-cloud); color: var(--bk-deep-blue); }
+.aufgaben__list { display: flex; flex-direction: column; }
+.aufgaben__erledigt { margin-top: 8px; }
+.aufgaben__erledigt-head {
+  display: inline-flex; align-items: center; gap: 4px; border: none; background: transparent;
+  color: var(--bk-fg-3); font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 0;
+}
+
+.task {
+  display: flex; align-items: flex-start; gap: 8px; padding: 10px 8px;
+  border-bottom: 1px solid var(--bk-stone); border-left: 3px solid transparent;
+}
+.task--overdue { border-left-color: var(--bk-blood-orange); }
+.task--today { border-left-color: var(--bk-amber); }
+.task--done { opacity: .6; }
+.task--done .task__title { text-decoration: line-through; }
+
+.task__drag { border: none; background: transparent; color: var(--bk-fg-3); cursor: grab; padding: 4px 2px; touch-action: none; }
+.task__check {
+  border: 1px solid var(--bk-stone); background: #fff; color: var(--bk-success);
+  border-radius: var(--bk-radius-sm); padding: 3px; cursor: pointer; margin-top: 1px;
+}
+.task__check:disabled { cursor: default; color: var(--bk-fg-3); opacity: .5; }
+
+.task__main { flex: 1; min-width: 0; }
+.task__title {
+  width: 100%; border: none; background: transparent; font: inherit; font-weight: 600;
+  color: var(--bk-fg-1); padding: 2px 0;
+}
+.task__title:focus { outline: none; border-bottom: 1px solid var(--bk-blue); }
+.task__desc { font-size: 13px; color: var(--bk-fg-3); margin: 2px 0 4px; }
+
+.task__meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.task__assignee { display: inline-flex; align-items: center; gap: 4px; color: var(--bk-fg-3); }
+.task__assignee select, .task__frist-edit input, .task-compose__field select, .task-compose__field input {
+  border: 1px solid var(--bk-stone); border-radius: var(--bk-radius-sm); padding: 3px 6px; font: inherit; font-size: 13px; background: #fff;
+}
+.task__frist { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: var(--bk-radius-pill); }
+.task__frist--overdue { color: var(--bk-blood-orange); background: #FBE3DA; }
+.task__frist--today { color: var(--bk-amber-text); background: var(--bk-amber-soft); }
+.task__frist--soon { color: var(--bk-blue); background: var(--bk-blue-soft); }
+.task__frist--normal { color: var(--bk-fg-3); background: var(--bk-cloud); }
+.task__frist--none { color: var(--bk-fg-3); }
+.task__frist-edit { display: inline-flex; align-items: center; gap: 4px; }
+.task__order {
+  border: none; background: var(--bk-cloud); color: var(--bk-deep-blue); font: inherit; font-size: 12px;
+  padding: 2px 8px; border-radius: var(--bk-radius-pill); cursor: pointer;
+}
+.task__order--muted { color: var(--bk-fg-3); cursor: default; }
+.task__from { font-size: 12px; color: var(--bk-fg-3); font-style: italic; }
+.task__del { margin-top: 1px; }
+
+.task-compose { background: var(--bk-cloud); border-radius: var(--bk-radius-md); padding: 12px; }
+.task-compose__row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.task-compose__row .input { flex: 1; min-width: 200px; }
+.task-compose__field { display: inline-flex; align-items: center; gap: 5px; color: var(--bk-fg-3); }
+.task-compose__more { margin-top: 6px; }
+.task-compose__extra { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.task-compose__extra .input { flex: 1; min-width: 200px; }

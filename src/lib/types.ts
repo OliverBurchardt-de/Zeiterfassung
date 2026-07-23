@@ -199,6 +199,31 @@ export interface AuftragsAnforderung {
 }
 
 /**
+ * Aufgabe (To-Do) — eine eigenständige Merkliste, die OPTIONAL mit einem Auftrag verknüpft ist
+ * (Entscheidung 23.07.2026: eine Sorte Aufgabe, an zwei Orten sichtbar — in der Aufgaben-Ansicht
+ * und im Auftrags-Detail). Kollegen können sich gegenseitig Aufgaben zuweisen. „Verschieben" heißt
+ * zweierlei: das Fälligkeitsdatum ändern UND die manuelle Reihenfolge (position) per Drag & Drop.
+ * Rein app-intern (kein DATEV-Bezug) — anders als Zeiten/Status geht hier nichts nach EO.
+ */
+export type TaskStatus = 'offen' | 'erledigt';
+
+export interface Task {
+  id: string;
+  titel: string;
+  beschreibung?: string;
+  status: TaskStatus;
+  erstelltVonId: string; // Urheber (App-Nutzer-ID)
+  erstelltVon: string; // Anzeigename des Urhebers (für die „von mir vergeben"-Sicht)
+  zugewiesenAnId: string; // Bearbeiter (App-Nutzer-ID) — Default = Urheber
+  zugewiesenAn: string; // Anzeigename des Bearbeiters
+  faelligkeit?: string; // ISO-Datum (optional) — „verschieben" ändert dieses Feld
+  position: number; // manuelle Reihenfolge (Drag & Drop); kleiner = weiter oben
+  orderId?: string; // optionale Verknüpfung mit einem Auftrag (Order.id)
+  erstelltAm: string; // ISO
+  erledigtAm?: string; // ISO
+}
+
+/**
  * Nutzer der App (Modul „Verwaltung"). Login/Rollen/Rechte liegen in der eigenen App-DB;
  * `datevId` mappt auf die DATEV-Mitarbeiter-ID (`order_responsible*`/`order_partner_id`).
  * Admin ist ein Zusatz-Recht (keine eigene Rolle) und mit jeder Rolle kombinierbar.
