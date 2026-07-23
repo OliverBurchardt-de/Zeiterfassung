@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User, Aufwandsart, AuftragsAnforderung, Task, TaskStatus } from '@/lib/types';
+import type { Order, Role, StatusId, ArtKey, Note, NoteState, Attachment, Besonderheit, User, Aufwandsart, AuftragsAnforderung, Task, TaskStatus, Stopwatch } from '@/lib/types';
 import { MOCK_ORDERS, MOCK_BESONDERHEITEN } from '@/mock/orders';
 import { heute } from '@/lib/heute';
 import { MOCK_USERS } from '@/mock/users';
@@ -167,6 +167,12 @@ interface AppState {
   setTaskStatus: (id: string, status: TaskStatus) => void; // abhaken / wieder öffnen
   reorderTasks: (orderedIds: string[]) => void; // manuelle Reihenfolge nach Drag & Drop festschreiben
   deleteTask: (id: string) => void;
+
+  // Stoppuhr (Zeiterfassungs-Board) — genau EINE gleichzeitig. Das Buchen der verstrichenen Zeit
+  // erledigt die Board-Komponente über addManualTime; hier liegt nur der laufende Zustand.
+  stopwatch: Stopwatch | null;
+  setStopwatch: (sw: Stopwatch | null) => void;
+  setStopwatchNotiz: (notiz: string) => void;
 }
 
 const uid = () => crypto.randomUUID();
@@ -650,6 +656,11 @@ export const useStore = create<AppState>()(persist((set, get) => ({
     return { tasks: s.tasks.map((t) => (neuePos.has(t.id) ? { ...t, position: neuePos.get(t.id)! } : t)) };
   }),
   deleteTask: (id) => set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) })),
+
+  // ---- Stoppuhr ----------------------------------------------------------
+  stopwatch: null,
+  setStopwatch: (sw) => set({ stopwatch: sw }),
+  setStopwatchNotiz: (notiz) => set((s) => (s.stopwatch ? { stopwatch: { ...s.stopwatch, notiz } } : {})),
 }), {
   // Klick-Prototyp: Stand im Browser sichern, damit ein Reload nichts verwirft.
   // version bei Änderungen am Mock-Datenmodell erhöhen → alter Stand wird verworfen.
@@ -659,10 +670,11 @@ export const useStore = create<AppState>()(persist((set, get) => ({
   name: API_MODE ? 'bk-zeiterfassung-api' : 'bk-zeiterfassung',
   // 14: Checklisten-Punkte tragen eine Herkunft (vorlage/manuell, Review 12.07.) → neu seeden.
   // 15: neues Modul „Aufgaben" (tasks[]) → mitpersistieren, Mock neu seeden.
-  version: 15,
+  // 16: Stoppuhr (stopwatch) → mitpersistieren (läuft über Reload weiter).
+  version: 16,
   partialize: (s) => (API_MODE
-    ? { besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, anforderungen: s.anforderungen, tasks: s.tasks }
-    : { orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId, anforderungen: s.anforderungen, tasks: s.tasks }),
+    ? { besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, anforderungen: s.anforderungen, tasks: s.tasks, stopwatch: s.stopwatch }
+    : { orders: s.orders, users: s.users, besonderheiten: s.besonderheiten, checklistTemplates: s.checklistTemplates, currentUserId: s.currentUserId, anforderungen: s.anforderungen, tasks: s.tasks, stopwatch: s.stopwatch }),
   // Rolle/Admin-Recht werden bewusst NICHT persistiert, sondern beim Laden aus dem angemeldeten
   // Nutzer abgeleitet (eine Quelle der Wahrheit). Ohne dies fiele ein Partner nach Reload auf
   // „mitarbeiter" zurück (Review-Befund 1). Deaktivierte/gelöschte Nutzer werden abgemeldet.

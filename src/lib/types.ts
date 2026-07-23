@@ -224,6 +224,18 @@ export interface Task {
 }
 
 /**
+ * Laufende Stoppuhr (Zeiterfassungs-Board): genau EINE gleichzeitig. `startedAt` = Epoch-ms des
+ * Starts → die verstrichene Zeit ergibt sich live aus (Date.now() - startedAt), läuft also auch
+ * über einen Reload weiter. Beim Stoppen wird die Dauer als normale Zeitbuchung (addManualTime)
+ * für den heutigen Tag geschrieben; startedAt/notiz sind reine Erfassungshilfe.
+ */
+export interface Stopwatch {
+  orderId: string;
+  startedAt: number; // Epoch-ms
+  notiz: string;
+}
+
+/**
  * Nutzer der App (Modul „Verwaltung"). Login/Rollen/Rechte liegen in der eigenen App-DB;
  * `datevId` mappt auf die DATEV-Mitarbeiter-ID (`order_responsible*`/`order_partner_id`).
  * Admin ist ein Zusatz-Recht (keine eigene Rolle) und mit jeder Rolle kombinierbar.

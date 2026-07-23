@@ -16,6 +16,7 @@ und einen Browser — dafür prüfen sie die App durchgehend wie ein echter Benu
 | `e2e-zeiterfassung.mjs` | Zeiterfassungs-Board (Demo, Port 5173): Tagesauswahl, Palette-Suche, Drag&Drop → Entwurf → buchen, Tagessumme, Tageswechsel |
 | `e2e-interne-limits.mjs` | Kanzleiverwaltung bebuchbar + Tageslimit-Hinweis (kein hartes Limit); Backoffice-Rolle bucht für andere (Demo, Port 5173) |
 | `e2e-aufgaben.mjs` | Modul „Aufgaben" (Demo, Port 5173): Badge, zugewiesene/überfällige Aufgaben, Anlegen, Abhaken, „Von mir vergeben", To-Do-Bereich im Auftrag |
+| `e2e-stoppuhr.mjs` | Zeiterfassungs-Board (Demo, Port 5173): Stoppuhr starten, Live-Tick, Reload-fest, Stopp&buchen → Block, Wechsel bucht laufenden Auftrag, Verwerfen ohne Buchung |
 
 ## Ausführen
 

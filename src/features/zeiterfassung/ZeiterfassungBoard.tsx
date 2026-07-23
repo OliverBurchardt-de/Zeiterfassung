@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable, useDraggable,
   type DragStartEvent, type DragEndEvent,
 } from '@dnd-kit/core';
-import { GripVertical, Trash2, Plus, Minus } from 'lucide-react';
+import { GripVertical, Trash2, Plus, Minus, Play, Square } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { useStore, useCurrentUser } from '@/state/store';
 import { useVisibleOrders, zeitenAmTag } from '@/state/selectors';
@@ -55,6 +55,9 @@ export function ZeiterfassungBoard() {
   const me = useCurrentUser();
   const addManual = useStore((s) => s.addManualTime);
   const deleteTime = useStore((s) => s.deleteTime);
+  const stopwatch = useStore((s) => s.stopwatch);
+  const setStopwatch = useStore((s) => s.setStopwatch);
+  const setStopwatchNotiz = useStore((s) => s.setStopwatchNotiz);
 
   const [datum, setDatum] = useState(() => heute());
   const [suche, setSuche] = useState('');
@@ -114,6 +117,59 @@ export function ZeiterfassungBoard() {
   for (let m = DAY_START; m < DAY_END; m += SLOT) slots.push(m);
   const activeOrder = dragId ? orders.find((o) => o.id === dragId.replace('pal-', '')) ?? null : null;
 
+  // ---- Stoppuhr (live „was arbeite ich gerade") --------------------------
+  // Ein 1-Sekunden-Tick, damit die laufende Anzeige tickt (nur während sie läuft).
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!stopwatch) return;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [stopwatch]);
+
+  // Der laufende Auftrag (auch außerhalb der aktuellen Palette-Treffer sicher auffindbar).
+  const laufOrder = stopwatch ? orders.find((o) => o.id === stopwatch.orderId) ?? alleOrders.find((o) => o.id === stopwatch.orderId) ?? null : null;
+  const laufSek = stopwatch ? Math.max(0, Math.floor((Date.now() - stopwatch.startedAt) / 1000)) : 0;
+  const laufNotizPflicht = !!laufOrder && artNeedsNotiz(laufOrder.artKey);
+
+  /**
+   * Verstrichene Stoppuhr-Zeit als normale Buchung schreiben (für heute) und die Uhr beenden.
+   * Gibt false zurück, wenn eine Pflicht-Notiz fehlt (dann NICHT buchen, damit nichts verloren geht).
+   */
+  function stoppenUndBuchen(): boolean {
+    if (!stopwatch || !laufOrder) { setStopwatch(null); return true; }
+    if (laufNotizPflicht && !stopwatch.notiz.trim()) return false;
+    const dauer = Math.round((laufSek / 3600) * 100) / 100;
+    if (dauer >= 0.01) {
+      // Block dort platzieren, wo tatsächlich gearbeitet wurde: jetzt minus Dauer (nur Anzeige).
+      const jetzt = new Date();
+      const nowMin = jetzt.getHours() * 60 + jetzt.getMinutes();
+      const startMin = Math.max(DAY_START, Math.min(DAY_END - 1, nowMin - Math.round(dauer * 60)));
+      addManual(laufOrder.id, heute(), dauer, stopwatch.notiz || undefined, undefined, startMin, fuerAnderen ? zielUser!.id : undefined);
+    }
+    setStopwatch(null);
+    return true;
+  }
+
+  /** Stoppuhr für einen Auftrag starten. Läuft schon eine, wird sie erst gebucht (nacheinander). */
+  function starteFuer(order: Order) {
+    if (stopwatch) {
+      if (stopwatch.orderId === order.id) return; // läuft bereits für diesen Auftrag
+      if (!stoppenUndBuchen()) return; // Wechsel blockiert: laufende braucht noch eine Pflicht-Notiz
+    }
+    setStopwatch({ orderId: order.id, startedAt: Date.now(), notiz: '' });
+    if (datum !== heute()) setDatum(heute()); // die Stoppuhr läuft „jetzt" → heutiger Tag
+  }
+
+  const laufHHMMSS = `${pad(Math.floor(laufSek / 3600))}:${pad(Math.floor((laufSek % 3600) / 60))}:${pad(laufSek % 60)}`;
+  // Hinweis Kanzleiverwaltung-Tageslimit auch für die laufende Stoppuhr.
+  const laufKvWarnung = (() => {
+    if (!stopwatch || !laufOrder || !istKanzleiverwaltung(laufOrder.ordertype)) return null;
+    const limit = zielUser?.kvLimitMin;
+    if (limit == null) return null;
+    const gesamtMin = Math.round((kvHeuteStd + laufSek / 3600) * 60);
+    return gesamtMin > limit ? { gesamtMin, limit } : null;
+  })();
+
   function onDragEnd(e: DragEndEvent) {
     setDragId(null);
     const over = e.over?.id;
@@ -152,6 +208,36 @@ export function ZeiterfassungBoard() {
           werden Datum und Dauer (DATEV kennt keine Start-Uhrzeit).
         </span>
       </p>
+
+      {stopwatch && laufOrder && (
+        <div className="ze__stopwatch" role="status">
+          <span className="ze__sw-pulse" aria-hidden />
+          <div className="ze__sw-info">
+            <div className="ze__sw-label">Stoppuhr läuft</div>
+            <div className="ze__sw-order">
+              <span className="art-badge" style={{ background: ART[laufOrder.artKey].color }}>{ART[laufOrder.artKey].label}</span>
+              {laufOrder.mandant} · {laufOrder.art}
+            </div>
+          </div>
+          <div className="ze__sw-clock">{laufHHMMSS}</div>
+          <input
+            className="input ze__sw-notiz"
+            placeholder={laufNotizPflicht ? 'Notiz (Pflicht zum Buchen) …' : 'Notiz (optional) …'}
+            value={stopwatch.notiz}
+            onChange={(e) => setStopwatchNotiz(e.target.value)}
+          />
+          <button className="btn btn--deep btn--sm" onClick={stoppenUndBuchen} disabled={laufNotizPflicht && !stopwatch.notiz.trim()} title={laufNotizPflicht && !stopwatch.notiz.trim() ? 'Erst eine Notiz eintragen' : 'Zeit stoppen und buchen'}>
+            <Square size={14} /> Stopp &amp; buchen
+          </button>
+          <button className="btn btn--ghost btn--sm" onClick={() => setStopwatch(null)} title="Ohne Buchung verwerfen">Verwerfen</button>
+        </div>
+      )}
+      {laufKvWarnung && (
+        <div className="ze__kv-warn" role="alert" style={{ marginBottom: 14 }}>
+          Mehr als {laufKvWarnung.limit} Min./Tag auf Kanzleiverwaltung ({laufKvWarnung.gesamtMin} Min.) —
+          das braucht eine besondere Begründung und Genehmigung. Buchen ist möglich, bitte im Zweifel abstimmen.
+        </div>
+      )}
 
       <DndContext sensors={sensors} onDragStart={(e: DragStartEvent) => setDragId(String(e.active.id))} onDragEnd={onDragEnd}>
         <div className="ze__grid">
@@ -270,7 +356,15 @@ export function ZeiterfassungBoard() {
             <input className="input" placeholder="Mandantennr., Mandant oder Auftrag …" value={suche} onChange={(e) => setSuche(e.target.value)} aria-label="Aufträge suchen" />
             <p className="muted" style={{ fontSize: 12, margin: '8px 0 10px' }}>Auf eine Uhrzeit in der Timeline ziehen.</p>
             <div className="ze__pal-list">
-              {treffer.map((o) => <PaletteOrder key={o.id} order={o} />)}
+              {treffer.map((o) => (
+                <PaletteOrder
+                  key={o.id}
+                  order={o}
+                  running={stopwatch?.orderId === o.id}
+                  onStart={() => starteFuer(o)}
+                  onStop={stoppenUndBuchen}
+                />
+              ))}
               {treffer.length === 0 && <p className="muted">Keine Treffer.</p>}
             </div>
           </aside>
@@ -299,17 +393,27 @@ function TimeSlot({ startMin, showLabel }: { startMin: number; showLabel: boolea
   );
 }
 
-/** Ziehbarer Auftrag in der Palette. */
-function PaletteOrder({ order }: { order: Order }) {
+/** Ziehbarer Auftrag in der Palette — mit Start/Stopp-Knopf für die Stoppuhr. */
+function PaletteOrder({ order, running, onStart, onStop }: { order: Order; running: boolean; onStart: () => void; onStop: () => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `pal-${order.id}` });
   return (
-    <div ref={setNodeRef} className={`ze__pal-card${isDragging ? ' is-ghost' : ''}`} {...attributes} {...listeners}>
+    <div ref={setNodeRef} className={`ze__pal-card${isDragging ? ' is-ghost' : ''}${running ? ' is-running' : ''}`} {...attributes} {...listeners}>
       <GripVertical size={14} className="muted" />
       <span className="art-badge" style={{ background: ART[order.artKey].color }}>{ART[order.artKey].label}</span>
       <div className="ze__pal-body">
         <div className="ze__pal-mandant">{order.mandant}</div>
         <div className="muted" style={{ fontSize: 12 }}>{order.mandantNr} · {order.art}</div>
       </div>
+      {/* Stoppuhr starten/stoppen — onPointerDown stoppt das Drag-Listener, damit der Klick nicht zieht. */}
+      <button
+        className={`ze__pal-timer${running ? ' is-running' : ''}`}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={running ? onStop : onStart}
+        aria-label={running ? 'Stoppuhr stoppen und buchen' : 'Stoppuhr für diesen Auftrag starten'}
+        title={running ? 'Stoppen & buchen' : 'Stoppuhr starten'}
+      >
+        {running ? <Square size={15} /> : <Play size={15} />}
+      </button>
     </div>
   );
 }
